@@ -32,7 +32,7 @@
 	<td><a href="{{ url_for('auth.profile', username=user.username) }}" target="_blank">{{ user.username }}</a></td>
 	<td>{{ user.joined_at|dt('%Y-%m-%d %H:%M') }}</td>
 	<td>{{ user.post_count }}</td>
-	<td>{{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %} · 已封禁{% endif %}</td>
+	<td>{% if ui_lang == 'en' %}{{ 'Administrator' if user.is_admin else 'Member' }}{% if user.is_banned %} · Banned{% endif %}{% else %}{{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %} · 已封禁{% endif %}{% endif %}</td>
 </tr>
 {% else %}
 <tr class="firstalt"><td colspan="4">暂无用户</td></tr>

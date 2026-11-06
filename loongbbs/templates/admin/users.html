@@ -2,7 +2,7 @@
 {% block title %}用户管理{% endblock %}
 {% block content %}
 <p><b>Users &rsaquo; Find</b></p>
-<p><font size="1">共 {{ total }} 位会员{% if q %}，关键词「{{ q }}」{% endif %}，第 {{ page }} / {{ pages }} 页。</font></p>
+<p><font size="1">{% if ui_lang == 'en' %}{{ total }} member{{ '' if total == 1 else 's' }}{% if q %}, keyword "{{ q }}"{% endif %}, page {{ page }} / {{ pages }}.{% else %}共 {{ total }} 位会员{% if q %}，关键词「{{ q }}」{% endif %}，第 {{ page }} / {{ pages }} 页。{% endif %}</font></p>
 
 <form action="{{ url_for('admin.users_page') }}" method="get">
 <table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
@@ -35,15 +35,15 @@
 	<td><font size="1">{{ user.email }}</font></td>
 	<td><font size="1">{{ user.joined_at|dt('%Y-%m-%d') }}</font></td>
 	<td>{{ user.post_count }}</td>
-	<td>{{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %} <span class="cc">· 已封禁</span>{% endif %}</td>
+	<td>{% if ui_lang == 'en' %}{{ 'Administrator' if user.is_admin else 'Member' }}{% if user.is_banned %} <span class="cc">· Banned</span>{% endif %}{% else %}{{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %} <span class="cc">· 已封禁</span>{% endif %}{% endif %}</td>
 	<td>
 		<form method="post" action="{{ url_for('admin.ban_user', user_id=user.id) }}" style="display:inline">
 			<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-			<input type="submit" value="{{ '解封' if user.is_banned else '封禁' }}">
+			<input type="submit" value="{% if ui_lang == 'en' %}{{ 'Unban' if user.is_banned else 'Ban' }}{% else %}{{ '解封' if user.is_banned else '封禁' }}{% endif %}">
 		</form>
 		<form method="post" action="{{ url_for('admin.promote_user', user_id=user.id) }}" style="display:inline">
 			<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-			<input type="submit" value="{{ '撤销管理员' if user.is_admin else '设为管理员' }}">
+			<input type="submit" value="{% if ui_lang == 'en' %}{{ 'Remove admin' if user.is_admin else 'Make admin' }}{% else %}{{ '撤销管理员' if user.is_admin else '设为管理员' }}{% endif %}">
 		</form>
 	</td>
 </tr>
@@ -56,9 +56,9 @@
 {% if pages > 1 %}
 <br>
 <p align="center"><font size="1">
-第
+{% if ui_lang == 'en' %}Page{% else %}第{% endif %}
 {% for p in range(1, pages + 1) %}<a href="{{ url_for('admin.users_page', page=p, q=q) }}">{{ p }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}
-页
+{% if ui_lang == 'en' %}{% else %}页{% endif %}
 </font></p>
 {% endif %}
 {% endblock %}

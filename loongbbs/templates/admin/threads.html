@@ -7,7 +7,7 @@
 <form method="post" action="{{ url_for('admin.threads_page') }}">
 <table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
 <table cellpadding="4" cellspacing="0" border="0" width="100%">
-<tr class="tblhead"><td colspan="6"><font size="1"><b><span class="tblhead">主题列表（共 {{ total }} 个，第 {{ page }} / {{ pages }} 页）</span></b></font></td></tr>
+<tr class="tblhead"><td colspan="6"><font size="1"><b><span class="tblhead">{% if ui_lang == 'en' %}Thread List ({{ total }} total, page {{ page }} / {{ pages }}){% else %}主题列表（共 {{ total }} 个，第 {{ page }} / {{ pages }} 页）{% endif %}</span></b></font></td></tr>
 <tr class="tblhead">
 	<td width="4%"><font size="1"><span class="tblhead">&nbsp;</span></font></td>
 	<td><font size="1"><span class="tblhead">主题</span></font></td>

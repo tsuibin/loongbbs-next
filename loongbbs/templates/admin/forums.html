@@ -17,7 +17,7 @@
 </tr>
 
 {% for category in categories %}
-<tr class="tblhead"><td colspan="6"><font size="1"><span class="tblhead">分类：{{ category.name }}（编号 {{ category.id }}）</span></font></td></tr>
+<tr class="tblhead"><td colspan="6"><font size="1"><span class="tblhead">{% if ui_lang == 'en' %}Category: {{ category.name }} (id {{ category.id }}){% else %}分类：{{ category.name }}（编号 {{ category.id }}）{% endif %}</span></font></td></tr>
 {% for forum in category.forums %}
 <tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
 	<td><a href="{{ url_for('forums.forum', forum_id=forum.id) }}" target="_blank">{{ forum.name }}</a></td>

@@ -21,7 +21,8 @@
 </table>
 <hr>
 <center><font size="1">
-<a href="{{ url_for('forums.index') }}" target="_top">论坛首页</a>
+<a href="{{ url_for('forums.index') }}" target="_top">{% if ui_lang == 'en' %}Forums Home{% else %}论坛首页{% endif %}</a><br><br>
+{% if ui_lang == 'en' %}<b>English</b> | <a href="{{ url_for('admin.frameset') }}?lang=zh" target="_top">中文</a>{% else %}<a href="{{ url_for('admin.frameset') }}?lang=en" target="_top">English</a> | <b>中文</b>{% endif %}
 </font></center>
 </form>
 </BODY></HTML>

@@ -86,8 +86,6 @@ def create_app(test_config: dict | None = None) -> Flask:
         lang = (request.args.get("lang") or "").strip().lower()
         if not lang or lang not in SUPPORTED_LANGUAGES:
             return None
-        if request.path.startswith("/admin"):
-            return None
         query = dict(request.args.to_dict(flat=True))
         query.pop("lang", None)
         from urllib.parse import urlencode
@@ -341,10 +339,6 @@ def create_app(test_config: dict | None = None) -> Flask:
         if current_language() != "en":
             return response
         if request.path.startswith("/static"):
-            return response
-        # 后台管理界面固定中文：原版 admin 的 lang_zh 只翻设置项描述，
-        # 本站后台是按 31 组 Options 中文复刻的，不参与前台语言切换。
-        if request.path.startswith("/admin"):
             return response
         if (response.mimetype or "") != "text/html":
             return response

@@ -2,7 +2,7 @@
 {% block title %}举报帖子{% endblock %}
 {% block content %}
 <p><b>Moderation &rsaquo; Reported Posts</b></p>
-<p><font size="1">共 {{ total }} 条举报，其中待处理 {{ pending }} 条。</font></p>
+<p><font size="1">{% if ui_lang == 'en' %}{{ total }} report{{ '' if total == 1 else 's' }}, {{ pending }} still open.{% else %}共 {{ total }} 条举报，其中待处理 {{ pending }} 条。{% endif %}</font></p>
 
 {% if not rows %}
 <p><font size="1">目前没有举报记录。会员在主题页点「向版主举报本帖」后，记录会出现在这里。</font></p>
@@ -22,13 +22,13 @@
 {% for row in rows %}
 <tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
 	<td><font size="1">{{ row.id }}</font></td>
-	<td><font size="1"><a href="{{ url_for('forums.thread', thread_id=row.post.thread.id) }}#post{{ row.post.id }}">{{ row.post.thread.title }}</a>{% if row.note %}<br><span title="{{ row.note }}">附言：{{ row.note[:20] }}{% if row.note|length > 20 %}…{% endif %}</span>{% endif %}</font></td>
+	<td><font size="1"><a href="{{ url_for('forums.thread', thread_id=row.post.thread.id) }}#post{{ row.post.id }}">{{ row.post.thread.title }}</a>{% if row.note %}<br><span title="{{ row.note }}">{% if ui_lang == 'en' %}Note: {% else %}附言：{% endif %}{{ row.note[:20] }}{% if row.note|length > 20 %}…{% endif %}</span>{% endif %}</font></td>
 	<td><font size="1">{{ row.post.author.username }}</font></td>
 	<td><font size="1">{{ row.reporter.username }}</font></td>
 	<td><font size="1">{{ row.reason }}</font></td>
 	<td><font size="1">{{ row.created_at|dt('%Y-%m-%d %H:%M') }}</font></td>
-	<td><font size="1">{% if row.resolved %}<span style="color:#666666">已处理</span>{% else %}<b>待处理</b>{% endif %}</font></td>
-	<td><font size="1">{% if not row.resolved %}<form method="post" action="{{ url_for('admin.reports_resolve', report_id=row.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="submit" value="标记已处理"></form>{% else %}<form method="post" action="{{ url_for('admin.reports_resolve', report_id=row.id) }}" style="display:inline"><input type="hidden" name="undo" value="1"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="submit" value="重新打开"></form>{% endif %}</font></td>
+	<td><font size="1">{% if row.resolved %}<span style="color:#666666">{% if ui_lang == 'en' %}Resolved{% else %}已处理{% endif %}</span>{% else %}<b>{% if ui_lang == 'en' %}Open{% else %}待处理{% endif %}</b>{% endif %}</font></td>
+	<td><font size="1">{% if not row.resolved %}<form method="post" action="{{ url_for('admin.reports_resolve', report_id=row.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="submit" value="{% if ui_lang == 'en' %}Mark resolved{% else %}标记已处理{% endif %}"></form>{% else %}<form method="post" action="{{ url_for('admin.reports_resolve', report_id=row.id) }}" style="display:inline"><input type="hidden" name="undo" value="1"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="submit" value="{% if ui_lang == 'en' %}Reopen{% else %}重新打开{% endif %}"></form>{% endif %}</font></td>
 </tr>
 {% endfor %}
 </table>
