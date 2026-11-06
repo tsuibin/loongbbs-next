@@ -194,8 +194,9 @@ function checklength(theform) {
 		<input type="checkbox" name="postpoll" value="yes" id="postpoll" onclick="document.getElementById('pollfields').style.display = this.checked ? '' : 'none'"> <b>是！随本帖发起一个投票</b><br>
 		<div id="pollfields" style="display:none">
 		问题: <input type="text" class="bginput" size="50" name="pollquestion" maxlength="200"><br>
-		选项（至少填两个，最多五个）:<br>
-		{% for i in range(1, 6) %}<input type="text" class="bginput" size="40" name="polloption{{ i }}" maxlength="200"><br>{% endfor %}
+		{% set maxpoll = (settings.get('maxpolloptions', '10')|int) or 10 %}
+		选项（至少填两个，最多 {{ maxpoll }} 个）:<br>
+		{% for i in range(1, maxpoll + 1) %}<input type="text" class="bginput" size="40" name="polloption{{ i }}" maxlength="200"><br>{% endfor %}
 		</div>
 	</font></td>
 </tr>

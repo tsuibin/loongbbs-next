@@ -776,10 +776,13 @@ def new_thread(forum_id: int):
     # 发帖时勾了「发起投票」才建 poll（对应 vB newthread 的 $postpolloption）
     if request.form.get("postpoll") == "yes":
         question = (request.form.get("pollquestion") or "").strip()
+        # 组 25 maxpolloptions：投票选项个数的上限（原版 newthread.php 的 $maxpolloptions）
+        max_options = _setting_int("maxpolloptions", 10, low=1)
         options = [
-            (request.form.get(f"polloption{i}") or "").strip() for i in range(1, 6)
+            (request.form.get(f"polloption{i}") or "").strip()
+            for i in range(1, max_options + 1)
         ]
-        options = [option for option in options if option][:5]
+        options = [option for option in options if option][:max_options]
         if question and len(options) >= 2:
             poll_obj = Poll(thread_id=thread_obj.id, question=question[:200])
             db.session.add(poll_obj)
@@ -830,6 +833,9 @@ def vote_thread(thread_id: int):
         return redirect(target)
 
     db.session.add(PollVote(poll_id=poll_obj.id, option_id=option.id, user_id=current_user.id))
+    # 组 25 updatelastpost：投票后是否把主题的 lastpost 顶到当前时间（原版 poll.php）
+    if get_setting("updatelastpost") == "1":
+        thread_obj.last_post_at = utcnow()
     db.session.commit()
     flash("投票成功，谢谢参与。", "success")
     return redirect(target)
