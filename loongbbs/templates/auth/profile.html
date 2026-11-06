@@ -57,21 +57,15 @@
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>生日</b></font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.birthday if profile_user.birthday else 'N/A' }}</font></td>
 </tr>
+{% for field in custom_fields %}
+<tr>
+	<td bgcolor="{{ '#DFDFDF' if loop.index is odd else '#F1F1F1' }}"><font face="verdana, arial, helvetica" size="2"><b>{{ field.title }}</b></font></td>
+	<td bgcolor="{{ '#DFDFDF' if loop.index is odd else '#F1F1F1' }}"><font face="verdana, arial, helvetica" size="2">{{ field.value if field.value else '&nbsp;'|safe }}</font></td>
+</tr>
+{% endfor %}
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>个人签名</b></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{% if profile_user.signature %}{{ profile_user.signature }}{% else %}&nbsp;{% endif %}</font></td>
-</tr>
-<tr>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>来自</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.location if profile_user.location else '&nbsp;'|safe }}</font></td>
-</tr>
-<tr>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>兴趣</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.interests if profile_user.interests else '&nbsp;'|safe }}</font></td>
-</tr>
-<tr>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>职业</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.occupation if profile_user.occupation else '&nbsp;'|safe }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#8080A6" align="center" colspan="2"><font face="verdana,arial,helvetica" size="1">

@@ -28,6 +28,8 @@ from .models import (
     Thread,
     ThreadSubscription,
     User,
+    UserField,
+    UserProfileField,
     utcnow,
 )
 from .settings import get_setting
@@ -37,6 +39,82 @@ bp = Blueprint("auth", __name__)
 
 USERNAME_CHARS = "A-Za-z0-9_\u4e00-\u9fa5"
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+# ------------------------------------------------------ custom profile fields
+
+
+def _profile_field_defs() -> list[UserProfileField]:
+    """按 displayorder 排好的字段定义（原版 profilefield 表的取法）。"""
+    return (
+        db.session.execute(
+            select(UserProfileField).order_by(
+                UserProfileField.displayorder, UserProfileField.id
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
+def _profile_field_values(user_id: int) -> dict[int, str]:
+    """某个用户的 field1…fieldN 值，键是 profilefieldid。"""
+    row = db.session.get(UserField, user_id)
+    if row is None:
+        return {}
+    return {field.id: row.get_field(field.id) for field in _profile_field_defs()}
+
+
+def _profile_form_rows(values: dict[int, str] | None = None) -> list[dict]:
+    """模板渲染用：只列「可见且可编辑」的字段，并带上当前值与 size / maxlength。"""
+    values = values or {}
+    rows = []
+    for field in _profile_field_defs():
+        if field.hidden or not field.editable:
+            continue
+        rows.append(
+            {
+                "id": field.id,
+                "name": f"field{field.id}",
+                "title": field.title,
+                "description": field.description,
+                "required": bool(field.required),
+                "maxlength": int(field.maxlength or 250),
+                "size": int(field.size or 25),
+                "value": values.get(field.id, ""),
+            }
+        )
+    return rows
+
+
+def _profile_field_data(form, rows: list[dict]) -> tuple[dict[int, str], list[str]]:
+    """读表单里的 fieldN 并校验：必填未填记为错误，超长按 maxlength 截断。"""
+    data: dict[int, str] = {}
+    errors: list[str] = []
+    for row in rows:
+        value = (form.get(row["name"]) or "").strip()
+        if row["required"] and not value:
+            errors.append(f"「{row['title']}」是必填项。")
+        if len(value) > row["maxlength"]:
+            value = value[: row["maxlength"]]
+        data[row["id"]] = value
+    return data, errors
+
+
+def _save_profile_fields(user: User, data: dict[int, str]) -> None:
+    """把 fieldN 值写进 userfield 行（没有则新建）。"""
+    record = db.session.get(UserField, user.id)
+    if record is None:
+        record = UserField(userid=user.id)
+        db.session.add(record)
+    for pid, value in data.items():
+        record.set_field(pid, value)
+    # 兼容前台其他地方仍在读 users.location / interests / occupation 的老列
+    legacy = {2: "location", 3: "interests", 4: "occupation"}
+    for pid, attr in legacy.items():
+        if pid in data:
+            limit = 200 if attr == "interests" else 100
+            setattr(user, attr, data[pid][:limit])
 
 
 def _username_limits() -> tuple[int, int]:
@@ -74,7 +152,12 @@ def register_form():
         flash("本站暂未开放注册。", "error")
         return redirect(url_for("forums.index"))
     low, high = _username_limits()
-    return render_template("auth/register.html", min_user=low, max_user=high)
+    return render_template(
+        "auth/register.html",
+        min_user=low,
+        max_user=high,
+        profile_fields=_profile_form_rows(),
+    )
 
 
 def _banned_email(email: str) -> bool:
@@ -134,17 +217,30 @@ def register():
             else:
                 errors.append("邮箱已被注册。")
 
+    profile_rows = _profile_form_rows()
+    profile_data, profile_errors = _profile_field_data(request.form, profile_rows)
+    errors.extend(profile_errors)
+
     if errors:
         for message in errors:
             flash(message, "error")
         return (
-            render_template("auth/register.html", username=username, email=email, min_user=low, max_user=high),
+            render_template(
+                "auth/register.html",
+                username=username,
+                email=email,
+                min_user=low,
+                max_user=high,
+                profile_fields=_profile_form_rows(profile_data),
+            ),
             400,
         )
 
     user = User(username=username, email=email)
     user.set_password(password)
     db.session.add(user)
+    db.session.flush()
+    _save_profile_fields(user, profile_data)
     db.session.commit()
 
     login_user(user)
@@ -390,12 +486,19 @@ def profile(username: str):
         .scalars()
         .all()
     )
+    values = _profile_field_values(user.id)
+    # 原版 getinfo_customfields：所有未隐藏的字段都列出来，空值也占一行
+    custom_fields = [
+        {"title": row["title"], "value": row["value"]}
+        for row in _profile_form_rows(values)
+    ]
     return render_template(
         "auth/profile.html",
         profile_user=user,
         threads=threads,
         posts=posts,
         joined=format_dt(user.joined_at, "%Y-%m-%d"),
+        custom_fields=custom_fields,
     )
 
 
@@ -619,6 +722,7 @@ def edit_profile():
         forums=_forum_jump_list(),
         ct_allowed=ct_allowed,
         ct_max_chars=ct_max_chars,
+        profile_fields=_profile_form_rows(_profile_field_values(current_user.id)),
     )
 
 
@@ -651,6 +755,13 @@ def edit_profile_post():
             flash("这个邮箱地址已被管理员封禁。")
             ok = False
 
+    profile_rows = _profile_form_rows()
+    profile_data, profile_errors = _profile_field_data(form, profile_rows)
+    if profile_errors:
+        for message in profile_errors:
+            flash(message, "error")
+        ok = False
+
     if not ok:
         ct_allowed, ct_max_chars = _custom_title_limits()
         return render_template(
@@ -659,6 +770,7 @@ def edit_profile_post():
             forums=_forum_jump_list(),
             ct_allowed=ct_allowed,
             ct_max_chars=ct_max_chars,
+            profile_fields=_profile_form_rows(profile_data),
         )
 
     user.email = email
@@ -667,9 +779,7 @@ def edit_profile_post():
     user.aim = (form.get("aim") or "").strip()[:30]
     user.yahoo = (form.get("yahoo") or "").strip()[:30]
     user.signature = censor_text((form.get("signature") or "").strip())
-    user.location = (form.get("location") or "").strip()[:100]
-    user.interests = (form.get("interests") or "").strip()[:200]
-    user.occupation = (form.get("occupation") or "").strip()[:100]
+    _save_profile_fields(user, profile_data)
     user.birthday = (form.get("birthday") or "").strip()[:10]
 
     # 组 28 自定义用户头衔：资格够了才处理 customtext / resettitle

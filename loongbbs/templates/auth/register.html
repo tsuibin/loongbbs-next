@@ -34,6 +34,13 @@
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>确认密码:</b></font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="password" class="bginput" name="password2" size="40"></font></td>
 </tr>
+{% for field in profile_fields %}
+<tr>
+	<td bgcolor="{{ '#F1F1F1' if loop.index is even else '#DFDFDF' }}"><font face="verdana, arial, helvetica" size="2"><b>{{ field.title }}{% if field.required %} <font color="#FF0000">*</font>{% endif %}:</b></font><br>
+	<font face="verdana,arial,helvetica" size="1">{{ field.description }}</font></td>
+	<td bgcolor="{{ '#F1F1F1' if loop.index is even else '#DFDFDF' }}"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="{{ field.name }}" value="{{ field.value }}" size="{{ field.size }}" maxlength="{{ field.maxlength }}"></font></td>
+</tr>
+{% endfor %}
 <tr>
 	<td bgcolor="#F1F1F1" colspan="2" align="center">
 	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">

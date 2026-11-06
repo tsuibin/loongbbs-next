@@ -158,6 +158,38 @@ class UserProfileField(db.Model):
     displayorder = db.Column(db.Integer, nullable=False, default=0, server_default="0")
 
 
+class UserField(db.Model):
+    """自定义资料字段的值（对应原版 userfield 表：userid + field1…fieldN）。
+
+    参考站的 userfield 只有 field1…field4（profilefield 表就 4 条）；
+    本地预备到 field10，后台新增字段时不必改表结构。
+    """
+
+    __tablename__ = "userfield"
+
+    userid = db.Column(db.Integer, primary_key=True)
+    field1 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field2 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field3 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field4 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field5 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field6 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field7 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field8 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field9 = db.Column(db.String(250), nullable=False, default="", server_default="")
+    field10 = db.Column(db.String(250), nullable=False, default="", server_default="")
+
+    def get_field(self, profilefieldid: int) -> str:
+        """按 profilefieldid 取 fieldN；超出 1…10 的字段返回空串。"""
+        if not 1 <= int(profilefieldid or 0) <= 10:
+            return ""
+        return getattr(self, f"field{int(profilefieldid)}", "") or ""
+
+    def set_field(self, profilefieldid: int, value: str) -> None:
+        if 1 <= int(profilefieldid or 0) <= 10:
+            setattr(self, f"field{int(profilefieldid)}", value or "")
+
+
 class Category(db.Model):
     __tablename__ = "categories"
 
