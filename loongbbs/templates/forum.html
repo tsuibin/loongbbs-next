@@ -37,11 +37,11 @@
 {% set r_avg, r_cnt = thread.rating_stats %}
 <tr align="center">
 	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/' ~ ('lockfolder.gif' if thread.is_closed else ('newhotfolder.gif' if thread.has_new and hot else ('newfolder.gif' if thread.has_new else ('hotfolder.gif' if hot else 'folder.gif'))))) }}" border="0" alt=""></td>
-	<td bgcolor="#DFDFDF">{% if thread._icon_cache %}<img src="{{ url_for('static', filename='images/icons/icon' ~ thread._icon_cache ~ '.gif') }}" width="15" height="15" border="0" alt="图标 {{ thread._icon_cache }}" title="图标 {{ thread._icon_cache }}">{% else %}&nbsp;{% endif %}</td>
-	<td bgcolor="#F1F1F1" align="left" width="70%"><font face="verdana, arial, helvetica" size="2">{% if thread.is_sticky %}置顶: {% endif %}<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a></font> <font face="verdana,arial,helvetica" size="1">
+	<td bgcolor="#DFDFDF">{% if thread._icon_cache %}<img src="{{ url_for('static', filename='images/icons/icon' ~ thread._icon_cache ~ '.gif') }}" width="15" height="15" border="0" alt="图标 {{ thread._icon_cache }}" title="图标 {{ thread._icon_cache }}">{% elif settings.get('showdeficon', '0') == '1' %}<img src="{{ url_for('static', filename='images/icons/icon1.gif') }}" width="15" height="15" border="0" alt="">{% else %}&nbsp;{% endif %}</td>
+	<td bgcolor="#F1F1F1" align="left" width="70%"><font face="verdana, arial, helvetica" size="2">{% if thread.is_sticky %}置顶: {% endif %}<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title|wordwrap }}</a></font> <font face="verdana,arial,helvetica" size="1">
 	{% if thread.reply_count > 1 %}
 	  ( 页:
-	  {% for p in range(1, (thread.reply_count + settings.posts_per_page|int - 1) // (settings.posts_per_page|int) + 1) %}
+	  {% for p in range(1, (thread.reply_count + settings.get('maxposts', '15')|int - 1) // (settings.get('maxposts', '15')|int) + 1) %}
 	    <a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% if not loop.last %},{% endif %}
 	  {% endfor %}
 	  )

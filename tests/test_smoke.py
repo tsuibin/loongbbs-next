@@ -61,7 +61,7 @@ def main() -> int:
             "SECRET_KEY": "test-secret",
             "SQLALCHEMY_DATABASE_URI": f"sqlite:///{workdir}/test.db",
             "UPLOAD_DIR": f"{workdir}/uploads",
-            "POSTS_PER_PAGE": 10,
+            "MAXPOSTS": 15,
             "THREADS_PER_PAGE": 25,
         }
     )
@@ -178,7 +178,7 @@ def main() -> int:
             "_csrf": tok,
             "site_name": "LoongBBS Next",
             "site_tagline": "测试环境",
-            "posts_per_page": "10",
+            "maxposts": "15",
             "threads_per_page": "25",
             "allowregistration": "1",
             "attachthumbmode": "0",
@@ -201,7 +201,7 @@ def main() -> int:
             "_csrf": tok,
             "site_name": "LoongBBS Next",
             "site_tagline": "测试环境",
-            "posts_per_page": "10",
+            "maxposts": "15",
             "threads_per_page": "25",
             "allowregistration": "1",
             "attachthumbmode": "1",

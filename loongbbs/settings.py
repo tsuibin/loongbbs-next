@@ -11,7 +11,6 @@ from .models import Setting
 LOCAL_DEFAULTS = {
     "site_name": "LoongBBS Next",
     "site_tagline": "龙芯社区论坛 · Python 重制版",
-    "posts_per_page": "10",
     "threads_per_page": "25",
 }
 

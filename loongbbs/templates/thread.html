@@ -9,7 +9,7 @@
 	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
 	{% if forum.category %}<a href="{{ url_for('forums.index') }}#cat{{ forum.category.id }}">{{ forum.category.name }}</a> &gt; {% endif %}
 	<a href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a> &gt;
-	{{ thread.title }}</b></font></td>
+	{{ thread.title|wordwrap }}</b></font></td>
 </tr>
 </table>
 <!-- /breadcrumb, nav links -->
@@ -316,7 +316,7 @@
 <!-- first unread and next/prev -->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-	<td><font face="verdana,arial,helvetica" size="1">第 {{ page }} 页，共 {{ pages }} 页&nbsp;</font></td>
+	<td><font face="verdana,arial,helvetica" size="1">{% if pages > 1 %}{% for p in page_links %}{% if p is none %}...{% elif p == page %}<b>{{ p }}</b>{% else %}<a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %} &nbsp;{% endif %}第 {{ page }} 页，共 {{ pages }} 页&nbsp;</font></td>
 	<td align="right"><font face="verdana,arial,helvetica" size="1">
 	<img src="{{ url_for('static', filename='images/prev.gif') }}" alt="" border="0">
 	{% if prev_thread %}<a href="{{ url_for('forums.thread', thread_id=prev_thread.id) }}">上一个主题</a>{% else %}上一个主题{% endif %}

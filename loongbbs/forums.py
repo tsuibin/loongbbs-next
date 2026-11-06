@@ -310,6 +310,84 @@ def _per_page(key: str, fallback: int) -> int:
         return fallback
 
 
+def _thread_per_page() -> int:
+    """组 8 maxposts / usermaxposts：每页帖数。
+
+    原版 showthread.php 先把 usermaxposts 与 maxposts 一起取最大值作为硬上限，
+    用户 UCP 选的每页帖数不超过这个上限时就用用户的选择。
+    """
+    try:
+        maxposts = int(get_setting("maxposts", "15") or 15)
+    except (TypeError, ValueError):
+        maxposts = 15
+    maxposts = max(1, min(maxposts, 200))
+
+    options: list[int] = []
+    for part in (get_setting("usermaxposts") or "").split(","):
+        part = part.strip()
+        if part.isdigit():
+            options.append(int(part))
+    hard_max = max(options + [maxposts])
+
+    chosen = 0
+    if current_user.is_authenticated:
+        chosen = getattr(current_user, "umaxposts", 0) or 0
+    if 0 < chosen <= hard_max:
+        return chosen
+    return maxposts
+
+
+def _post_order() -> str:
+    """组 8 postorder：0 表示旧帖在前，非 0 表示新帖在前（原版 DESC）。"""
+    return "desc" if (get_setting("postorder") or "0").strip() not in ("", "0") else "asc"
+
+
+def _page_links(page: int, pages: int) -> list:
+    """组 8 pagenavpages：页码导航里当前页左右各显示几个页码，中间用省略号。"""
+    if pages <= 1:
+        return []
+    try:
+        window = int(get_setting("pagenavpages", "3") or 3)
+    except (TypeError, ValueError):
+        window = 3
+    window = max(1, window)
+    keep = {1, pages}
+    keep.update(p for p in range(page - window, page + window + 1) if 1 <= p <= pages)
+    links: list = []
+    previous = 0
+    for number in sorted(keep):
+        if previous and number - previous > 1:
+            links.append(None)
+        links.append(number)
+        previous = number
+    return links
+
+
+def _stop_shouting(title: str) -> str:
+    """组 8 stopshouting：整条标题全大写时改成词首大写（原版 ucwords(strtolower())）。"""
+    if get_setting("stopshouting") != "1" or not title:
+        return title
+    if any(ch.isalpha() for ch in title) and title == title.upper():
+        return title.title()
+    return title
+
+
+def _post_too_long(body: str) -> bool:
+    """组 8 postmaxchars：0 表示不限；原版用 strlen（字节）比较。"""
+    try:
+        limit = int(get_setting("postmaxchars") or 0)
+    except (TypeError, ValueError):
+        limit = 0
+    return limit > 0 and len(body.encode("utf-8")) > limit
+
+
+def _postmaxchars() -> int:
+    try:
+        return max(0, int(get_setting("postmaxchars") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 @bp.get("/")
 def index():
     categories = db.session.execute(
@@ -527,10 +605,13 @@ def new_thread(forum_id: int):
     if not title:
         flash("标题不能为空。", "error")
         return render_template("post_form.html", forum=forum_obj, mode="new", thread=None, post=None), 400
+    if _post_too_long(body):
+        flash(f"帖子正文超过 {_postmaxchars()} 字节的上限，请精简后再发。", "error")
+        return render_template("post_form.html", forum=forum_obj, mode="new", thread=None, post=None), 400
     if len(title) > 200:
         title = title[:200]
 
-    title = censor_text(title)
+    title = _stop_shouting(censor_text(title))
     body = censor_text(body)
 
     thread_obj = Thread(
@@ -624,7 +705,8 @@ def thread(thread_id: int):
         abort(404)
 
     page = clamp_page(request.args.get("page"))
-    per_page = _per_page("posts_per_page", 10)
+    per_page = _thread_per_page()
+    post_order = _post_order()
 
     total = db.session.scalar(
         select(func.count(Post.id)).where(
@@ -638,7 +720,7 @@ def thread(thread_id: int):
         db.session.execute(
             select(Post)
             .where(Post.thread_id == thread_obj.id, Post.is_deleted.is_(False))
-            .order_by(Post.created_at)
+            .order_by(Post.created_at.desc() if post_order == "desc" else Post.created_at)
             .offset((page - 1) * per_page)
             .limit(per_page)
         )
@@ -706,6 +788,8 @@ def thread(thread_id: int):
         pages=pages,
         total=total,
         page_args=page_args,
+        page_links=_page_links(page, pages),
+        post_order=post_order,
         render_body=render_body,
         format_dt=format_dt,
         time_ago=time_ago,
@@ -765,11 +849,14 @@ def reply(thread_id: int):
     if not body:
         flash("回复内容不能为空。", "error")
         return redirect(url_for("forums.thread", thread_id=thread_id, page="last"))
+    if _post_too_long(body):
+        flash(f"回复正文超过 {_postmaxchars()} 字节的上限，请精简后再发。", "error")
+        return redirect(url_for("forums.thread", thread_id=thread_id, page="last"))
 
     if len(title) > 200:
         title = title[:200]
 
-    title = censor_text(title)
+    title = _stop_shouting(censor_text(title))
     body = censor_text(body)
 
     post = Post(
@@ -789,7 +876,7 @@ def reply(thread_id: int):
 
 
 def _last_page(thread_obj: Thread) -> int:
-    per_page = _per_page("posts_per_page", 10)
+    per_page = _thread_per_page()
     count = db.session.scalar(
         select(func.count(Post.id)).where(
             Post.thread_id == thread_obj.id, Post.is_deleted.is_(False)
@@ -836,12 +923,15 @@ def edit_post(post_id: int):
     if not body:
         flash("内容不能为空。", "error")
         return redirect(url_for("forums.edit_post_form", post_id=post_id))
+    if _post_too_long(body):
+        flash(f"帖子正文超过 {_postmaxchars()} 字节的上限，请精简后再提交。", "error")
+        return redirect(url_for("forums.edit_post_form", post_id=post_id))
 
     post.body = censor_text(body)
     post.iconid = _icon_id()
     title = (request.form.get("title") or "").strip()
     if title:
-        post.title = censor_text(title)[:200]
+        post.title = _stop_shouting(censor_text(title))[:200]
     post.updated_at = utcnow()
     save_uploads(post, request.files.getlist("files"))
     db.session.commit()

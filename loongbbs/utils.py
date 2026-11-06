@@ -246,6 +246,24 @@ def censor_text(text: str) -> str:
     return text.replace("\u00ad", "_").replace("\u00a0", "_")
 
 
+def dowordwrap(text: str) -> str:
+    """vB admin/functions.php 的 dowordwrap：在 wordwrap 宽度处硬断词。
+
+    原版正则是把连续 N 个「不是空白、标点、HTML 尖括号」的字符后面补一个空格加换行，
+    避免超长单词或网址把表格撑破；wordwrap=0 表示不断。
+    """
+    from .settings import get_setting
+
+    try:
+        width = int(get_setting("wordwrap") or 0)
+    except (TypeError, ValueError):
+        width = 50
+    if width <= 0 or not text:
+        return text
+    pattern = re.compile(r"([^\n\r ?&./<>\"\-]{%d})" % width)
+    return pattern.sub(lambda match: " " + match.group(1) + "\n", text)
+
+
 def render_body(text: str) -> str:
     """Escape everything, then re-enable a small BBCode subset.
 

@@ -155,14 +155,14 @@
 		{% endfor %}
 	</select></font></td>
 </tr>
-{% set post_options = ["5","10","20","30","40"] %}
+{% set post_options = (settings.get('usermaxposts') or '5,10,20,30,40').split(',') %}
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>每页帖子数：</b><br>
 	<font size="1">一个主题每页显示的帖子数。</font></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
 	<select name="umaxposts">
 		<option value="-1"{% if nav_user.umaxposts == -1 %} selected{% endif %}>使用版块默认</option>
-		{% for n in post_options %}<option value="{{ n }}"{% if nav_user.umaxposts|string == n %} selected{% endif %}>Show {{ n }} posts per page</option>
+		{% for n in post_options %}<option value="{{ n|trim }}"{% if nav_user.umaxposts|string == n|trim %} selected{% endif %}>Show {{ n|trim }} posts per page</option>
 		{% endfor %}
 	</select></font></td>
 </tr>

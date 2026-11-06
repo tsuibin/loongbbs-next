@@ -134,7 +134,6 @@ NAV_GROUPS = [
 EDITABLE_SETTINGS = {
     "site_name": ("站点名称", "text"),
     "site_tagline": ("站点副标题", "text"),
-    "posts_per_page": ("每页帖子数", "number"),
     "threads_per_page": ("每页主题数", "number"),
 }
 
@@ -215,7 +214,7 @@ def settings_page():
                         value = str(int(value))
                     except ValueError:
                         continue
-                    if key in ("posts_per_page", "threads_per_page") and int(value) < 1:
+                    if key == "threads_per_page" and int(value) < 1:
                         value = "1"
             set_setting(key, value)
 
