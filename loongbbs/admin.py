@@ -80,7 +80,7 @@ NAV_GROUPS = [
         {"label": "Add", "endpoint": "admin.user_add"},
         {"label": "Find", "endpoint": "admin.users_page"},
         {"label": "Move/Prune", "module": "Move/Prune Users"},
-        {"label": "PM Statistics", "module": "PM Statistics"},
+        {"label": "PM Statistics", "endpoint": "admin.users_pmstats"},
         {"label": "IP Addresses", "module": "IP Addresses"},
         {"label": "Referrals", "module": "Referrals"},
         {"label": "Email Users", "module": "Email Users"},
@@ -854,6 +854,67 @@ def _confirm_page(thread_ids):
         ids_text=",".join(str(i) for i in thread_ids),
         total=total,
     )
+
+
+def _pm_counts():
+    """每个用户"存了多少条悄悄话"：本地一条 PM 一行，收件方与发件方各计一条。"""
+    counts: dict[int, int] = {}
+    for col in (PrivateMessage.recipient_id, PrivateMessage.sender_id):
+        for uid, n in db.session.execute(
+                select(col, func.count(PrivateMessage.id)).group_by(col)).all():
+            counts[uid] = counts.get(uid, 0) + n
+    return counts
+
+
+@bp.route("/users/pmstats")
+def users_pmstats():
+    """Users → PM Statistics：照原版 user.php 的 pmstats。"""
+    counts = _pm_counts()
+    groups: dict[int, list[int]] = {}
+    for uid, n in counts.items():
+        groups.setdefault(n, []).append(uid)
+    rows = [{"n": n, "users": len(ids), "ids": ",".join(str(i) for i in sorted(ids))}
+            for n, ids in sorted(groups.items(), key=lambda kv: (-kv[0], kv[1]))]
+    return render_template("admin/pm_stats.html", rows=rows,
+                           pmquota=get_settings().get("pmquota", 70))
+
+
+@bp.route("/users/pmuserstats")
+def users_pmuserstats():
+    """Users → PM Statistics → 某条数档位的用户列表（原版 pmuserstats）。"""
+    pms = request.args.get("pms", type=int) or 0
+    counts = _pm_counts()
+    ids = [uid for uid, n in counts.items() if n == pms]
+    rows = []
+    for u in db.session.execute(select(User).where(User.id.in_(ids))).scalars().all():
+        rows.append({
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "last_visit": u.last_visit.strftime("%H:%M %d-%b-%Y") if u.last_visit else "never",
+        })
+    rows.sort(key=lambda r: (r["username"] or "").lower())
+    return render_template("admin/pm_stats.html", mode="users", rows=rows, pms=pms,
+                           total=len(rows), ids=",".join(str(i) for i in ids))
+
+
+@bp.route("/users/killpms", methods=["GET", "POST"])
+def users_killpms():
+    """删除某用户全部悄悄话（原版 killpms / dokillpms）。"""
+    uid = request.values.get("userid", type=int) or 0
+    user = db.session.get(User, uid) if uid else None
+    username = request.values.get("username") or (user.username if user else "")
+    if request.method == "POST":
+        if user is None:
+            flash("Invalid user id specified", "error")
+            return redirect(url_for("admin.users_pmstats"))
+        db.session.execute(delete(PrivateMessage).where(
+            (PrivateMessage.sender_id == user.id) | (PrivateMessage.recipient_id == user.id)))
+        db.session.commit()
+        flash(f"Private messages belonging to {username} deleted", "success")
+        return redirect(url_for("admin.users_pmstats"))
+    return render_template("admin/pm_stats.html", mode="kill", user=user,
+                           username=username, uid=uid)
 
 
 @bp.route("/users/prune", methods=["GET", "POST"])

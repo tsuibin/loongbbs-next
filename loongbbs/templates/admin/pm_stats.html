@@ -1,0 +1,71 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Private Message Statistics{% else %}悄悄话统计{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'kill' %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Delete User's Private Messages</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2" align="center">Are you <b>sure</b> you want to delete all private messages belonging to {{ username }}?</td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<form method="post">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="userid" value="{{ uid }}">
+	<input type="hidden" name="username" value="{{ username }}">
+	<input type="submit" value="Yes, delete them">
+	<input type="button" value="Oops, no!" onclick="history.back()">
+	</form>
+</td></tr>
+</table>
+</td></tr></table>
+
+{% elif mode == 'users' %}
+<p>This page allows you to see the number of members who have a particular number of stored private messages.</p>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="4"><font size="1"><b><span class="tblhead">Users with {{ pms }} private messages stored</span></b></font></td></tr>
+<tr class="firstalt">
+	<td><font size="1"><b>Name</b></font></td>
+	<td><font size="1"><b>Last Visit</b></font></td>
+	<td colspan="4"><font size="1"><b>Options</b></font></td>
+</tr>
+{% for r in rows %}
+<tr class="secondalt">
+	<td><a href="{{ url_for('auth.profile', username=r.username) }}" target="_blank">{{ r.username }}</a></td>
+	<td>{{ r.last_visit }}</td>
+	<td colspan="4">
+		<a href="{{ url_for('admin.user_add') }}">edit user</a> |
+		<a href="mailto:{{ r.email }}">email</a> |
+		<a href="{{ url_for('pm.compose_form', to=r.username) }}" target="_blank">send pm</a> |
+		<a href="{{ url_for('admin.users_killpms', userid=r.id, username=r.username, ids=ids) }}">delete pms</a>
+	</td>
+</tr>
+{% endfor %}
+{% if not rows %}
+<tr class="secondalt"><td colspan="4">{% if ui_lang == 'en' %}No users in this bracket.{% else %}该档位没有用户。{% endif %}</td></tr>
+{% endif %}
+</table>
+</td></tr></table>
+
+{% else %}
+<p>This page allows you to see the number of members who have a particular number of stored private messages.</p>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="3"><font size="1"><b><span class="tblhead">Stored Private Message Statistics</span></b></font></td></tr>
+<tr class="firstalt" align="center">
+	<td><font size="1"><b>Number of messages</b></font></td>
+	<td><font size="1"><b>Number of users</b></font></td>
+	<td><font size="1"><b>Controls</b></font></td>
+</tr>
+{% for r in rows %}
+<tr class="secondalt" align="center">
+	<td>{{ r.n }}/{{ pmquota }}</td>
+	<td>{{ r.users }}</td>
+	<td><a href="{{ url_for('admin.users_pmuserstats', pms=r.n, ids=r.ids) }}">list users with {{ r.n }} messages</a></td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+{% endif %}
+
+{% endblock %}
