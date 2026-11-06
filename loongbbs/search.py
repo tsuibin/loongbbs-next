@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request
 from sqlalchemy import or_, select
 
 from .extensions import db
-from .models import Post, Thread
+from .models import Forum, Post, Thread
 from .utils import clamp_page, page_args, render_body
 
 bp = Blueprint("search", __name__)
@@ -15,6 +15,8 @@ bp = Blueprint("search", __name__)
 def search():
     query = (request.args.get("q") or "").strip()
     page = clamp_page(request.args.get("page"))
+    forum_id = request.args.get("forum", type=int)
+    selected_forum = db.session.get(Forum, forum_id) if forum_id else None
     per_page = 20
 
     results: list[dict] = []
@@ -22,15 +24,20 @@ def search():
     if query:
         pattern = f"%{query}%"
 
+        title_query = select(Thread).where(Thread.title.ilike(pattern))
+        post_query = select(Post).join(Thread, Post.thread_id == Thread.id).where(
+            Post.body.ilike(pattern), Post.is_deleted.is_(False)
+        )
+        if selected_forum is not None:
+            title_query = title_query.where(Thread.forum_id == selected_forum.id)
+            post_query = post_query.where(Thread.forum_id == selected_forum.id)
+
         title_matches = db.session.execute(
-            select(Thread).where(Thread.title.ilike(pattern)).order_by(Thread.last_post_at.desc()).limit(50)
+            title_query.order_by(Thread.last_post_at.desc()).limit(50)
         ).scalars().all()
 
         post_matches = db.session.execute(
-            select(Post)
-            .where(Post.body.ilike(pattern), Post.is_deleted.is_(False))
-            .order_by(Post.created_at.desc())
-            .limit(80)
+            post_query.order_by(Post.created_at.desc()).limit(80)
         ).scalars().all()
 
         seen_threads: set[int] = set()
@@ -73,4 +80,5 @@ def search():
         page=page,
         pages=max(1, (total + per_page - 1) // per_page),
         page_args=page_args,
+        selected_forum=selected_forum,
     )

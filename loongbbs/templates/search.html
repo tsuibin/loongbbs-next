@@ -4,7 +4,7 @@
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
 	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
-	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 搜索</b></font></td>
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; {% if selected_forum %}<a href="{{ url_for('forums.forum', forum_id=selected_forum.id) }}">{{ selected_forum.name }}</a> &gt; {% endif %}搜索</b></font></td>
 </tr>
 </table>
 
@@ -18,11 +18,11 @@
 </tr>
 <tr bgcolor="#DFDFDF">
 	<td bgcolor="#DFDFDF" width="30%"><font face="verdana, arial, helvetica" size="2"><b>关键词:</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="q" size="40" value="{{ query }}"><input type="submit" class="bginput" value="搜索!"></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="q" size="40" value="{{ query }}">{% if selected_forum %}<input type="hidden" name="forum" value="{{ selected_forum.id }}">{% endif %}<input type="submit" class="bginput" value="搜索!"></font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>范围:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">主题标题与帖子正文</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">{% if selected_forum %}版块：<b>{{ selected_forum.name }}</b>（只在这个版块内搜索）{% else %}主题标题与帖子正文{% endif %}</font></td>
 </tr>
 </table>
 </td></tr></table>
@@ -56,6 +56,6 @@
 </td></tr></table>
 <br>
 <font face="verdana,arial,helvetica" size="1">共 {{ total }} 条结果，第 {{ page }} 页 / 共 {{ pages }} 页。
-{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', q=query, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font>
+{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', q=query, page=p, forum=selected_forum.id if selected_forum else None) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font>
 {% endif %}
 {% endblock %}
