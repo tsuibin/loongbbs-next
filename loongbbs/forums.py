@@ -28,6 +28,7 @@ from .models import (
     PollVote,
     Post,
     PostReport,
+    PrivateMessage,
     Thread,
     ThreadRating,
     ThreadSubscription,
@@ -506,6 +507,18 @@ def index():
             .order_by(User.username)
         ).scalars().all()
 
+    # 组 19 checknewpm：登录后首页提示「你有 N 条未读悄悄话」（原版 forumhome_pmloggedin）
+    unread_pm = 0
+    if current_user.is_authenticated and get_setting("checknewpm", "1") != "0":
+        unread_pm = db.session.scalar(
+            select(func.count())
+            .select_from(PrivateMessage)
+            .where(
+                PrivateMessage.recipient_id == current_user.id,
+                PrivateMessage.read_at.is_(None),
+            )
+        ) or 0
+
     return render_template(
         "index.html",
         categories=categories,
@@ -515,6 +528,7 @@ def index():
         highlight_admin=highlight_admin,
         home_depth=home_depth,
         online_users=online_users,
+        unread_pm=unread_pm,
     )
 
 

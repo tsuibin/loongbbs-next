@@ -15,7 +15,7 @@
 <table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-	<td bgcolor="#8080A6" colspan="4"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>悄悄话收件箱{% if unread %}（{{ unread }} 条未读）{% endif %}</b></font></td>
+	<td bgcolor="#8080A6" colspan="4"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>{{ settings.get('inboxname', 'Inbox') }}{% if unread %}（{{ unread }} 条未读）{% endif %}</b></font></td>
 </tr>
 <tr bgcolor="#8080A6">
 	<td bgcolor="#8080A6" width="2%" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>&nbsp;</b></font></td>

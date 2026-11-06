@@ -316,22 +316,23 @@ def dowordwrap(text: str) -> str:
     return pattern.sub(lambda match: " " + match.group(1) + "\n", text)
 
 
-def render_body(text: str) -> str:
+def render_body(text: str, prefix: str = "") -> str:
     """Escape everything, then re-enable a small BBCode subset.
 
     Raw HTML is never allowed, so a post can not inject markup; the only tags
     that can appear in the output are the ones built here.
 
     解析范围受后台「发帖代码权限」组控制（vB 的 allowbbcode / allowhtml /
-    allowbbimagecode / allowsmilies / allowdynimg / maximages）。
+    allowbbimagecode / allowsmilies / allowdynimg / maximages）；传 prefix="priv"
+    时改读「私信选项」组的 privallowbbcode / privallowbbimagecode / privallowsmilies。
     """
     if not text:
         return ""
 
     options = _posting_options()
-    allow_bbcode = _flag(options, "allowbbcode")
-    allow_img = _flag(options, "allowbbimagecode", "0")
-    allow_smilies = _flag(options, "allowsmilies")
+    allow_bbcode = _flag(options, f"{prefix}allowbbcode")
+    allow_img = _flag(options, f"{prefix}allowbbimagecode", "0")
+    allow_smilies = _flag(options, f"{prefix}allowsmilies")
     allow_dynimg = _flag(options, "allowdynimg", "0")
     try:
         max_images = int(str(options.get("maximages", "10") or "10").strip())
