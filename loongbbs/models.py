@@ -124,6 +124,22 @@ class UserTitle(db.Model):
     minposts = db.Column(db.Integer, nullable=False, default=0, server_default="0")
 
 
+class UserProfileField(db.Model):
+    """User Profile Fields：自定义资料字段定义（对应原版 profilefield 表）。"""
+
+    __tablename__ = "userprofilefields"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(60), nullable=False, default="", server_default="")
+    description = db.Column(db.String(260), nullable=False, default="", server_default="")
+    required = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    hidden = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    editable = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    maxlength = db.Column(db.Integer, nullable=False, default=100, server_default="100")
+    size = db.Column(db.Integer, nullable=False, default=25, server_default="25")
+    displayorder = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+
+
 class Category(db.Model):
     __tablename__ = "categories"
 

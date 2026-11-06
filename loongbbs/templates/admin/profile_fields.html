@@ -1,0 +1,106 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}User Profile Fields{% else %}自定义资料字段{% endif %}{% endblock %}
+{% block content %}
+
+{% macro yesno(name, value=True) %}
+<p><input type="radio" name="{{ name }}" value="1" id="{{ name }}1" {% if value %}checked{% endif %}> <label for="{{ name }}1">Yes</label>
+<input type="radio" name="{{ name }}" value="0" id="{{ name }}0" {% if not value %}checked{% endif %}> <label for="{{ name }}0">No</label></p>
+{% endmacro %}
+
+{% macro fields(v=None) %}
+<tr class="firstalt" valign="top"><td><p>Title<br> - maximum 50</p></td>
+	<td><p><input type="text" size="35" name="title" value="{{ v.title if v else '' }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Description<br>- indicate here for the user whether field is required/hidden<br> - maximum 250</p></td>
+	<td><p><input type="text" size="35" name="description" value="{{ v.description if v else '' }}"></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Maximum Input<br>- how many characters may a user enter into this field?<br> - maximum 250</p></td>
+	<td><p><input type="text" size="35" name="maxlength" value="{{ v.maxlength if v else 100 }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Field Length<br>- how many characters long shall the input field appear on the form?<br> - maximum 250</p></td>
+	<td><p><input type="text" size="35" name="size" value="{{ v.size if v else 25 }}"></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Display Order<br>- Sets order of fields when displayed at registration or getinfo{{ '<br> - Starts at 1' if v else '' }}</p></td>
+	<td><p><input type="text" size="35" name="displayorder" value="{{ v.displayorder if v else '' }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Field required?<br>- Require field to be filled during registration.<br>- Does not apply if you select Yes to Hidden below</p></td>
+	<td>{{ yesno('required', v.required if v else False) }}</td></tr>
+<tr class="firstalt" valign="top"><td><p>Field hidden on Profile?<br>- Field only viewable by admins and mods<br>- User will still be able to change it</p></td>
+	<td>{{ yesno('hidden', v.hidden if v else False) }}</td></tr>
+<tr class="secondalt" valign="top"><td><p>Field Editable by the user?<br>- If no, field is only viewable by admins and mods<br>- If no, user cannot edit or view this field</p></td>
+	<td>{{ yesno('editable', v.editable if v else True) }}</td></tr>
+{% endmacro %}
+
+{% if mode == 'list' %}
+{% if rows %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="7"><font size="1"><b><span class="tblhead">Custom Profile Fields</span></b></font></td></tr>
+<tr class="firstalt" align="center">
+	<td align="left"><font size="1"><b>Title</b></font></td>
+	<td><font size="1"><b>Required</b></font></td>
+	<td><font size="1"><b>Hidden</b></font></td>
+	<td><font size="1"><b>Editable</b></font></td>
+	<td><font size="1"><b>Maxlength</b></font></td>
+	<td><font size="1"><b>Size</b></font></td>
+	<td><font size="1"><b>Modify</b></font></td>
+</tr>
+{% for r in rows %}
+<tr class="{{ 'secondalt' if loop.index0 % 2 == 0 else 'firstalt' }}">
+	<td width="100%">{{ r.title }}</td>
+	<td nowrap>{{ 'Yes' if r.required else 'No' }}</td>
+	<td nowrap>{{ 'Yes' if r.hidden else 'No' }}</td>
+	<td nowrap>{{ 'Yes' if r.editable else 'No' }}</td>
+	<td nowrap>{{ r.maxlength }}</td>
+	<td nowrap>{{ r.size }}</td>
+	<td nowrap><a href="{{ url_for('admin.profilefields_edit', profilefieldid=r.id) }}" class="lc">[edit]</a> <a href="{{ url_for('admin.profilefields_remove', profilefieldid=r.id) }}" class="lc">[remove]</a></td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+{% endif %}
+
+{% elif mode == 'add' %}
+<form method="post" action="{{ url_for('admin.profilefields_add') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add new user profile field</span></b></font></td></tr>
+{{ fields() }}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'edit' %}
+<form method="post" action="{{ url_for('admin.profilefields_edit') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit user profile field:</b> <i>{{ row.title }}</i></span></b></font></td></tr>
+{{ fields(row) }}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="profilefieldid" value="{{ row.id }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<form method="post" action="{{ url_for('admin.profilefields_remove') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2" align="center">Are you sure you want to delete the selected record? This WILL lose data!</td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="profilefieldid" value="{{ row.id }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="history.back()">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

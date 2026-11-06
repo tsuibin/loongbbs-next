@@ -12,6 +12,28 @@ from flask_login import current_user
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _ensure_profilefields() -> None:
+    """User Profile Fields 表为空时补上参考库的四条默认字段。"""
+    from sqlalchemy import func, select
+
+    from .extensions import db
+    from .models import UserProfileField
+
+    if db.session.scalar(select(func.count(UserProfileField.id))):
+        return
+    db.session.add_all([
+        UserProfileField(title="Biography", description="A few details about yourself",
+                         maxlength=250, size=25, displayorder=1),
+        UserProfileField(title="Location", description="Where you live",
+                         maxlength=250, size=25, displayorder=2),
+        UserProfileField(title="Interests", description="Your hobbies, etc",
+                         maxlength=250, size=25, displayorder=3),
+        UserProfileField(title="Occupation", description="Your job",
+                         maxlength=250, size=25, displayorder=4),
+    ])
+    db.session.commit()
+
+
 def _ensure_usertitles() -> None:
     """User Titles 表为空时补上参考站的默认三档（Junior/Member/Senior Member）。"""
     from sqlalchemy import func, select
@@ -434,5 +456,6 @@ def create_app(test_config: dict | None = None) -> Flask:
         _ensure_columns()
         ensure_seed()
         _ensure_usertitles()
+        _ensure_profilefields()
 
     return app

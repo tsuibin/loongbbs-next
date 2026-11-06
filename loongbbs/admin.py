@@ -43,6 +43,7 @@ from .models import (
     ThreadSubscription,
     User,
     UserGroup,
+    UserProfileField,
     UserTitle,
 )
 from .permissions import ensure_seed, permissions_for_group
@@ -94,8 +95,8 @@ NAV_GROUPS = [
         {"label": "Modify", "endpoint": "admin.usertitles"},
     ]},
     {"title": "User Profile Fields", "links": [
-        {"label": "Add", "module": "Add Profile Field"},
-        {"label": "Modify", "module": "Modify Profile Fields"},
+        {"label": "Add", "endpoint": "admin.profilefields_add"},
+        {"label": "Modify", "endpoint": "admin.profilefields"},
     ]},
     {"title": "User Groups", "links": [
         {"label": "Add", "module": "Add User Group"},
@@ -1143,6 +1144,75 @@ def users_referrals_detail():
     return render_template("admin/referrals.html", mode="detail", rows=rows,
                            referrer=referrer, referrerid=referrerid,
                            startdate=start_raw, enddate=end_raw)
+
+
+@bp.route("/profilefields")
+def profilefields():
+    """User Profile Fields → Modify：照原版 profilefield.php 的 modify。"""
+    rows = db.session.execute(
+        select(UserProfileField).order_by(UserProfileField.displayorder)).scalars().all()
+    return render_template("admin/profile_fields.html", mode="list", rows=rows)
+
+
+@bp.route("/profilefields/add", methods=["GET", "POST"])
+def profilefields_add():
+    """User Profile Fields → Add：原版 add / insert。"""
+    if request.method == "GET":
+        return render_template("admin/profile_fields.html", mode="add")
+    form = request.form
+    db.session.add(UserProfileField(
+        title=(form.get("title") or "").strip(),
+        description=(form.get("description") or "").strip(),
+        required=(form.get("required") or "") == "1",
+        hidden=(form.get("hidden") or "") == "1",
+        editable=(form.get("editable") or "") == "1",
+        maxlength=form.get("maxlength", type=int) or 0,
+        size=form.get("size", type=int) or 0,
+        displayorder=form.get("displayorder", type=int) or 0,
+    ))
+    db.session.commit()
+    flash("Record added", "success")
+    return redirect(url_for("admin.profilefields"))
+
+
+@bp.route("/profilefields/edit", methods=["GET", "POST"])
+def profilefields_edit():
+    """User Profile Fields 编辑：原版 edit / doupdate。"""
+    fid = request.values.get("profilefieldid", type=int) or 0
+    row = db.session.get(UserProfileField, fid) if fid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.profilefields"))
+    if request.method == "GET":
+        return render_template("admin/profile_fields.html", mode="edit", row=row)
+    form = request.form
+    row.title = (form.get("title") or "").strip()
+    row.description = (form.get("description") or "").strip()
+    row.required = (form.get("required") or "") == "1"
+    row.hidden = (form.get("hidden") or "") == "1"
+    row.editable = (form.get("editable") or "") == "1"
+    row.maxlength = form.get("maxlength", type=int) or 0
+    row.size = form.get("size", type=int) or 0
+    row.displayorder = form.get("displayorder", type=int) or 0
+    db.session.commit()
+    flash("Record updated!", "success")
+    return redirect(url_for("admin.profilefields"))
+
+
+@bp.route("/profilefields/remove", methods=["GET", "POST"])
+def profilefields_remove():
+    """User Profile Fields 删除：原版 remove / kill。"""
+    fid = request.values.get("profilefieldid", type=int) or 0
+    row = db.session.get(UserProfileField, fid) if fid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.profilefields"))
+    if request.method == "GET":
+        return render_template("admin/profile_fields.html", mode="remove", row=row)
+    db.session.execute(delete(UserProfileField).where(UserProfileField.id == row.id))
+    db.session.commit()
+    flash("Profile field removed", "success")
+    return redirect(url_for("admin.profilefields"))
 
 
 @bp.route("/usertitles")
