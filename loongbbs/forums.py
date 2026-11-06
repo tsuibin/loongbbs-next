@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 
 from .models import (
     Category,
+    EmailLog,
     Forum,
     ForumRead,
     Post,
@@ -195,6 +196,57 @@ def unsubscribe_thread(thread_id: int):
         db.session.commit()
         flash("已取消订阅这个主题。")
     return redirect(url_for("forums.thread", thread_id=thread_obj.id))
+
+
+@bp.get("/sendtofriend")
+def sendtofriend_form():
+    """对应 vB sendtofriend.php：把这个主题推荐给朋友。"""
+    thread_obj = db.session.get(Thread, request.args.get("thread_id", type=int) or 0)
+    if thread_obj is None:
+        abort(404)
+    return render_template(
+        "sendtofriend.html",
+        thread=thread_obj,
+        sent=False,
+        from_name=(current_user.username if current_user.is_authenticated else ""),
+    )
+
+
+@bp.post("/sendtofriend")
+def sendtofriend_send():
+    thread_obj = db.session.get(Thread, request.form.get("thread_id", type=int) or 0)
+    if thread_obj is None:
+        abort(404)
+    to_email = (request.form.get("email") or "").strip()
+    from_name = (request.form.get("fromname") or "").strip()
+    note = (request.form.get("message") or "").strip()
+
+    if not to_email or "@" not in to_email:
+        flash("请填写有效的收件人邮箱地址。")
+        return render_template(
+            "sendtofriend.html", thread=thread_obj, sent=False, from_name=from_name, note=note
+        )
+
+    body = (
+        f"{from_name or '一位访客'} 认为你可能对这个主题感兴趣：\n\n"
+        f"  主题：{thread_obj.title}\n"
+        f"  版块：{thread_obj.forum.name}\n"
+        f"  链接：{url_for('forums.thread', thread_id=thread_obj.id, _external=True)}\n\n"
+        + (f"附言：{note}\n" if note else "")
+    )
+    db.session.add(
+        EmailLog(
+            to_email=to_email,
+            from_name=from_name,
+            subject=f"推荐主题：{thread_obj.title}",
+            body=body,
+            thread_id=thread_obj.id,
+        )
+    )
+    db.session.commit()
+    return render_template(
+        "sendtofriend.html", thread=thread_obj, sent=True, to_email=to_email, from_name=from_name
+    )
 
 
 @bp.get("/f/<int:forum_id>/markread")

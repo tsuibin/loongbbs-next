@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 推荐主题给朋友{% endblock %}
+{% block content %}
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" alt="" border="0" align="absmiddle">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	<a href="{{ url_for('forums.forum', forum_id=thread.forum.id) }}">{{ thread.forum.name }}</a> &gt;
+	<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a> &gt;
+	用邮件推荐这个页面</b></font></td>
+</tr>
+</table>
+
+<br>
+
+{% if sent %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#606096"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>推荐已提交</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
+	关于「{{ thread.title }}」的推荐已提交到 <b>{{ to_email }}</b>。<br><br>
+	<font size="1">本演示环境没有配置 SMTP 邮件服务，推荐内容已写入待发队列（email_log 表），
+	不会真的发出邮件。正式部署时接上邮件服务即可。</font>
+	</font></td>
+</tr>
+</table>
+</td></tr></table>
+{% else %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<form method="post" action="{{ url_for('forums.sendtofriend_send') }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<input type="hidden" name="thread_id" value="{{ thread.id }}">
+<tr>
+	<td bgcolor="#606096" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>推荐主题给朋友</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2"><font face="verdana, arial, helvetica" size="2">
+	系统会把「{{ thread.title }}」的链接发到下面填写的邮箱地址。<br>
+	<font size="1">（演示环境无 SMTP，提交后只记录，不实际发信。）</font></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" width="30%"><font face="verdana, arial, helvetica" size="2"><b>收件人邮箱地址:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="email" size="30" maxlength="150" value="{{ to_email or '' }}"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>你的名字:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="fromname" size="30" maxlength="100" value="{{ from_name }}"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" valign="top"><font face="verdana, arial, helvetica" size="2"><b>附言:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><textarea name="message" rows="5" cols="40">{{ note or '' }}</textarea></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2" align="center"><font face="verdana, arial, helvetica" size="2">
+	<input type="submit" class="bginput" value="发送推荐">
+	</font></td>
+</tr>
+</form>
+</table>
+</td></tr></table>
+{% endif %}
+
+<br>
+<center><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.thread', thread_id=thread.id) }}">返回主题</a></font></center>
+{% endblock %}

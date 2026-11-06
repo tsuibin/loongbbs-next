@@ -148,7 +148,7 @@
 	<img src="{{ url_for('static', filename='images/printer.gif') }}" alt="" border="0" align="absmiddle">
 	<a href="{{ url_for('forums.print_thread', thread_id=thread.id) }}">显示可打印版本</a> |
 	<img src="{{ url_for('static', filename='images/sendtofriend.gif') }}" alt="" border="0" align="absmiddle">
-	<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">用邮件推荐这个页面</a> |
+	<a href="{{ url_for('forums.sendtofriend_form', thread_id=thread.id) }}">用邮件推荐这个页面</a> |
 	<img src="{{ url_for('static', filename='images/subscribe.gif') }}" alt="" border="0" align="absmiddle">
 	{% if nav_user %}{% if subscribed %}<form method="post" action="{{ url_for('forums.unsubscribe_thread', thread_id=thread.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="submit" value="取消订阅这个主题" style="background:none;border:none;padding:0;color:#000020;font-family:verdana,arial,helvetica;font-size:10px;cursor:pointer;"></form>{% else %}<form method="post" action="{{ url_for('forums.subscribe_thread', thread_id=thread.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="submit" value="订阅这个主题" style="background:none;border:none;padding:0;color:#000020;font-family:verdana,arial,helvetica;font-size:10px;cursor:pointer;"></form>{% endif %}{% else %}<a href="{{ url_for('auth.login_form') }}">订阅这个主题</a>{% endif %}
 	</font></td>

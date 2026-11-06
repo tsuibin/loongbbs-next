@@ -342,3 +342,20 @@ class ThreadRating(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<ThreadRating thread={self.thread_id} user={self.user_id} vote={self.vote}>"
+
+
+class EmailLog(db.Model):
+    """待发邮件记录：本地演示环境没有 SMTP，sendtofriend 只把内容落库并展示。"""
+
+    __tablename__ = "email_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    to_email = db.Column(db.String(150), nullable=False)
+    from_name = db.Column(db.String(100), nullable=False, default="", server_default="")
+    subject = db.Column(db.String(200), nullable=False, default="", server_default="")
+    body = db.Column(db.Text, nullable=False, default="")
+    thread_id = db.Column(db.Integer, db.ForeignKey("threads.id"), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<EmailLog to={self.to_email} subject={self.subject}>"
