@@ -1,0 +1,123 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Move/Prune Users{% else %}用户移动/清理{% endif %}{% endblock %}
+{% block content %}
+
+{% set counter = {'n': 0} %}
+{% macro rowclass() %}
+{%- set _ = counter.update({'n': counter.n + 1}) -%}
+{{ 'firstalt' if counter.n % 2 == 1 else 'secondalt' }}
+{% endmacro %}
+
+{% if mode == 'form' %}
+<p>This system allows you to mass-move users to a different usergroup,  or prune away inactive members.</p>
+<p>Use the form below to select users matching your search conditions.
+You will then be given the option to individually move or prune away the matched users.</p>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">User Moving/Pruning System - Find users where...</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="50%">Usergroup is</td>
+	<td><select name="usergroupid">
+	<option value="-1" selected>Any</option>
+	{% for g in groups %}<option value="{{ g.id }}">{{ g.title }}</option>{% endfor %}
+	</select></td></tr>
+<tr class="secondalt" valign="top"><td>Has not logged on for <i>x</i> days</td>
+	<td><input type="text" name="daysprune" size="35" value="365"></td></tr>
+<tr class="firstalt" valign="top"><td>Registered before date: (yyyy-mm-dd format)</td>
+	<td><input type="text" name="joindate" size="35" value=""></td></tr>
+<tr class="secondalt" valign="top"><td>Has less than <i>x</i> posts:</td>
+	<td><input type="text" name="minposts" size="35" value=""></td></tr>
+<tr class="firstalt" valign="top"><td>Order results by:</td>
+	<td><select name="order">
+		<option value="username ASC">User Name</option>
+		<option value="email ASC">Email Address</option>
+		<option value="usergroup.title ASC">Usergroup</option>
+		<option value="posts DESC">Post Count</option>
+		<option value="lastvisit ASC">Last Visit</option>
+		<option value="joindate DESC">Join Date</option>
+	</select></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="find">
+	<input type="submit" value=" Find Users ">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<script language="javascript">
+function CheckAll() {
+	for (var i=0;i<document.forms[0].elements.length;i++) {
+		var e = document.forms[0].elements[i];
+		if ((e.name != 'allbox') && (e.type=='checkbox')) {
+			e.checked = document.forms[0].allbox.checked;
+		}
+	}
+}
+function oops() {
+	alert("You may not delete/move this user - The user is either:\n\n1) An Administrator\n2) A Super-Moderator\n3) A Moderator\n4) You!");
+}
+</script>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="7"><font size="1"><b><span class="tblhead">Found {{ total }} users matching your search conditions</span></b></font></td></tr>
+<tr class="firstalt" align="center">
+	<td><font size="1"><b>ID</b></font></td>
+	<td><font size="1"><b>Username</b></font></td>
+	<td><font size="1"><b>Email</b></font></td>
+	<td><font size="1"><b>Posts</b></font></td>
+	<td><font size="1"><b>Last Visit</b></font></td>
+	<td><font size="1"><b>Join Date</b></font></td>
+	<td><input type="checkbox" name="allbox" onclick="CheckAll()" title="select/deselect all" checked></td>
+</tr>
+{% for r in rows %}
+<tr class="{{ rowclass() }}">
+	<td>{{ r.id }}</td>
+	<td>{{ r.username }}<br><font size="1">{{ r.group_title }}</font></td>
+	<td><a href="mailto:{{ r.email }}">{{ r.email }}</a></td>
+	<td>{{ r.posts }}</td>
+	<td>{{ r.last_visit }}</td>
+	<td>{{ r.joined }}</td>
+	{% if r.locked %}
+	<td><input type="button" value=" ! " onclick="oops()" style="font-weight:bold"></td>
+	{% else %}
+	<td><input type="checkbox" name="userid[{{ r.id }}]" value="1" checked></td>
+	{% endif %}
+</tr>
+{% endfor %}
+<tr class="{{ rowclass() }}">
+	<td colspan="7" align="center"><font size="1"><b>Do what with selected users?
+	<input type="radio" name="dowhat" value="delete">Delete
+	<input type="radio" name="dowhat" value="move">Move to usergroup:
+	<select name="movegroup">
+	{% for g in move_groups %}<option value="{{ g.id }}">{{ g.title }}</option>{% endfor %}
+	</select>
+	</b></font></td>
+</tr>
+<tr class="tblhead" id="submitrow"><td colspan="7" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="do">
+	<input type="hidden" name="usergroupid" value="{{ usergroupid }}">
+	<input type="hidden" name="daysprune" value="{{ daysprune }}">
+	<input type="hidden" name="minposts" value="{{ minposts }}">
+	<input type="hidden" name="joindate" value="{{ joindate }}">
+	<input type="hidden" name="order" value="{{ order }}">
+	<input type="submit" value=" Delete/move all selected users ">
+	<input type="button" value=" Select all listed users " onclick="CheckAll()">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<p>Note: clicking the 'delete' button will remove the selected users completely.
+This action is <b>not</b> un-doable... please be sure!</p>
+<p>Users marked with the <b>[ ! ]</b> button are not editable using this system.</p>
+
+{% endif %}
+
+{% endblock %}

@@ -33,6 +33,7 @@ from .models import (
     PollOption,
     PollVote,
     Post,
+    OnlineSession,
     PostReport,
     PrivateMessage,
     Thread,
@@ -853,6 +854,129 @@ def _confirm_page(thread_ids):
         ids_text=",".join(str(i) for i in thread_ids),
         total=total,
     )
+
+
+@bp.route("/users/prune", methods=["GET", "POST"])
+def users_prune():
+    """Users → Move/Prune：照原版 user.php 的 prune / pruneusers / dopruneusers。"""
+    groups_all = db.session.execute(select(UserGroup).order_by(UserGroup.title)).scalars().all()
+    # 原版只允许把用户移到这些组：NOT IN(1,3,4,5,6)
+    move_groups = [g for g in groups_all if g.id not in (1, 3, 4, 5, 6)]
+
+    def _post_counts(ids):
+        rows = db.session.execute(
+            select(Post.author_id, func.count(Post.id)).where(Post.author_id.in_(ids))
+        ).all()
+        return {uid: n for uid, n in rows}
+
+    def _render_form():
+        return render_template("admin/users_prune.html", mode="form", groups=groups_all,
+                               move_groups=move_groups)
+
+    if request.method == "GET":
+        return _render_form()
+
+    step = request.values.get("step", "find")
+
+    if step == "do":
+        # 原版 checkbox 名是 userid[id]，值 1
+        ids = [int(k[7:-1]) for k, v in request.form.items()
+               if k.startswith("userid[") and k.endswith("]") and v == "1" and k[7:-1].isdigit()]
+        me = getattr(current_user, "id", None)
+        ids = [i for i in ids if i != me]
+        if not ids:
+            flash("Error: You did not select any users to prune/move!", "error")
+            return redirect(url_for("admin.users_prune"))
+        dowhat = request.form.get("dowhat", "")
+        if dowhat == "delete":
+            targets = db.session.execute(select(User).where(User.id.in_(ids))).scalars().all()
+            names = [u.username for u in targets]
+            # 原版会把这批人的帖子/主题转到访客名下；本地先做，避免删用户时留下孤儿作者
+            db.session.execute(db.update(Post).where(Post.author_id.in_(ids)).values(author_id=1))
+            db.session.execute(db.update(Thread).where(Thread.author_id.in_(ids)).values(author_id=1))
+            for u in targets:
+                db.session.execute(delete(ThreadSubscription).where(ThreadSubscription.user_id == u.id))
+                db.session.execute(delete(ThreadRating).where(ThreadRating.user_id == u.id))
+                db.session.execute(delete(PollVote).where(PollVote.user_id == u.id))
+                db.session.execute(delete(PrivateMessage).where(
+                    (PrivateMessage.sender_id == u.id) | (PrivateMessage.recipient_id == u.id)))
+                db.session.execute(delete(PostReport).where(PostReport.reporter_id == u.id))
+                db.session.execute(delete(OnlineSession).where(OnlineSession.user_id == u.id))
+            # 用 Core delete 删行，避开 ORM 关系把外键置空的 flush 顺序问题
+            db.session.execute(delete(User).where(User.id.in_(ids)))
+            db.session.commit()
+            flash(f"Deleting user account(s) .... okay. Deleted {len(names)} user(s): "
+                  f"{', '.join(names)}. Their posts and threads were moved to the guest account.", "success")
+            return redirect(url_for("admin.users_prune"))
+        if dowhat == "move":
+            gid = request.form.get("movegroup", type=int)
+            group = db.session.get(UserGroup, gid) if gid else None
+            if group is None:
+                flash("Error: no action specified! Please choose delete or move", "error")
+                return redirect(url_for("admin.users_prune"))
+            db.session.execute(db.update(User).where(User.id.in_(ids)).values(usergroupid=group.id))
+            db.session.commit()
+            flash(f"Users moved to <i>{group.title}</i> usergroup.", "success")
+            return redirect(url_for("admin.users_prune"))
+        flash("Error: no action specified! Please choose delete or move", "error")
+        return redirect(url_for("admin.users_prune"))
+
+    # step == "find"：照 pruneusers 的条件组合
+    gid = request.form.get("usergroupid", type=int) or -1
+    days = request.form.get("daysprune", type=int) or 0
+    joindate = (request.form.get("joindate") or "").strip()
+    minposts = request.form.get("minposts", type=int) or 0
+    order = request.form.get("order") or "username ASC"
+
+    conds = []
+    if gid != -1:
+        conds.append(User.usergroupid == gid)
+    if days:
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
+        conds.append(User.last_visit < cutoff)
+    if joindate:
+        try:
+            conds.append(User.joined_at < datetime.strptime(joindate, "%Y-%m-%d"))
+        except ValueError:
+            conds.append(User.joined_at < datetime.now(timezone.utc).replace(tzinfo=None))
+
+    if not conds and not minposts:
+        flash("Error: Please enter some search conditions.", "error")
+        return redirect(url_for("admin.users_prune"))
+
+    q = select(User)
+    if conds:
+        q = q.where(*conds)
+    users = db.session.execute(q).scalars().all()
+    counts = _post_counts([u.id for u in users]) if users else {}
+    if minposts:
+        users = [u for u in users if counts.get(u.id, 0) < minposts]
+    if not users:
+        flash("Error: No users matched your search conditions.", "error")
+        return redirect(url_for("admin.users_prune"))
+
+    keymap = {
+        "username ASC": lambda u: (u.username or "").lower(),
+        "email ASC": lambda u: (u.email or "").lower(),
+        "usergroup.title ASC": lambda u: u.usergroupid,
+        "posts DESC": lambda u: -counts.get(u.id, 0),
+        "lastvisit ASC": lambda u: u.last_visit or datetime(1970, 1, 1),
+        "joindate DESC": lambda u: -(u.joined_at or datetime(1970, 1, 1)).timestamp(),
+    }
+    users.sort(key=keymap.get(order, keymap["username ASC"]))
+    rows = [{
+        "id": u.id,
+        "username": u.username,
+        "email": u.email,
+        "posts": counts.get(u.id, 0),
+        "last_visit": (u.last_visit.strftime("%m/%d/%y") if u.last_visit else "never"),
+        "joined": u.joined_at.strftime("%m/%d/%y") if u.joined_at else "",
+        "group_title": next((g.title for g in groups_all if g.id == u.usergroupid), ""),
+        "locked": (u.id == getattr(current_user, "id", None) or u.usergroupid in (5, 6)),
+    } for u in users]
+    return render_template("admin/users_prune.html", mode="results", rows=rows,
+                           move_groups=move_groups, total=len(rows), order=order,
+                           usergroupid=gid, daysprune=days, joindate=joindate, minposts=minposts)
 
 
 @bp.route("/users/add", methods=["GET", "POST"])
