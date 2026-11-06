@@ -180,6 +180,7 @@ function checklength(theform) {
 		<input type="checkbox" name="signature" value="yes" checked> <b>显示签名:</b> 附带你的个人签名，仅注册用户可用。
 	</font></td>
 </tr>
+{% if can('canpostattachment', forum.id) %}
 <tr>
 	<td bgcolor="#DFDFDF" valign="top"><font face="verdana, arial, helvetica" size="2"><b>附件:</b></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
@@ -187,7 +188,8 @@ function checklength(theform) {
 		每帖最多 5 个文件，图片会直接显示在帖子里。
 	</font></td>
 </tr>
-{% if mode == 'new' %}
+{% endif %}
+{% if mode == 'new' and can('canpostpoll', forum.id) %}
 <tr>
 	<td bgcolor="#F1F1F1" valign="top"><font face="verdana, arial, helvetica" size="2"><b>发起投票:</b></font></td>
 	<td bgcolor="#F1F1F1" valign="top"><font face="verdana,arial,helvetica" size="1">

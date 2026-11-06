@@ -22,12 +22,17 @@ from .models import (
     Avatar,
     Category,
     Forum,
+    ForumPermission,
+    PERMISSION_FIELDS,
+    PERMISSION_LABELS,
     Post,
     PostReport,
     PrivateMessage,
     Thread,
     User,
+    UserGroup,
 )
+from .permissions import ensure_seed, permissions_for_group
 from .settings import DEFAULTS, get_settings, set_setting
 from .admin_settings import SETTING_DEFAULTS, SETTING_GROUPS
 from .utils import format_dt, human_size
@@ -47,7 +52,7 @@ NAV_GROUPS = [
     {"title": "Forums & Moderators", "links": [
         {"label": "Add", "module": "Add Forum"},
         {"label": "Modify", "endpoint": "admin.forums_page"},
-        {"label": "Permissions", "module": "Forum Permissions"},
+        {"label": "Permissions", "endpoint": "admin.permissions_page"},
     ]},
     {"title": "Threads & Posts", "links": [
         {"label": "Mass Prune", "module": "Mass Prune"},
@@ -82,7 +87,7 @@ NAV_GROUPS = [
     {"title": "User Groups", "links": [
         {"label": "Add", "module": "Add User Group"},
         {"label": "Modify", "module": "Modify User Groups"},
-        {"label": "Forum Permissions", "module": "Forum Permissions"},
+        {"label": "Forum Permissions", "endpoint": "admin.permissions_page"},
     ]},
     {"title": "Avatars", "links": [
         {"label": "Add", "endpoint": "admin.avatars_add"},
@@ -249,6 +254,108 @@ def settings_page():
         shown_groups=shown_groups,
         current_group_id=current_group_id,
     )
+
+
+@bp.get("/permissions")
+def permissions_page():
+    """照 vB admin/forumpermission.php?action=modify：按版块列出各个用户组。
+
+    参考站里「分类」本身也是 forum 表里 parentid=-1 的一条记录，所以分类层也能
+    单设权限并由子版块继承（列表里的蓝字行）。本站分类是独立表、没有继承链，
+    因此分类层没有可设置对象，只列到版块层。
+    """
+    ensure_seed()
+    groups = db.session.execute(
+        select(UserGroup).order_by(UserGroup.title)
+    ).scalars().all()
+    categories = db.session.execute(
+        select(Category).order_by(Category.position, Category.id)
+    ).scalars().all()
+    overrides = {
+        (row.forum_id, row.usergroup_id): row
+        for row in db.session.execute(select(ForumPermission)).scalars().all()
+    }
+
+    blocks = []
+    for category in categories:
+        forums = []
+        for forum_obj in sorted(category.forums, key=lambda f: (f.position, f.id)):
+            rows = []
+            for group in groups:
+                override = overrides.get((forum_obj.id, group.id))
+                rows.append({"group": group, "custom": override is not None})
+            forums.append({"forum": forum_obj, "rows": rows})
+        blocks.append({"category": category, "forums": forums})
+
+    return render_template("admin/permissions.html", blocks=blocks)
+
+
+@bp.get("/permissions/edit")
+def permission_edit():
+    """照 vB admin/forumpermission.php?action=edit 的 16 项 Yes/No 表单。"""
+    forumpermissionid = (request.args.get("forumpermissionid") or "").strip()
+    override = None
+    if forumpermissionid.isdigit():
+        override = db.session.get(ForumPermission, int(forumpermissionid))
+        if override is None:
+            abort(404)
+        forum_obj = db.session.get(Forum, override.forum_id)
+        group = db.session.get(UserGroup, override.usergroup_id)
+        values = {field: bool(getattr(override, field)) for field in PERMISSION_FIELDS}
+        custom = True
+    else:
+        forum_id = (request.args.get("forumid") or "").strip()
+        usergroup_id = (request.args.get("usergroupid") or "").strip()
+        if not (forum_id.isdigit() and usergroup_id.isdigit()):
+            abort(404)
+        forum_obj = db.session.get(Forum, int(forum_id))
+        group = db.session.get(UserGroup, int(usergroup_id))
+        if forum_obj is None or group is None:
+            abort(404)
+        # 参考站 getpermissions(forumid, 1, usergroupid)：没有自定义记录时取用户组默认
+        values = permissions_for_group(forum_obj.id, group.id)
+        custom = False
+
+    return render_template(
+        "admin/permission_edit.html",
+        forum=forum_obj,
+        group=group,
+        values=values,
+        custom=custom,
+        fields=PERMISSION_FIELDS,
+        labels=PERMISSION_LABELS,
+    )
+
+
+@bp.post("/permissions/edit")
+def permission_save():
+    """照 vB forumpermission.php 的 doupdate 分支：Use usergroup default 会删掉自定义记录。"""
+    useusergroup = request.form.get("useusergroup") == "1"
+    forumpermissionid = (request.form.get("forumpermissionid") or "").strip()
+    override = None
+    if forumpermissionid.isdigit():
+        override = db.session.get(ForumPermission, int(forumpermissionid))
+
+    if useusergroup:
+        if override is not None:
+            db.session.delete(override)
+            db.session.commit()
+    else:
+        if override is None:
+            forum_id = (request.form.get("forumid") or "").strip()
+            usergroup_id = (request.form.get("usergroupid") or "").strip()
+            if not (forum_id.isdigit() and usergroup_id.isdigit()):
+                abort(404)
+            override = ForumPermission(
+                forum_id=int(forum_id), usergroup_id=int(usergroup_id)
+            )
+            db.session.add(override)
+        for field in PERMISSION_FIELDS:
+            setattr(override, field, request.form.get(field) == "1")
+        db.session.commit()
+
+    flash("Record updated!", "success")
+    return redirect(url_for("admin.permissions_page"))
 
 
 @bp.route("/forums", methods=["GET", "POST"])

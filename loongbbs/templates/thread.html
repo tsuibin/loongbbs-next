@@ -89,9 +89,9 @@
 	<table width="100%" border="0" cellpadding="0" cellspacing="0">
 	<tr>
 		<td width="100%"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF" class="thtcolor"><b>主题</b></font></td>
-		<td>{% if nav_user and not forum.is_closed %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a>{% endif %}</td>
+		<td>{% if nav_user and not forum.is_closed and can('canpostnew', forum.id) %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a>{% endif %}</td>
 		<td><font face="verdana, arial, helvetica" size="2">&nbsp;&nbsp;</font></td>
-		<td>{% if not thread.is_closed %}<a href="{{ url_for('forums.reply_form', thread_id=thread.id) }}"><img src="{{ url_for('static', filename='images/reply.gif') }}" border="0" alt="回复主题"></a>{% else %}<img src="{{ url_for('static', filename='images/threadclosed.gif') }}" border="0" alt="主题已关闭">{% endif %}</td>
+		<td>{% if not thread.is_closed and (can('canreplyown', forum.id) if (nav_user and nav_user.id == thread.author_id) else can('canreplyothers', forum.id)) %}<a href="{{ url_for('forums.reply_form', thread_id=thread.id) }}"><img src="{{ url_for('static', filename='images/reply.gif') }}" border="0" alt="回复主题"></a>{% elif not thread.is_closed %}<img src="{{ url_for('static', filename='images/threadclosed.gif') }}" border="0" alt="不能回复">{% else %}<img src="{{ url_for('static', filename='images/threadclosed.gif') }}" border="0" alt="主题已关闭">{% endif %}</td>
 	</tr>
 	</table>
 	<!-- /Thread nav and post images -->
@@ -159,8 +159,8 @@
 			<a href="{{ url_for('auth.buddy_list') }}"><img src="{{ url_for('static', filename='images/buddy.gif') }}" border="0" alt="加为好友"></a>
 			</font></td>
 			<td align="right" nowrap><font face="verdana,arial,helvetica" size="1">
-			{% if nav_user and (nav_user.id == post.author.id or nav_user.is_admin) %}<a href="{{ url_for('forums.edit_post_form', post_id=post.id) }}"><img src="{{ url_for('static', filename='images/edit.gif') }}" border="0" alt="编辑/删除帖子"></a>{% endif %}
-			{% if not thread.is_closed %}<a href="{{ url_for('forums.reply_form', thread_id=thread.id) }}"><img src="{{ url_for('static', filename='images/quote.gif') }}" border="0" alt="引用回复"></a>{% endif %}
+			{% if nav_user and (nav_user.id == post.author.id or nav_user.is_admin) and (post.author.id != nav_user.id or can('caneditpost', forum.id)) %}<a href="{{ url_for('forums.edit_post_form', post_id=post.id) }}"><img src="{{ url_for('static', filename='images/edit.gif') }}" border="0" alt="编辑/删除帖子"></a>{% endif %}
+			{% if not thread.is_closed and (can('canreplyown', forum.id) if (nav_user and nav_user.id == thread.author_id) else can('canreplyothers', forum.id)) %}<a href="{{ url_for('forums.reply_form', thread_id=thread.id) }}"><img src="{{ url_for('static', filename='images/quote.gif') }}" border="0" alt="引用回复"></a>{% endif %}
 			</font></td>
 		</tr>
 		</table>
@@ -179,9 +179,9 @@
 	<table border="0" cellspacing="0" cellpadding="0" bgcolor="#8080A6">
 	<tr>
 		<td width="100%"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>All times are GMT. The time now is {{ now_gmt() }}.</b></font></td>
-		<td>{% if nav_user and not forum.is_closed %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a>{% endif %}</td>
+		<td>{% if nav_user and not forum.is_closed and can('canpostnew', forum.id) %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a>{% endif %}</td>
 		<td><font face="verdana, arial, helvetica" size="2">&nbsp;&nbsp;</font></td>
-		<td>{% if not thread.is_closed %}<a href="{{ url_for('forums.reply_form', thread_id=thread.id) }}"><img src="{{ url_for('static', filename='images/reply.gif') }}" border="0" alt="回复主题"></a>{% else %}<img src="{{ url_for('static', filename='images/threadclosed.gif') }}" border="0" alt="主题已关闭">{% endif %}</td>
+		<td>{% if not thread.is_closed and (can('canreplyown', forum.id) if (nav_user and nav_user.id == thread.author_id) else can('canreplyothers', forum.id)) %}<a href="{{ url_for('forums.reply_form', thread_id=thread.id) }}"><img src="{{ url_for('static', filename='images/reply.gif') }}" border="0" alt="回复主题"></a>{% elif not thread.is_closed %}<img src="{{ url_for('static', filename='images/threadclosed.gif') }}" border="0" alt="不能回复">{% else %}<img src="{{ url_for('static', filename='images/threadclosed.gif') }}" border="0" alt="主题已关闭">{% endif %}</td>
 	</tr>
 	</table>
 	</td>
@@ -195,9 +195,9 @@
 <tr>
 	<td bgcolor="#F1F1F1" align="center"><font face="verdana,arial,helvetica" size="1">
 	<img src="{{ url_for('static', filename='images/printer.gif') }}" alt="" border="0" align="absmiddle">
-	<a href="{{ url_for('forums.print_thread', thread_id=thread.id) }}">显示可打印版本</a> |
+	<a href="{{ url_for('forums.print_thread', thread_id=thread.id) }}">显示可打印版本</a>{% if can('canemail', forum.id) %} |
 	<img src="{{ url_for('static', filename='images/sendtofriend.gif') }}" alt="" border="0" align="absmiddle">
-	<a href="{{ url_for('forums.sendtofriend_form', thread_id=thread.id) }}">用邮件推荐这个页面</a> |
+	<a href="{{ url_for('forums.sendtofriend_form', thread_id=thread.id) }}">用邮件推荐这个页面</a>{% endif %} |
 	<img src="{{ url_for('static', filename='images/subscribe.gif') }}" alt="" border="0" align="absmiddle">
 	{% if nav_user %}{% if subscribed %}<form method="post" action="{{ url_for('forums.unsubscribe_thread', thread_id=thread.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="submit" value="取消订阅这个主题" style="background:none;border:none;padding:0;color:#000020;font-family:verdana,arial,helvetica;font-size:10px;cursor:pointer;"></form>{% else %}<form method="post" action="{{ url_for('forums.subscribe_thread', thread_id=thread.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="submit" value="订阅这个主题" style="background:none;border:none;padding:0;color:#000020;font-family:verdana,arial,helvetica;font-size:10px;cursor:pointer;"></form>{% endif %}{% else %}<a href="{{ url_for('auth.login_form') }}">订阅这个主题</a>{% endif %}
 	</font></td>
@@ -263,14 +263,14 @@
 <!-- forum rules and admin links -->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr valign="bottom">
-	<td><font face="verdana,arial,helvetica" size="1"><b>版块规则:</b><table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576"><tr><td>
+	<td><font face="verdana,arial,helvetica" size="1"><b>Forum Rules:</b><table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576"><tr><td>
 	<table cellpadding="4" cellspacing="1" border="0">
 	<tr>
 		<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
-		{% if nav_user and not forum.is_closed %}你可以发表新主题{% else %}你不能发表新主题{% endif %}<br>
-		你可以回复主题<br>
-		你可以上传附件<br>
-		你可以编辑自己的帖子</font></td>
+		You <b>may {{ '' if can('canpostnew', forum.id) else 'not' }}</b> post new threads<br>
+		You <b>may {{ '' if (can('canreplyown', forum.id) if (nav_user and nav_user.id == thread.author_id) else can('canreplyothers', forum.id)) else 'not' }}</b> post replies<br>
+		You <b>may {{ '' if can('canpostattachment', forum.id) else 'not' }}</b> post attachments<br>
+		You <b>may {{ '' if can('caneditpost', forum.id) else 'not' }}</b> edit your posts</font></td>
 		<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
 		HTML 代码是 <b>{{ settings.get('offtext', 'OFF') }}</b><br>
 		vB 代码是 <b>{{ settings.get('ontext', 'ON') }}</b><br>

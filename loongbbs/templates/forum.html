@@ -10,7 +10,7 @@
 	{{ forum.name }}</b></font>
 	<font face="verdana,arial,helvetica" size="1"><br><br>{% if nav_user %}(正在浏览此版块的会员: <a href="{{ url_for('auth.profile', username=nav_user.username) }}">{{ nav_user.username }}</a>){% endif %}{% if forum.is_closed %}（版块已关闭，不能发新主题）{% endif %}</font></td>
 	<td valign="bottom" align="right"><font face="verdana,arial,helvetica" size="1">
-	{% if nav_user and not forum.is_closed %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a><br>
+	{% if nav_user and not forum.is_closed and can('canpostnew', forum.id) %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a><br>
 	<nobr><a href="{{ url_for('forums.forum', forum_id=forum.id) }}">订阅这个版块</a><br>
 	<a href="{{ url_for('forums.mark_forum_read', forum_id=forum.id) }}">标记这个版块为已读</a></nobr>{% endif %}&nbsp;</font></td>
 </tr>
@@ -58,7 +58,7 @@
 </tr>
 {% else %}
 <tr>
-	<td bgcolor="#F1F1F1" colspan="8" align="center"><font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}There have been no threads in this forum{% if nav_user and not forum.is_closed %}, <a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">post the first thread</a>{% endif %}.{% else %}这个版块还没有主题{% if nav_user and not forum.is_closed %}，<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发表第一个主题</a>{% endif %}。{% endif %}</font></td>
+	<td bgcolor="#F1F1F1" colspan="8" align="center"><font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}There have been no threads in this forum{% if nav_user and not forum.is_closed and can('canpostnew', forum.id) %}, <a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">post the first thread</a>{% endif %}.{% else %}这个版块还没有主题{% if nav_user and not forum.is_closed and can('canpostnew', forum.id) %}，<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发表第一个主题</a>{% endif %}。{% endif %}</font></td>
 </tr>
 {% endfor %}
 
@@ -95,7 +95,7 @@
 
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr valign="top">
-	<td><font face="verdana,arial,helvetica" size="1">{% if nav_user and not forum.is_closed %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a>{% endif %}</font></td>
+	<td><font face="verdana,arial,helvetica" size="1">{% if nav_user and not forum.is_closed and can('canpostnew', forum.id) %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a>{% endif %}</font></td>
 	<td align="right"><font face="verdana,arial,helvetica" size="1">
 	{% if pages > 1 %}
 	  ( <img src="{{ url_for('static', filename='images/multipage.gif') }}" border="0" alt="">
@@ -171,7 +171,7 @@
 	<table cellpadding="4" cellspacing="1" border="0">
 	<tr>
 		<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
-		{% if nav_user and not forum.is_closed %}你可以发表新主题{% else %}你不能发表新主题{% endif %}<br>
+		{% if nav_user and not forum.is_closed and can('canpostnew', forum.id) %}你可以发表新主题{% else %}你不能发表新主题{% endif %}<br>
 		你可以回复主题<br>
 		你可以上传附件<br>
 		你可以编辑自己的帖子</font></td>

@@ -128,6 +128,14 @@ def download(attachment_id: int):
     if attachment is None:
         abort(404)
 
+    # vB 的 cangetattachment=0 的组不能下载附件
+    from .permissions import can
+
+    thread_obj = attachment.post.thread if attachment.post is not None else None
+    forum_id = thread_obj.forum_id if thread_obj is not None else None
+    if not can("cangetattachment", forum_id):
+        abort(403)
+
     path = _path_for(attachment)
     if not path.exists():
         abort(404)

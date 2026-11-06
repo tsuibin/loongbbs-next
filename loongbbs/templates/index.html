@@ -54,7 +54,7 @@
    {% if category.description %} <font face="verdana,arial,helvetica" size="1" color="#FFF788">{{ category.description }}</font>{% endif %}</td>
 </tr>
 
-{% for forum in category.forums %}
+{% for forum in category.visible_forums %}
 {% if home_depth >= 2 %}
 <tr align="center">
 	{% set nl = nav_user.last_seen|dt('%Y%m%d%H%M') if nav_user and nav_user.last_seen else '99999999999999' %}

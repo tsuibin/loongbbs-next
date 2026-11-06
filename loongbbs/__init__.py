@@ -351,6 +351,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.context_processor
     def inject_globals():
         from .i18n import current_language, language_url, translate
+        from .permissions import can
         from .settings import get_settings
         from .utils import csrf_token
 
@@ -365,6 +366,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "ui_lang": current_language(),
             "lang_url": language_url,
             "t": translate,
+            "can": can,
         }
 
     @app.errorhandler(403)
@@ -389,5 +391,14 @@ def create_app(test_config: dict | None = None) -> Flask:
         from .seed import seed
 
         seed()
+
+    # 版块权限表（usergroup_permissions / forumpermissions）是后加的，
+    # 启动时补建一次并把 16 个 can* 默认值按参考站 usergroup 表写进去。
+    with app.app_context():
+        from .extensions import db
+        from .permissions import ensure_seed
+
+        db.create_all()
+        ensure_seed()
 
     return app

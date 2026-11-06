@@ -1,0 +1,26 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}编辑版块权限{% endblock %}
+{% block content %}
+<br>
+<form method="post" action="{{ url_for('admin.permission_save') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<input type="hidden" name="forumid" value="{{ forum.id }}">
+<input type="hidden" name="usergroupid" value="{{ group.id }}">
+<tr class="tblhead"><td colspan="2"><b><input type="radio" name="useusergroup" value="1"{% if not custom %} checked{% endif %}><span class="tblhead">Use usergroup default</span></b> (Note: this will delete any previous custom settings)</td></tr>
+<tr class="firstalt" valign="top"><td colspan="2"><hr></td></tr>
+<tr class="tblhead"><td colspan="2"><b><input type="radio" name="useusergroup" value="0"{% if custom %} checked{% endif %}><span class="tblhead">Use custom settings:</span></b></td></tr>
+{% for field in fields %}
+<tr class="{{ 'secondalt' if loop.index0 % 2 == 0 else 'firstalt' }}" valign="top">
+	<td><p>{{ labels[field] }}</p></td>
+	<td><p>Yes<input type="radio" name="{{ field }}" value="1"{% if values[field] %} checked{% endif %}> No <input type="radio" name="{{ field }}" value="0"{% if not values[field] %} checked{% endif %}></p></td>
+</tr>
+{% endfor %}
+<tr class="tblhead"><td colspan="2" align="center">
+	<input type="submit" value="Save Changes"> <input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endblock %}

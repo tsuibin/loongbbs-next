@@ -1,0 +1,28 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}版块权限{% endblock %}
+{% block content %}
+<p><b>Key:</b><br>
+Black: use usergroup defaults<br>
+<font color="red">Red: using custom permissions for this forum</font><br>
+<font color="blue">Blue: using custom permissions inherited from parent forum</font></p>
+
+<ul>
+{% for block in blocks %}
+	<li><b>{{ block.category.name }}</b>
+	<ul>
+{% for item in block.forums %}
+		<li><b>{{ item.forum.name }}</b>
+		<ul>
+{% for row in item.rows %}
+			<li>{% if row.custom %}<font color="red">{{ row.group.title }}</font>{% else %}{{ row.group.title }}{% endif %} [<a href="{{ url_for('admin.permission_edit', forumid=item.forum.id, usergroupid=row.group.id) }}">edit</a>]</li>
+{% endfor %}
+		</ul>
+		</li>
+{% endfor %}
+	</ul>
+	</li>
+{% endfor %}
+</ul>
+
+<p>That's all folks!</p>
+{% endblock %}

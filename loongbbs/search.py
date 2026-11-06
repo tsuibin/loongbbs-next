@@ -92,6 +92,12 @@ def search():
     if get_setting("enablesearches") != "1":
         return _error("抱歉！管理员关闭了搜索功能。")
 
+    # usergroup 级的 cansearch（原版 search.php 一开始就查这个）
+    from .permissions import can
+
+    if not can("cansearch", None):
+        return _error("抱歉！你所在的用户组没有搜索权限。")
+
     args = request.args
     query = (args.get("query") or args.get("q") or "").strip()
     searchuser = (args.get("searchuser") or args.get("author") or "").strip()

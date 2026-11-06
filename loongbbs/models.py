@@ -303,6 +303,122 @@ class UserGroup(db.Model):
         return f"<UserGroup {self.id} {self.title}>"
 
 
+# vB 2.3.11 admin/forumpermission.php:makeyesnocode 的 16 个权限字段，
+# 顺序照该文件里 makeyesnocode 的调用顺序。
+PERMISSION_FIELDS = (
+    "canview",
+    "cansearch",
+    "canemail",
+    "canpostnew",
+    "canpostpoll",
+    "canvote",
+    "canpostattachment",
+    "cangetattachment",
+    "canmove",
+    "canopenclose",
+    "candeletethread",
+    "canreplyown",
+    "canreplyothers",
+    "canviewothers",
+    "caneditpost",
+    "candeletepost",
+)
+
+# admin/forumpermission.php 里 makeyesnocode 的英文标签，逐条照抄。
+PERMISSION_LABELS = {
+    "canview": "Can view forum",
+    "cansearch": "Can search",
+    "canemail": "Can use 'email to friend' feature",
+    "canpostnew": "Can post new threads",
+    "canpostpoll": "Can post polls",
+    "canvote": "Can vote on polls",
+    "canpostattachment": "Can post attachments",
+    "cangetattachment": "Can download attachments",
+    "canmove": "Can move own threads to other forums",
+    "canopenclose": "Can open / close own threads",
+    "candeletethread": "Can delete own threads",
+    "canreplyown": "Can reply to own threads",
+    "canreplyothers": "Can reply to other's threads",
+    "canviewothers": "Can view others' threads",
+    "caneditpost": "Can edit own posts",
+    "candeletepost": "Can delete own posts",
+}
+
+
+def _permission_columns() -> dict:
+    return {
+        field: db.Column(field, db.Boolean, nullable=False, default=True)
+        for field in PERMISSION_FIELDS
+    }
+
+
+class UserGroupPermission(db.Model):
+    """``usergroup`` 表里那 16 个 ``can*`` 默认权限列（本站在这里单独存）。
+
+    对应参考站 admin/forumpermission.php 的「Use usergroup default」分支：
+    某个版块没有 ``forumpermissions`` 记录时，就用这张表里该用户组的默认值。
+    """
+
+    __tablename__ = "usergroup_permissions"
+
+    usergroup_id = db.Column(
+        db.Integer, db.ForeignKey("usergroups.id"), primary_key=True
+    )
+    canview = db.Column(db.Boolean, nullable=False, default=True)
+    cansearch = db.Column(db.Boolean, nullable=False, default=True)
+    canemail = db.Column(db.Boolean, nullable=False, default=True)
+    canpostnew = db.Column(db.Boolean, nullable=False, default=True)
+    canpostpoll = db.Column(db.Boolean, nullable=False, default=True)
+    canvote = db.Column(db.Boolean, nullable=False, default=True)
+    canpostattachment = db.Column(db.Boolean, nullable=False, default=True)
+    cangetattachment = db.Column(db.Boolean, nullable=False, default=True)
+    canmove = db.Column(db.Boolean, nullable=False, default=False)
+    canopenclose = db.Column(db.Boolean, nullable=False, default=False)
+    candeletethread = db.Column(db.Boolean, nullable=False, default=False)
+    canreplyown = db.Column(db.Boolean, nullable=False, default=True)
+    canreplyothers = db.Column(db.Boolean, nullable=False, default=True)
+    canviewothers = db.Column(db.Boolean, nullable=False, default=True)
+    caneditpost = db.Column(db.Boolean, nullable=False, default=True)
+    candeletepost = db.Column(db.Boolean, nullable=False, default=True)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<UserGroupPermission {self.usergroup_id}>"
+
+
+class ForumPermission(db.Model):
+    """vB 2.3.11 的 ``forumpermission`` 表：某版块对某用户组的自定义权限。"""
+
+    __tablename__ = "forumpermissions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    usergroup_id = db.Column(
+        db.Integer, db.ForeignKey("usergroups.id"), nullable=False, index=True
+    )
+    forum_id = db.Column(
+        db.Integer, db.ForeignKey("forums.id"), nullable=False, index=True
+    )
+    canview = db.Column(db.Boolean, nullable=False, default=True)
+    cansearch = db.Column(db.Boolean, nullable=False, default=True)
+    canemail = db.Column(db.Boolean, nullable=False, default=True)
+    canpostnew = db.Column(db.Boolean, nullable=False, default=True)
+    canpostpoll = db.Column(db.Boolean, nullable=False, default=True)
+    canvote = db.Column(db.Boolean, nullable=False, default=True)
+    canpostattachment = db.Column(db.Boolean, nullable=False, default=True)
+    cangetattachment = db.Column(db.Boolean, nullable=False, default=True)
+    canmove = db.Column(db.Boolean, nullable=False, default=False)
+    canopenclose = db.Column(db.Boolean, nullable=False, default=False)
+    candeletethread = db.Column(db.Boolean, nullable=False, default=False)
+    canreplyown = db.Column(db.Boolean, nullable=False, default=True)
+    canreplyothers = db.Column(db.Boolean, nullable=False, default=True)
+    canviewothers = db.Column(db.Boolean, nullable=False, default=True)
+    caneditpost = db.Column(db.Boolean, nullable=False, default=True)
+    candeletepost = db.Column(db.Boolean, nullable=False, default=True)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<ForumPermission {self.id} forum={self.forum_id} group={self.usergroup_id}>"
+
+
+
 class ForumRead(db.Model):
     """vB 2.3.11 的 ``forumread`` 表：记录每个用户在每个版块「已读到此」的时间。
 

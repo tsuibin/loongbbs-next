@@ -36,6 +36,7 @@ from .models import (
     utcnow,
 )
 from .settings import get_setting
+from .permissions import can, current_permissions
 from .utils import censor_text, clamp_page, format_dt, page_args, render_body, time_ago
 
 bp = Blueprint("forums", __name__)
@@ -257,6 +258,8 @@ def sendtofriend_form():
     thread_obj = db.session.get(Thread, request.args.get("thread_id", type=int) or 0)
     if thread_obj is None:
         abort(404)
+    if not can("canemail", thread_obj.forum_id):
+        abort(403)
     return render_template(
         "sendtofriend.html",
         thread=thread_obj,
@@ -272,6 +275,8 @@ def sendtofriend_send():
     thread_obj = db.session.get(Thread, request.form.get("thread_id", type=int) or 0)
     if thread_obj is None:
         abort(404)
+    if not can("canemail", thread_obj.forum_id):
+        abort(403)
     to_email = (request.form.get("email") or "").strip()
     from_name = (request.form.get("fromname") or "").strip()
     note = (request.form.get("message") or "").strip()
@@ -461,6 +466,18 @@ def index():
         select(Category).order_by(Category.position, Category.id)
     ).scalars().all()
 
+    # vB forumhome 只显示 canview 为真的版块；权限全关的分类整块不出现
+    visible_categories = []
+    for category in categories:
+        visible_forums = [
+            forum_obj for forum_obj in category.forums
+            if can("canview", forum_obj.id)
+        ]
+        if visible_forums:
+            category.visible_forums = visible_forums
+            visible_categories.append(category)
+    categories = visible_categories
+
     # 后台「首页版块选项」组（vB 组 5），对应 index.php 的
     # $showforumdescription / $displayloggedin / $highlightadmin / $showlocks / $forumhomedepth
     show_description = get_setting("showforumdescription") != "0"
@@ -537,6 +554,8 @@ def forum(forum_id: int):
     forum_obj = db.session.get(Forum, forum_id)
     if forum_obj is None:
         abort(404)
+    if not can("canview", forum_obj.id):
+        abort(403)
 
     page = clamp_page(request.args.get("page"))
     # 组 9 maxthreads：版块页每页主题数（原版 sanitize_pageresults 上限 200）
@@ -572,6 +591,9 @@ def forum(forum_id: int):
     if sortfield == "postusername":
         stmt = stmt.join(User, Thread.author_id == User.id)
     stmt = stmt.where(Thread.forum_id == forum_obj.id)
+    # vB 的 canviewothers=0（vote 前的「只看自己的主题」）时只显示本人的主题
+    if not can("canviewothers", forum_obj.id):
+        stmt = stmt.where(Thread.author_id == (current_user.id if current_user.is_authenticated else -1))
     if daysprune < 1000:
         stmt = stmt.where(Thread.last_post_at >= utcnow() - timedelta(days=daysprune))
     column = sort_columns[sortfield]
@@ -583,6 +605,10 @@ def forum(forum_id: int):
     threads = db.session.execute(stmt).scalars().all()
 
     total_stmt = select(func.count(Thread.id)).where(Thread.forum_id == forum_obj.id)
+    if not can("canviewothers", forum_obj.id):
+        total_stmt = total_stmt.where(
+            Thread.author_id == (current_user.id if current_user.is_authenticated else -1)
+        )
     if daysprune < 1000:
         total_stmt = total_stmt.where(
             Thread.last_post_at >= utcnow() - timedelta(days=daysprune)
@@ -701,6 +727,8 @@ def new_thread_form(forum_id: int):
     if forum_obj.is_closed:
         flash("这个版块已关闭，不能发新主题。", "error")
         return redirect(url_for("forums.forum", forum_id=forum_id))
+    if not can("canpostnew", forum_obj.id):
+        abort(403)
     return render_template("post_form.html", forum=forum_obj, mode="new", thread=None, post=None)
 
 
@@ -721,6 +749,9 @@ def new_thread(forum_id: int):
     if forum_obj is None:
         abort(404)
     if forum_obj.is_closed:
+        abort(403)
+
+    if not can("canpostnew", forum_obj.id):
         abort(403)
 
     title = (request.form.get("title") or "").strip()
@@ -771,7 +802,7 @@ def new_thread(forum_id: int):
     db.session.add(post)
     db.session.flush()
 
-    save_uploads(post, request.files.getlist("files"))
+    _save_uploads_for(post, forum_obj.id)
 
     # 发帖时勾了「发起投票」才建 poll（对应 vB newthread 的 $postpolloption）
     if request.form.get("postpoll") == "yes":
@@ -805,6 +836,8 @@ def vote_thread(thread_id: int):
     thread_obj = db.session.get(Thread, thread_id)
     if thread_obj is None:
         abort(404)
+    if not can("canvote", thread_obj.forum_id):
+        abort(403)
     poll_obj = db.session.scalar(select(Poll).where(Poll.thread_id == thread_obj.id))
     if poll_obj is None:
         abort(404)
@@ -846,6 +879,8 @@ def thread(thread_id: int):
     thread_obj = db.session.get(Thread, thread_id)
     if thread_obj is None:
         abort(404)
+    if not can("canview", thread_obj.forum_id):
+        abort(403)
 
     page = clamp_page(request.args.get("page"))
     per_page = _thread_per_page()
@@ -974,6 +1009,8 @@ def reply_form(thread_id: int):
     if thread_obj.is_closed:
         flash("这个主题已关闭，不能回复。", "error")
         return redirect(url_for("forums.thread", thread_id=thread_id))
+    if not _can_reply(thread_obj):
+        abort(403)
     return render_template(
         "post_form.html", forum=thread_obj.forum, mode="reply", thread=thread_obj, post=None
     )
@@ -988,6 +1025,8 @@ def reply(thread_id: int):
     if thread_obj.is_closed:
         flash("这个主题已关闭，不能回复。", "error")
         return redirect(url_for("forums.thread", thread_id=thread_id))
+    if not _can_reply(thread_obj):
+        abort(403)
 
     body = (request.form.get("body") or "").strip()
     title = (request.form.get("title") or "").strip() or f"Re: {thread_obj.title}"
@@ -1026,11 +1065,24 @@ def reply(thread_id: int):
     )
     db.session.add(post)
     db.session.flush()
-    save_uploads(post, request.files.getlist("files"))
+    _save_uploads_for(post, thread_obj.forum_id)
     thread_obj.last_post_at = utcnow()
     db.session.commit()
 
     return redirect(url_for("forums.thread", thread_id=thread_id, page=_last_page(thread_obj)))
+
+
+def _save_uploads_for(post: Post, forum_id: int):
+    """vB 的 canpostattachment=0 的组发帖时不收附件。"""
+    if not can("canpostattachment", forum_id):
+        return []
+    return save_uploads(post, request.files.getlist("files"))
+
+
+def _can_reply(thread_obj: Thread) -> bool:
+    """vB 的 canreplyown / canreplyothers：自己发的主题和别人发的主题分开判。"""
+    is_owner = current_user.is_authenticated and thread_obj.author_id == current_user.id
+    return can("canreplyown" if is_owner else "canreplyothers", thread_obj.forum_id)
 
 
 def _last_page(thread_obj: Thread) -> int:
@@ -1063,6 +1115,8 @@ def edit_post_form(post_id: int):
         abort(404)
     if post.author_id != current_user.id and not current_user.is_admin:
         abort(403)
+    if post.author_id == current_user.id and not can("caneditpost", post.thread.forum_id):
+        abort(403)
     limit = _setting_int("edittimelimit", 0, high=100000)
     if (
         limit
@@ -1083,6 +1137,8 @@ def edit_post(post_id: int):
     if post is None:
         abort(404)
     if post.author_id != current_user.id and not current_user.is_admin:
+        abort(403)
+    if post.author_id == current_user.id and not can("caneditpost", post.thread.forum_id):
         abort(403)
 
     # 组 14 edittimelimit：超过 N 分钟作者就不能再自己改（管理员不受限）
@@ -1136,7 +1192,7 @@ def edit_post(post_id: int):
         elif _minutes_since(post.created_at) > _setting_int("noeditedbytime", 0, high=100000):
             post.updated_at = utcnow()
             post.edit_user_id = current_user.id
-    save_uploads(post, request.files.getlist("files"))
+    _save_uploads_for(post, post.thread.forum_id)
     db.session.commit()
 
     flash("帖子已更新。", "success")
