@@ -2,6 +2,9 @@
 {% block title %}{{ settings.site_name }} - {{ forum.name }}{% endblock %}
 
 {% block content %}
+<script language="Javascript">
+function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999999) }}".replace("999999", threadid), "whoposted", "toolbar=no,scrollbars=yes,resizable=yes,width=230,height=300"); }
+</script>
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
 	<td valign="top"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
@@ -58,7 +61,7 @@
 	  )
 	{% endif %}</font></td>
 	<td bgcolor="#DFDFDF" width="30%" nowrap><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><a href="javascript:who({{ thread.id }})">{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</a></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ thread.views }}</font></td>
 	<td bgcolor="#F1F1F1" align="center">{% set show_votes = settings.get('showvotes', '2')|int %}{% if r_cnt >= show_votes and r_cnt > 0 %}<img src="{{ url_for('static', filename='images/' ~ ('%.0f'|format(r_avg)) ~ 'stars.gif') }}" border="0" alt="{{ r_cnt }} 票 - 平均 {{ '%.4f'|format(r_avg) }}">{% else %}<img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" alt="">{% endif %}</td>
 	<td bgcolor="#DFDFDF">

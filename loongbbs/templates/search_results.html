@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ settings.site_name }} - Search Results{% endblock %}
 {% block content %}
+<script language="Javascript">
+function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999999) }}".replace("999999", threadid), "whoposted", "toolbar=no,scrollbars=yes,resizable=yes,width=230,height=300"); }
+</script>
 {% set sortparam = 'replies' if sortby == 'replycount' else sortby %}
 {% set orderparam = 'ascending' if sortorder == 'asc' else 'descending' %}
 <!-- breadcrumb -->
@@ -34,7 +37,7 @@
 	<td bgcolor="#F1F1F1" align="left"><font face="verdana, arial, helvetica" size="2">{% if t.last_post %}<a href="{{ url_for('forums.thread', thread_id=t.id) }}#post{{ t.last_post.id }}"><img src="{{ url_for('static', filename='images/firstnew.gif') }}" border="0" alt="{% if ui_lang == 'en' %}Go to first new post{% else %}前往第一篇新帖{% endif %}"></a> {% endif %}<a href="{{ url_for('forums.thread', thread_id=t.id) }}">{{ t.title }}</a></font></td>
 	<td bgcolor="#DFDFDF" nowrap><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=t.author.username) }}">{{ t.author.username }}</a></font></td>
 	<td bgcolor="#F1F1F1" align="left"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('forums.forum', forum_id=t.forum_id) }}">{{ t.forum.name }}</a></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ t.reply_count }}</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><a href="javascript:who({{ t.id }})">{{ t.reply_count }}</a></font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ t.views }}</font></td>
 	<td bgcolor="#DFDFDF" align="right">
 		<table cellpadding="0" cellspacing="0" border="0" id="ltlink"><tr align="right">

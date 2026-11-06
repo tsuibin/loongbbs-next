@@ -3,13 +3,21 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, abort, render_template, request
 from sqlalchemy import func, select
 
 from .extensions import db
 from .faq_zh import translate_faq_html
 from .i18n import current_language
-from .models import Category, OnlineSession, User, UserGroup, utcnow
+from .models import (
+    Category,
+    OnlineSession,
+    Post,
+    Thread,
+    User,
+    UserGroup,
+    utcnow,
+)
 from .settings import get_setting
 from .utils import SMILIES
 
@@ -66,6 +74,52 @@ def _naive(value):
     if value is not None and value.tzinfo is not None:
         return value.replace(tzinfo=None)
     return value
+
+
+@bp.get("/whoposted/<int:thread_id>")
+def whoposted(thread_id: int):
+    """对应 vB misc.php?action=whoposted（版块页回复数 javascript:who() 的弹窗）。
+
+    原版按 userid 分组统计该主题的可见帖子数、按帖子数倒序，弹窗里一张表：
+    顶部 Total Posts，表头 User / Posts，底部 [show thread & close window]。
+    """
+    thread_obj = db.session.get(Thread, thread_id)
+    if thread_obj is None:
+        abort(404)
+
+    rows = db.session.execute(
+        select(
+            Post.author_id,
+            func.count(Post.id).label("posts"),
+        )
+        .where(Post.thread_id == thread_id, Post.is_deleted.is_(False))
+        .group_by(Post.author_id)
+        .order_by(func.count(Post.id).desc(), Post.author_id)
+    ).all()
+
+    if not rows:
+        abort(404)
+
+    posters = []
+    total_posts = 0
+    for author_id, count in rows:
+        total_posts += int(count)
+        user_obj = db.session.get(User, author_id) if author_id else None
+        posters.append(
+            {
+                "username": user_obj.username if user_obj else "",
+                "user_id": author_id,
+                "posts": int(count),
+            }
+        )
+
+    return render_template(
+        "misc/whoposted.html",
+        thread=thread_obj,
+        posters=posters,
+        total_posts=total_posts,
+        ui_lang=current_language(),
+    )
 
 
 @bp.get("/showgroups")
