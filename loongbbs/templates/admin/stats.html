@@ -1,0 +1,66 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}View Statistics{% else %}查看统计{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'empty' %}
+<p>No results</p>
+<p><a href="{{ url_for('admin.stats_page') }}" class="lc">[{% if ui_lang == 'en' %}Back to Statistics{% else %}返回统计{% endif %}]</a></p>
+
+{% elif mode == 'result' %}
+<table width="100%" cellpadding="4" cellspacing="1" border="0">
+<tr class="tblhead"><td width="100%" colspan="2"><b>Date</b></td><td width="0"><b>#</b></td></tr>
+{% for b in buckets %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}"><td width="0">{{ b.label }}</td>
+	<td width="100%" nowrap><img src="{{ url_for('static', filename='images/polls/bar%d-l.gif' % b.color) }}"><img src="{{ url_for('static', filename='images/polls/bar%d.gif' % b.color) }}" width="{{ b.width }}%" height="10"><img src="{{ url_for('static', filename='images/polls/bar%d-r.gif' % b.color) }}"></td>
+	<td width="0%" nowrap>{{ b.value }}</td></tr>
+{% endfor %}
+</table>
+<p><font size="1">{% if ui_lang == 'en' %}Blue bars are periods above the average, red bars below it.{% else %}蓝色柱表示高于区间平均，红色柱表示低于区间平均。{% endif %}
+<a href="{{ url_for('admin.stats_page') }}" class="lc">[{% if ui_lang == 'en' %}Back to Statistics{% else %}返回统计{% endif %}]</a></font></p>
+
+{% else %}
+<form method="post" action="{{ url_for('admin.stats_standard') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">View Statistics</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Type of Statistics</p></td>
+	<td><p><select name="type" size="1">
+	<option value="user">New Users</option>
+	<option value="post">Posts</option>
+	<option value="thread">Threads</option>
+	</select></p></td></tr>
+<tr class="secondalt"><td><p>Date From</p></td>
+	<td><p>
+	{% for dl in date_from %}<select name="{{ dl.prefix }}month">{% for v, label, sel in dl.months %}<option value="{{ v }}"{% if sel %} selected{% endif %}>{{ label }}
+{% endfor %}</select><select name="{{ dl.prefix }}day">{% for v, label, sel in dl.days %}<option value="{{ v }}"{% if sel %} selected{% endif %}>{{ label }}
+{% endfor %}</select><select name="{{ dl.prefix }}year">{% for v, label, sel in dl.years %}<option value="{{ v }}"{% if sel %} selected{% endif %}>{{ label }}
+{% endfor %}</select>{% endfor %}
+	</p></td></tr>
+<tr class="firstalt"><td><p>Date To</p></td>
+	<td><p>
+	{% for dl in date_to %}<select name="{{ dl.prefix }}month">{% for v, label, sel in dl.months %}<option value="{{ v }}"{% if sel %} selected{% endif %}>{{ label }}
+{% endfor %}</select><select name="{{ dl.prefix }}day">{% for v, label, sel in dl.days %}<option value="{{ v }}"{% if sel %} selected{% endif %}>{{ label }}
+{% endfor %}</select><select name="{{ dl.prefix }}year">{% for v, label, sel in dl.years %}<option value="{{ v }}"{% if sel %} selected{% endif %}>{{ label }}
+{% endfor %}</select>{% endfor %}
+	</p></td></tr>
+<tr class="secondalt"><td><p>Timeframe</p></td>
+	<td><p><select name="timeframe" size="1">
+	<option value="day">Daily</option>
+	<option value="week">Weekly</option>
+	<option value="month">Monthly</option>
+	</select></p></td></tr>
+<tr class="firstalt"><td><p>Sorting</p></td>
+	<td><p>Recent dates first <input type="radio" checked name="order" value="1"> Recent dates last <input type="radio" name="order" value="0"></p></td></tr>
+<tr class="secondalt"><td><p>Format</p></td>
+	<td><p>In-line HTML <input type="radio" checked name="style" value="1"> Word Document (RTF) <input type="radio" name="style" value="0"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Display Stats   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}
