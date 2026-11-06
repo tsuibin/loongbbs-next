@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - Who's Online{% endblock %}
+{% block head %}{% if refresh_seconds %}<META HTTP-EQUIV="refresh" CONTENT="{{ refresh_seconds }}; URL={{ url_for('online.whos_online') }}">{% endif %}{% endblock %}
+
+{% block content %}
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" alt="" border="0" align="absmiddle">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	Who's Online</b></font></td>
+</tr>
+</table>
+
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr id="cat">
+	<td bgcolor="#606096" colspan="{{ 3 + (1 if show_pm else 0) + (1 if show_email else 0) + (1 if show_ip else 0) }}"><font face="verdana,arial,helvetica" size="2" color="#FFF788"><b>{{ settings.site_name }} Who's Online @ {{ server_time }} -</b> {{ number_members }} Members and {{ number_guests }} Guests</font></td>
+</tr>
+<tr align="center">
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>User Name</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>Location</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>Last Active</b></font></td>
+	{% if show_pm %}<td bgcolor="#8080A6" align="center" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>PM</b></font></td>{% endif %}
+	{% if show_email %}<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>Email</b></font></td>{% endif %}
+	{% if show_ip %}<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>IP</b></font></td>{% endif %}
+</tr>
+{% for row in member_rows %}
+<tr align="center">
+	<td bgcolor="#F1F1F1" align="left"><font face="verdana,arial,helvetica" size="2"><a href="{{ row.profile_url }}">{% if row.is_admin %}<b><i>{{ row.username }}</i></b>{% else %}{{ row.username }}{% endif %}</a></font></td>
+	<td bgcolor="#DFDFDF" align="left"><font face="verdana,arial,helvetica" size="2">{{ row.where_html }}</font></td>
+	<td bgcolor="#F1F1F1" nowrap><font face="verdana,arial,helvetica" size="2">{{ row.last_active|datetimefmt }}</font></td>
+	{% if show_pm %}<td bgcolor="#F1F1F1"><a href="{{ row.pm_url }}"><img src="{{ url_for('static', filename='images/sendpm.gif') }}" border="0" alt="发送悄悄话"></a></td>{% endif %}
+	{% if show_email %}<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">{{ row.email or '' }}</font></td>{% endif %}
+	{% if show_ip %}<td bgcolor="#F1F1F1" align="left"><font face="verdana,arial,helvetica" size="1">{{ row.ip }}</font></td>{% endif %}
+</tr>
+{% endfor %}
+{% for row in guest_rows %}
+<tr align="center">
+	<td bgcolor="#F1F1F1" align="left"><font face="verdana,arial,helvetica" size="2">Guest</font></td>
+	<td bgcolor="#DFDFDF" align="left"><font face="verdana,arial,helvetica" size="2">{{ row.where_html }}</font></td>
+	<td bgcolor="#F1F1F1" nowrap><font face="verdana,arial,helvetica" size="2">{{ row.last_active|datetimefmt }}</font></td>
+	{% if show_pm %}<td bgcolor="#F1F1F1">&nbsp;</td>{% endif %}
+	{% if show_email %}<td bgcolor="#F1F1F1">&nbsp;</td>{% endif %}
+	{% if show_ip %}<td bgcolor="#F1F1F1" align="left"><font face="verdana,arial,helvetica" size="1">{{ row.ip }}</font></td>{% endif %}
+</tr>
+{% endfor %}
+{% if not member_rows and not guest_rows %}
+<tr>
+	<td bgcolor="#F1F1F1" colspan="{{ 3 + (1 if show_pm else 0) + (1 if show_email else 0) + (1 if show_ip else 0) }}"><font face="verdana,arial,helvetica" size="2">当前没有会员在线。</font></td>
+</tr>
+{% endif %}
+</table>
+</td></tr></table>
+
+{% if show_legend %}
+<br>
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
+	名字为 <b>粗体</b> 的是版主，名字为 <b><i>粗斜体</i></b> 的是管理员。
+	</font></td>
+</tr>
+</table>
+</td></tr></table>
+{% endif %}
+
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('online.whos_online') }}">[reload this page]</a></font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.index') }}">论坛首页</a></font></td>
+</tr>
+</table>
+{% endblock %}

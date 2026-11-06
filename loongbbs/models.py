@@ -441,3 +441,22 @@ class PollVote(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<PollVote poll={self.poll_id} user={self.user_id} option={self.option_id}>"
+
+
+class OnlineSession(db.Model):
+    """vB session 表的对应物：在线用户页（online.php）的 lastactivity / location / host。
+
+    vB 的 session 行同时承载会员与游客；本站用同一张表区分：user_id 为空即为游客。
+    """
+
+    __tablename__ = "online_sessions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_hash = db.Column(db.String(40), nullable=False, unique=True, index=True)
+    user_id = db.Column(db.Integer, nullable=True, index=True)
+    ip = db.Column(db.String(45), nullable=False, default="", server_default="")
+    location = db.Column(db.String(255), nullable=False, default="", server_default="")
+    last_activity = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<OnlineSession {self.session_hash[:8]} user={self.user_id}>"

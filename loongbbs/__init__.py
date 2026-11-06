@@ -46,6 +46,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     from .admin import bp as admin_bp
     from .members import bp as members_bp
     from .misc import bp as misc_bp
+    from .online import bp as online_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(forums_bp)
@@ -55,6 +56,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(admin_bp)
     app.register_blueprint(members_bp)
     app.register_blueprint(misc_bp)
+    app.register_blueprint(online_bp)
 
     # 组 23 addtemplatename：记下本次请求渲染的最外层模板名，供 after_request
     # 在 HTML 前后插入 `<!-- template: xxx -->` 注释（原版 functions.php 的
@@ -292,6 +294,11 @@ def create_app(test_config: dict | None = None) -> Flask:
                     current_user.last_visit = seen
                 current_user.last_seen = utcnow()
                 db.session.commit()
+
+    # 组 31：把每个请求写进 online_sessions（vB session 表的对应物，供 /online 使用）
+    from .online import record_activity
+
+    app.before_request(record_activity)
 
     @app.context_processor
     def inject_globals():
