@@ -54,7 +54,7 @@
 <tr align="center">
 	<td bgcolor="#F1F1F1" align="left"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{% if user.showemail %}<a href="mailto:{{ user.email }}">{{ user.email }}</a>{% else %}N/A{% endif %}</font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{% if user.homepage %}<a href="{{ user.homepage }}" target="_blank">主页</a>{% else %}&nbsp;{% endif %}</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{% if user.homepage %}<a href="{{ user.homepage }}" target="_blank">{{ user.homepage }}</a>{% else %}&nbsp;{% endif %}</font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('search.search', q=user.username) }}">查找</a></font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ user.joined_at|dt('%m-%d-%Y') }}</font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ user.post_count }}</font></td>
