@@ -418,6 +418,18 @@ def forum(forum_id: int):
     for thread_obj in threads:
         thread_obj._rating_cache = ratings.get(thread_obj.id, (0.0, 0))
 
+    # 主题图标：取该主题首帖的 iconid（对应 vB forumdisplay.php 的 thread.iconid）
+    icon_rows = db.session.execute(
+        select(Post.thread_id, Post.iconid)
+        .where(Post.thread_id.in_([t.id for t in threads] or [-1]))
+        .order_by(Post.thread_id, Post.id)
+    ).all()
+    first_icons: dict[int, int] = {}
+    for thread_id, icon_id_value in icon_rows:
+        first_icons.setdefault(thread_id, icon_id_value or 0)
+    for thread_obj in threads:
+        thread_obj._icon_cache = first_icons.get(thread_obj.id, 0)
+
     return render_template(
         "forum.html",
         forum=forum_obj,
