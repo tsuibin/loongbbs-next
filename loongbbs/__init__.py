@@ -57,6 +57,33 @@ def _ensure_smilies() -> None:
     db.session.commit()
 
 
+def _ensure_bbcodes() -> None:
+    """bbcodes 表为空时写入参考站 bbcode 表的 9 条原值。"""
+    from sqlalchemy import func, select
+
+    from .extensions import db
+    from .models import BBCode
+
+    if db.session.scalar(select(func.count(BBCode.id))):
+        return
+    rows = [
+        ("b", "<b>\4</b>", "[b]Bold[/b]", 0),
+        ("i", "<i>\\4</i>", "[i]Italics[/i]", 0),
+        ("email", '<a href="mailto:\\4">\\4</a>', "[email]support@vbulletin.com[/email]", 0),
+        ("email", '<a href="mailto:\\5">\\7</a>', "[email=support@vbulletin.com]vBulletin Support[/email]", 1),
+        ("size", '<font size="\\5">\\7</font>', "[size=+1]Size 1[/size]", 1),
+        ("quote", "<blockquote><smallfont>quote:</smallfont><hr>\\4<hr></blockquote>", "[quote]This is a quote[/quote]", 0),
+        ("u", "<u>\\4</u>", "[u]Underline[/u]", 0),
+        ("color", '<font color="\\5">\\7</font>', "[color=red]Red![/color]", 1),
+        ("font", '<font face="\\5">\\7</font>', "[font=courier]Test[/font]", 1),
+    ]
+    db.session.add_all([
+        BBCode(bbcodetag=t, bbcodereplacement=r, bbcodeexample=e, bbcodeexplanation="", twoparams=p)
+        for t, r, e, p in rows
+    ])
+    db.session.commit()
+
+
 def _ensure_usergroup_extras() -> None:
     """把参考站 usergroup 表里的组级权限原值写进 usergroup_permissions（只做一次）。"""
     from sqlalchemy import select, text
@@ -563,5 +590,6 @@ def create_app(test_config: dict | None = None) -> Flask:
         _ensure_usergroup_extras()
         _ensure_icons()
         _ensure_smilies()
+        _ensure_bbcodes()
 
     return app

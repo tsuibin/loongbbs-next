@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
+from html import escape as _html_escape
 import socket
 
 from flask import (
@@ -23,6 +24,7 @@ from sqlalchemy import delete, func, select
 from .extensions import db
 from .models import (
     Announcement,
+    BBCode,
     Attachment,
     Avatar,
     Category,
@@ -122,8 +124,8 @@ NAV_GROUPS = [
         {"label": "Upload", "module": "Upload Smilies"},
     ]},
     {"title": "Custom vB Codes", "links": [
-        {"label": "Add", "module": "Add vB Code"},
-        {"label": "Modify", "module": "Modify vB Codes"},
+        {"label": "Add", "endpoint": "admin.bbcodes_add"},
+        {"label": "Modify", "endpoint": "admin.bbcodes"},
     ]},
     {"title": "Import & Maintenance", "links": [
         {"label": "Back-up Database", "module": "Back-up Database"},
@@ -1547,6 +1549,120 @@ def smilies_upload():
     db.session.commit()
     flash("Smilie successfuly uploaded", "success")
     return redirect(url_for("admin.smilies"))
+
+
+_BB_SINGLE = r"\[(%s)\](.*?)\[/(%s)\]"
+_BB_DOUBLE = r"\[(%s)=(['\"]?)([^\"']*)\2\](.*?)\[/(%s)\]"
+
+
+def _bbcode_pattern(tag: str, twoparams: int):
+    """照原版 bbcode.php 的 $singleRegex / $doubleRegex 构造（/siU = 忽略大小写 + 非贪婪）。"""
+    if twoparams:
+        return re.compile(_BB_DOUBLE % (tag, tag), re.IGNORECASE | re.DOTALL)
+    return re.compile(_BB_SINGLE % (tag, tag), re.IGNORECASE | re.DOTALL)
+
+
+def _bbcode_html(tag: str, replacement: str, twoparams: int, text: str) -> str:
+    """把 replacement 里的 \\N 反引用换成实际捕获组（\4/\7 = 正文，\5 = 选项）。"""
+    html = replacement
+    repl = (lambda m: html.replace("\\7", m.group(4)).replace("\\5", m.group(3))
+            .replace("\\4", m.group(4))) if twoparams else (lambda m: html.replace("\\4", m.group(2)))
+    return _bbcode_pattern(tag, twoparams).sub(repl, text) if text else text
+
+
+def _apply_bbcodes(text: str) -> str:
+    rows = db.session.execute(select(BBCode)).scalars().all()
+    out = text
+    for row in rows:
+        out = _bbcode_html(row.bbcodetag, row.bbcodereplacement, row.twoparams, out)
+    return out
+
+
+@bp.route("/bbcodes", methods=["GET", "POST"])
+def bbcodes():
+    """Custom vB Codes → Modify：照原版 bbcode.php 的 modify，附带 Test your vB Codes 表单。"""
+    if request.method == "POST" and request.form.get("action") == "test":
+        text = request.form.get("text") or ""
+        parsed = _apply_bbcodes(text)
+        # 原版是 nl2br(preg_replace(...)) 后直接输出，不做转义
+        parsed = re.sub(r"\r\n|\n", "<br />\n", parsed)
+        return render_template("admin/bbcodes.html", mode="test", text=text, parsed=parsed)
+    rows = db.session.execute(select(BBCode)).scalars().all()
+    items = []
+    for row in rows:
+        parsed = _bbcode_html(row.bbcodetag, row.bbcodereplacement, row.twoparams, row.bbcodeexample)
+        items.append({"row": row, "example": row.bbcodeexample, "parsed": parsed})
+    return render_template("admin/bbcodes.html", mode="list", items=items)
+
+
+@bp.route("/bbcodes/add", methods=["GET", "POST"])
+def bbcodes_add():
+    """Custom vB Codes → Add：原版 add / insert。"""
+    if request.method == "GET":
+        return render_template("admin/bbcodes.html", mode="add")
+    form = request.form
+    twoparams = 1 if _yn(form, "twoparams", 1) else 0
+    repl = (form.get("bbcodereplacement") or "").strip()
+    if twoparams:
+        repl = repl.replace("{param}", "\\7").replace("{option}", "\\5")
+    else:
+        repl = repl.replace("{param}", "\\4")
+    db.session.add(BBCode(bbcodetag=re.escape((form.get("bbcodetag") or "").strip()),
+                          bbcodereplacement=repl,
+                          bbcodeexample=(form.get("bbcodeexample") or "").strip(),
+                          bbcodeexplanation=(form.get("bbcodeexplanation") or "").strip(),
+                          twoparams=twoparams))
+    db.session.commit()
+    flash("Record added", "success")
+    return redirect(url_for("admin.bbcodes"))
+
+
+@bp.route("/bbcodes/edit", methods=["GET", "POST"])
+def bbcodes_edit():
+    """Custom vB Codes 编辑：原版 edit / doupdate（显示时把反引用还原成 {param}/{option}）。"""
+    bid = request.values.get("bbcodeid", type=int) or 0
+    row = db.session.get(BBCode, bid) if bid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.bbcodes"))
+    if request.method == "GET":
+        shown = row.bbcodereplacement
+        if row.twoparams:
+            shown = shown.replace("\\7", "{param}").replace("\\5", "{option}")
+        else:
+            shown = shown.replace("\\4", "{param}")
+        return render_template("admin/bbcodes.html", mode="edit", row=row,
+                               tag=row.bbcodetag.replace("\\\\", "\\"), shown=shown)
+    form = request.form
+    twoparams = 1 if _yn(form, "twoparams", 1) else 0
+    repl = (form.get("bbcodereplacement") or "").strip()
+    if twoparams:
+        repl = repl.replace("{param}", "\\7").replace("{option}", "\\5")
+    else:
+        repl = repl.replace("{param}", "\\4")
+    row.bbcodetag = re.escape((form.get("bbcodetag") or "").strip())
+    row.bbcodereplacement = repl
+    row.bbcodeexample = (form.get("bbcodeexample") or "").strip()
+    row.bbcodeexplanation = (form.get("bbcodeexplanation") or "").strip()
+    row.twoparams = twoparams
+    db.session.commit()
+    flash("Record updated!", "success")
+    return redirect(url_for("admin.bbcodes"))
+
+
+@bp.route("/bbcodes/remove", methods=["GET", "POST"])
+def bbcodes_remove():
+    """Custom vB Codes 删除：原版 remove / kill（原版删除后无任何提示语）。"""
+    bid = request.values.get("bbcodeid", type=int) or 0
+    row = db.session.get(BBCode, bid) if bid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.bbcodes"))
+    if request.method == "GET":
+        return render_template("admin/bbcodes.html", mode="remove", row=row)
+    db.session.execute(delete(BBCode).where(BBCode.id == row.id))
+    db.session.commit()
+    return redirect(url_for("admin.bbcodes"))
 
 
 @bp.route("/usergroups")

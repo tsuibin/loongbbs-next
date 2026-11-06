@@ -1,0 +1,112 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Custom vB Codes{% else %}自定义 vB 代码{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'list' %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">vBcode Definitions</span></b></font></td></tr>
+{% for it in items %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td><p><b>{{ it.example }}</b> is replaced with {{ it.parsed|safe }} ({{ it.parsed }})</p></td>
+	<td align="right" nowrap><a href="{{ url_for('admin.bbcodes_edit', bbcodeid=it.row.id) }}" class="lc">[edit]</a> <a href="{{ url_for('admin.bbcodes_remove', bbcodeid=it.row.id) }}" class="lc">[remove]</a></td></tr>
+{% endfor %}
+</table>
+</td></tr></table>
+
+<form method="post" action="{{ url_for('admin.bbcodes') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Test your vB Codes</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Enter text with vB Codes:</p></td>
+	<td><p><textarea name="text" rows="15" cols="60"></textarea></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="test">
+	<input type="submit" value="   Test this text   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'test' %}
+<form method="post" action="{{ url_for('admin.bbcodes') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Test your vB Codes</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>This is how the text will appear after vB Code formatting:</p></td>
+	<td><table border="0" cellspacing="1" cellpadding="4" width="100%" class="tblborder"><tr class="secondalt"><td>
+	{% if parsed %}{{ parsed|safe }}{% else %}<i>-- nothing to display! --</i>{% endif %}
+	</td></tr></table></td></tr>
+<tr class="secondalt" valign="top"><td><p>This is the text you entered</p></td>
+	<td><p><textarea name="text" rows="15" cols="60">{{ text }}</textarea></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="test">
+	<input type="submit" value="   Test this text   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+<p><a href="{{ url_for('admin.bbcodes') }}" class="lc">[Edit custom bbcodes]</a></p>
+
+{% elif mode in ['add', 'edit'] %}
+{% set act = 'add' if mode == 'add' else 'edit' %}
+{% set m = 'insert' if mode == 'add' else 'doupdate' %}
+<form method="post" action="{{ url_for('admin.bbcodes_add') if mode == 'add' else url_for('admin.bbcodes_edit') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">
+{% if mode == 'add' %}Add New vB Code{% else %}Edit vB Code: [{{ tag }}]{% endif %}
+</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>vB Code tag</p></td>
+	<td><p><input type="text" size="35" name="bbcodetag" value="{{ tag if mode == 'edit' else '' }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>vB Code replacement</p></td>
+	<td><p><textarea name="bbcodereplacement" rows="4" cols="30">{{ shown if mode == 'edit' else '' }}</textarea></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>vB Code example</p></td>
+	<td><p><input type="text" size="35" name="bbcodeexample" value="{{ row.bbcodeexample if mode == 'edit' else '' }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>vB Code explanation</p></td>
+	<td><p><textarea name="bbcodeexplanation" rows="10" cols="50">{{ row.bbcodeexplanation if mode == 'edit' else '' }}</textarea></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Use {option} ?</p></td>
+	<td><p>Yes<input type="radio" name="twoparams" value="1"{% if mode == 'add' or (row.twoparams) %} checked{% endif %}> No <input type="radio" name="twoparams" value="0"{% if mode == 'edit' and not row.twoparams %} checked{% endif %}></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	{% if mode == 'edit' %}<input type="hidden" name="bbcodeid" value="{{ row.id }}">{% endif %}
+	<input type="submit" value="   {{ 'Save' if mode == 'add' else 'Save Changes' }}   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<p><b>Explanations:</b></p>
+<p><b>vB Code Tag:</b> This is the text for the vB code, which goes inside the square brackets.<br>
+eg. you would use 'b' for [b] tags, 'url' (without quotes) for [url] tags.</p>
+<p><b>vB Code Replacement:</b> This is the HTML code for the vB code replacement. Make sure that you include '{param}' (without the quotes) to insert the text between the opening and closing vB code tags, and '{option}' for the parameter within the vB code tag. You can only use {option} if 'Use Option' is set to yes.<br>
+eg. you would use &lt;b&gt;{param}&lt;/b&gt; for [b] tags, &lt;a href="{option}"&gt;{param}&lt;/a&gt; for [url=xxx] . You will always use '{param}', but you will only use '{option}' when "Use Option?" is "yes."</p>
+<p><b>vB Code Example:</b> This is a sample piece of vB code to use as an example for this particular vB code.
+eg. you would use [b]Bold[/b] for [b] tags, [url=http://www.vbulletin.com]vBulletin[/url] for [url] tags</p>
+<p><b>vB Code explanation:</b> This is a piece of text to describe the vB code tag. This can include HTML tags if you wish.</p>
+<p><b>Use Option:</b> Setting this option to yes will allow you to create a [tag=option][/tag] style tag, rather than just a [tag][/tag] style tag.</p>
+{% endif %}
+
+{% if mode == 'remove' %}
+<form method="post" action="{{ url_for('admin.bbcodes_remove') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2" align="center">Are you sure you want to delete this bbcode?</td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="bbcodeid" value="{{ row.id }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="history.back()">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

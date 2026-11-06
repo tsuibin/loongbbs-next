@@ -344,6 +344,22 @@ class Smilie(db.Model):
         return f"<Smilie {self.id} {self.title}>"
 
 
+class BBCode(db.Model):
+    """vB 2.3.11 的 ``bbcode`` 表：自定义 vB Code 定义（后台 Custom vB Codes）。"""
+
+    __tablename__ = "bbcodes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    bbcodetag = db.Column(db.String(50), nullable=False, default="", server_default="")
+    bbcodereplacement = db.Column(db.Text, nullable=False, default="", server_default="")
+    bbcodeexample = db.Column(db.Text, nullable=False, default="", server_default="")
+    bbcodeexplanation = db.Column(db.Text, nullable=False, default="", server_default="")
+    twoparams = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<BBCode {self.id} {self.bbcodetag}>"
+
+
 class UserGroup(db.Model):
     """vB 2.3.11 的 ``usergroup`` 表（只保留显示身份要用到的两列）。"""
 
