@@ -94,7 +94,7 @@ NAV_GROUPS = [
     {"title": "Users", "links": [
         {"label": "Add", "endpoint": "admin.user_add"},
         {"label": "Find", "endpoint": "admin.users_page"},
-        {"label": "Move/Prune", "module": "Move/Prune Users"},
+        {"label": "Move/Prune", "endpoint": "admin.users_prune"},
         {"label": "PM Statistics", "endpoint": "admin.users_pmstats"},
         {"label": "IP Addresses", "endpoint": "admin.users_ips"},
         {"label": "Referrals", "endpoint": "admin.users_referrals"},
@@ -127,7 +127,7 @@ NAV_GROUPS = [
     {"title": "Smilies", "links": [
         {"label": "Add", "endpoint": "admin.smilies_add"},
         {"label": "Modify", "endpoint": "admin.smilies"},
-        {"label": "Upload", "module": "Upload Smilies"},
+        {"label": "Upload", "endpoint": "admin.smilies_upload"},
     ]},
     {"title": "Custom vB Codes", "links": [
         {"label": "Add", "endpoint": "admin.bbcodes_add"},
@@ -153,14 +153,14 @@ NAV_GROUPS = [
         {"label": "Modify", "endpoint": "admin.replacement_list"},
         {"label": "Add Set", "endpoint": "admin.replacement_addset"},
     ]},
+    # 原版 Download Set / Upload Set / Do <img> Tags 仅在 $debug==1 时出现在导航
+    # （admin/index.php 332-336）。本板导航按非 debug 口径只列 4 项，
+    # 三个路由 /templates/downloadset、/templates/uploadset、/templates/imgtags 仍可直接访问。
     {"title": "Templates", "links": [
         {"label": "Add", "endpoint": "admin.template_add"},
         {"label": "Modify", "endpoint": "admin.template_list"},
         {"label": "Search", "endpoint": "admin.template_search"},
         {"label": "Add Template Set", "endpoint": "admin.template_addset"},
-        {"label": "Download Set", "endpoint": "admin.template_downloadset"},
-        {"label": "Upload Set", "endpoint": "admin.template_uploadset"},
-        {"label": "Do <img> Tags", "endpoint": "admin.template_imgtags"},
     ]},
 ]
 
