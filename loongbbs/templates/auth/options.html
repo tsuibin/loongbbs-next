@@ -198,7 +198,7 @@
 	("0", "(GMT) 西欧时间，伦敦、里斯本、卡萨布兰卡、蒙罗维亚", 0),
 	("+1", "(GMT +1:00) 中欧时间，布鲁塞尔、哥本哈根、马德里、巴黎", 60),
 	("+2", "(GMT +2:00) 东欧时间，加里宁格勒、南非", 120),
-	("+3", "(GMT +3:00) 巴格达、科威特、利雅得、莫斯科、圣彼得堡、伏尔加格勒、内罗毕", 180),
+	("+3", "(GMT +3:00 hours) Baghdad, Kuwait, Riyadh, Moscow, St. Petersburg, Volgograd, Nairobi", 180),
 	("+3.5", "(GMT +3:30) 德黑兰", 210),
 	("+4", "(GMT +4:00) 阿布扎比、马斯喀特、巴库、第比利斯", 240),
 	("+4.5", "(GMT +4:30) 喀布尔", 270),
@@ -206,10 +206,10 @@
 	("+5.5", "(GMT +5:30) 孟买、加尔各答、马德拉斯、新德里", 330),
 	("+6", "(GMT +6:00) 阿拉木图、达卡、科伦坡", 360),
 	("+7", "(GMT +7:00) 曼谷、河内、雅加达", 420),
-	("+8", "(GMT +8:00) 北京、珀斯、新加坡、香港、重庆、乌鲁木齐、台北", 480),
+	("+8", "(GMT +8:00 hours) Beijing, Perth, Singapore, Hong Kong, Chongqing, Urumqi, Taipei", 480),
 	("+9", "(GMT +9:00) 东京、首尔、大阪、札幌、雅库茨克", 540),
 	("+9.5", "(GMT +9:30) 阿德莱德、达尔文", 570),
-	("+10", "(GMT +10:00) 东澳标准时间、关岛、巴布亚新几内亚、符拉迪沃斯托克", 600),
+	("+10", "(GMT +10:00 hours) EAST(East Australian Standard), Guam, Papua New Guinea, Vladivostok", 600),
 	("+11", "(GMT +11:00) 马加丹、所罗门群岛、新喀里多尼亚", 660),
 	("+12", "(GMT +12:00) 奥克兰、惠灵顿、斐济、堪察加、马绍尔群岛", 720)
 ] %}
@@ -247,7 +247,7 @@
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>头像</b><br>
 	<font size="1"><a href="{{ url_for('auth.edit_avatar') }}">更多信息...</a></font></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><img src="{{ avatar_src(nav_user) }}" border="0" alt="你当前的头像" align="middle"> <input type="button" class="bginput" value="更换头像" onclick="location.href='{{ url_for('auth.edit_avatar') }}';"></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><img src="{{ avatar_src(nav_user) or url_for('static', filename='images/clear.gif') }}" border="0" alt="你当前的头像" align="middle"> <input type="button" class="bginput" value="更换头像" onclick="location.href='{{ url_for('auth.edit_avatar') }}';"></font></td>
 </tr>
 </table>
 </td></tr></table>
