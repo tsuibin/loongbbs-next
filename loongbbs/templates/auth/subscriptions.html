@@ -33,7 +33,7 @@ function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999
 {% include "auth/_cpnav.html" %}
 <br>
 
-{% if rows %}
+{% if subscriptions %}
 <!-- 取消全部订阅 -->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
@@ -45,82 +45,8 @@ function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999
 </table>
 
 <br>
-
-<!-- topic table -->
-<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
-<table cellpadding="4" cellspacing="1" border="0" width="100%">
-<tr id="cat">
-	<td bgcolor="#606096" colspan="7">
-	<table cellpadding="0" cellspacing="0" border="0" width="100%">
-	<tr id="cat">
-		<td><font color="#FFF788"><b>{% if ui_lang == 'en' %}Subscribed Threads{% else %}订阅的主题{% endif %}</b></font></td>
-		<td align="right"><font size="1" color="#FFF788"><b>{% if ui_lang == 'en' %}View All Subscribed Threads{% else %}查看所有订阅主题{% endif %}</b></font></td>
-	</tr>
-	</table>
-	</td>
-</tr>
-<tr align="center">
-	<td bgcolor="#8080A6" colspan="2"><font size="1">&nbsp;</font></td>
-	<td bgcolor="#8080A6" align="left"><font size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Thread{% else %}主题{% endif %}</b></font></td>
-	<td bgcolor="#8080A6" nowrap><font size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Thread Starter{% else %}主题作者{% endif %}</b></font></td>
-	<td bgcolor="#8080A6"><font size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Replies{% else %}回复数{% endif %}</b></font></td>
-	<td bgcolor="#8080A6"><font size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Views{% else %}查看数{% endif %}</b></font></td>
-	<td bgcolor="#8080A6" nowrap><font size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Last Post{% else %}最后发表{% endif %}</b></font></td>
-</tr>
-{% for sub in rows %}
-{% set t = sub.thread %}
-<tr align="center">
-	<td bgcolor="{{ '#DFDFDF' if loop.index is odd else '#F1F1F1' }}"><img src="{{ url_for('static', filename='images/' ~ t._icon ~ '.gif') }}" border="0" alt=""></td>
-	<td bgcolor="{{ '#F1F1F1' if loop.index is odd else '#DFDFDF' }}">&nbsp;</td>
-	<td bgcolor="{{ '#DFDFDF' if loop.index is odd else '#F1F1F1' }}" align="left" width="100%">
-		<font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('forums.thread', thread_id=t.id) }}">{{ t.title }}</a></font>
-		<font size="1"><br>
-		<a href="{{ url_for('forums.thread', thread_id=t.id) }}"><b>{% if ui_lang == 'en' %}Reply{% else %}回复{% endif %}</b></a> |
-		<form method="post" action="{{ url_for('forums.unsubscribe_thread', thread_id=t.id) }}" style="display:inline">
-			<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-			<input type="submit" class="bginput" value="{% if ui_lang == 'en' %}Unsubscribe{% else %}取消订阅{% endif %}">
-		</form>
-		</font>
-	</td>
-	<td bgcolor="{{ '#F1F1F1' if loop.index is odd else '#DFDFDF' }}" nowrap>
-		<font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=t.author.username) }}">{{ t.author.username }}</a></font>
-	</td>
-	<td bgcolor="{{ '#DFDFDF' if loop.index is odd else '#F1F1F1' }}"><font face="verdana, arial, helvetica" size="2"><a href="javascript:who({{ t.id }})">{{ t._replies }}</a></font></td>
-	<td bgcolor="{{ '#F1F1F1' if loop.index is odd else '#DFDFDF' }}"><font face="verdana, arial, helvetica" size="2">{{ t.views or 0 }}</font></td>
-	<td bgcolor="{{ '#DFDFDF' if loop.index is odd else '#F1F1F1' }}">
-		<table cellpadding="0" cellspacing="0" border="0" id="ltlink"><tr align="right">
-			<td nowrap><font size="1">{{ t.last_post_at|datetimefmt }}<br>
-			{% if ui_lang == 'en' %}by{% else %}由{% endif %} <a href="{{ url_for('auth.profile', username=t.author.username) }}"><b>{{ t.author.username }}</b></a></font></td>
-			<td nowrap>&nbsp;<a href="{{ url_for('forums.thread', thread_id=t.id) }}"><img src="{{ url_for('static', filename='images/lastpost.gif') }}" border="0" alt="{% if ui_lang == 'en' %}Go to last post{% else %}转到最后一帖{% endif %}"></a></td>
-		</tr></table>
-	</td>
-</tr>
-{% endfor %}
-{% include "auth/_prune_bar.html" %}
-</table>
-</td></tr></table>
-<br>
-<!-- end topic table -->
-{% else %}
-<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
-<table cellpadding="4" cellspacing="1" border="0" width="100%">
-<tr id="cat">
-	<td bgcolor="#606096" colspan="7">
-	<table cellpadding="0" cellspacing="0" border="0" width="100%">
-	<tr id="cat">
-		<td><font color="#FFF788"><b>{% if ui_lang == 'en' %}Subscribed Threads{% else %}订阅的主题{% endif %}</b></font></td>
-		<td align="right"><font size="1" color="#FFF788"><b>{% if ui_lang == 'en' %}View All Subscribed Threads{% else %}查看所有订阅主题{% endif %}</b></font></td>
-	</tr>
-	</table>
-	</td>
-</tr>
-<tr>
-	<td bgcolor="#F1F1F1" colspan="7"><font face="verdana, arial, helvetica" size="2">{% if ui_lang == 'en' %}There have been no new posts in the last {{ daysprune }} days to your subscribed threads.{% else %}在最近 {{ daysprune }} 天里，你订阅的主题没有新帖。在主题页点「订阅这个主题」即可加入这里。{% endif %}</font></td>
-</tr>
-{% include "auth/_prune_bar.html" %}
-</table>
-</td></tr></table>
 {% endif %}
+{% include "auth/_subs_table.html" %}
 
 <br>
 

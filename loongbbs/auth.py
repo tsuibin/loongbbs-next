@@ -525,13 +525,22 @@ def usercp():
         .scalars()
         .all()
     )
+    # UCP 首页的订阅块默认「最近 1 天」，与原版 usercp.php 上来就是 1 天一致
+    daysprune = _prune_days(request.args.get("daysprune"), 1)
+    subscriptions_rows = _my_subscriptions(daysprune=daysprune)
+    hot_posts, hot_views = _decorate_subscriptions(subscriptions_rows)
     return render_template(
         "auth/usercp.html",
         unread=unread,
         latest_pm=latest,
         forums=forums,
         joined=format_dt(current_user.joined_at, "%Y-%m-%d"),
-        subscriptions=_my_subscriptions(limit=10),
+        subscriptions=subscriptions_rows,
+        hot_posts=hot_posts,
+        hot_views=hot_views,
+        daysprune=daysprune,
+        prune_options=PRUNE_OPTIONS,
+        prune_endpoint="auth.usercp",
     )
 
 
@@ -566,18 +575,20 @@ def _int_setting(key: str, default: int) -> int:
         return default
 
 
-@bp.get("/usercp/subscriptions")
-@login_required
-def subscriptions():
-    """对应 vB 的 member2.php?action=viewsubscription（订阅的主题列表）。"""
-    prune_options = (1, 2, 5, 10, 20, 30, 45, 60, 75, 100, 365, 1000)
+PRUNE_OPTIONS = (1, 2, 5, 10, 20, 30, 45, 60, 75, 100, 365, 1000)
+
+
+def _prune_days(raw, default: int = 30) -> int:
+    """「显示主题范围」下拉的取值，非法的值退回默认天数。"""
     try:
-        daysprune = int(request.args.get("daysprune") or 30)
+        days = int(raw or default)
     except (TypeError, ValueError):
-        daysprune = 30
-    if daysprune not in prune_options:
-        daysprune = 30
-    rows = _my_subscriptions(daysprune=daysprune)
+        days = default
+    return days if days in PRUNE_OPTIONS else default
+
+
+def _decorate_subscriptions(rows):
+    """给订阅行里的主题补上原版那套「新帖 / 热门 / 自己开的」图标判定与回复数。"""
     marks = {
         row.forum_id: row.marked_at
         for row in db.session.execute(
@@ -617,15 +628,27 @@ def subscriptions():
         if thread._dot:
             name = "dot_" + name
         thread._icon = name
+    return hot_posts, hot_views
+
+
+@bp.get("/usercp/subscriptions")
+@login_required
+def subscriptions():
+    """对应 vB 的 member2.php?action=viewsubscription（订阅的主题列表）。"""
+    daysprune = _prune_days(request.args.get("daysprune"), 30)
+    rows = _my_subscriptions(daysprune=daysprune)
+    hot_posts, hot_views = _decorate_subscriptions(rows)
     return render_template(
         "auth/subscriptions.html",
         cpnav_current="home",
         forums=_forum_jump_list(),
         rows=rows,
+        subscriptions=rows,
         hot_posts=hot_posts,
         hot_views=hot_views,
         daysprune=daysprune,
-        prune_options=prune_options,
+        prune_options=PRUNE_OPTIONS,
+        prune_endpoint="auth.subscriptions",
     )
 
 
