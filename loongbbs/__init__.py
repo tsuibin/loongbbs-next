@@ -147,6 +147,65 @@ def create_app(test_config: dict | None = None) -> Flask:
         return None
 
     @app.before_request
+    def _server_busy_guard():
+        """vB 组 24：loadlimit（*nix 负载）与 sessionlimit（并发会话上限）。
+
+        原版 global.php:213-228 读 /proc/loadavg 首位与 loadlimit 比较；
+        admin/sessions.php:176-180 用 session 表的行数跟 sessionlimit 比；
+        global.php:381 只有 $bbuserinfo['usergroupid'] != 6（管理员）才被拒绝。
+        本站没有 session 表，用 15 分钟内活跃的会员数近似「并发会话数」；
+        /proc/loadavg 在 Windows 上不存在，与原版一样自然不生效。
+        """
+        from .settings import get_settings
+
+        current = get_settings()
+        path = request.path or "/"
+        if path.startswith("/static"):
+            return None
+        # 登录/登出入口与后台不拦：本站没有 vB 的 session 表，无法像原版那样
+        # 用已存在的会话识别管理员，留出入口才不会在高负载时把管理员锁在外面。
+        if path.startswith("/admin") or path in ("/login", "/logout"):
+            return None
+        if current_user.is_authenticated and getattr(current_user, "is_admin", False):
+            return None
+
+        busy = False
+
+        try:
+            load_limit = float(current.get("loadlimit") or 0)
+        except (TypeError, ValueError):
+            load_limit = 0.0
+        if load_limit > 0:
+            try:
+                with open("/proc/loadavg", "r", encoding="utf-8") as handle:
+                    load = float(handle.read(6).split()[0])
+                busy = load > load_limit
+            except (OSError, IndexError, ValueError):
+                busy = False
+
+        if not busy:
+            try:
+                session_limit = int(current.get("sessionlimit") or 0)
+            except (TypeError, ValueError):
+                session_limit = 0
+            if session_limit > 0:
+                from sqlalchemy import func, select
+
+                from .extensions import db
+                from .models import User, utcnow
+
+                active = db.session.scalar(
+                    select(func.count())
+                    .select_from(User)
+                    .where(User.last_seen >= utcnow() - timedelta(minutes=15))
+                ) or 0
+                busy = active > session_limit
+
+        if busy:
+            return render_template("toobusy.html"), 503
+        return None
+
+    @app.before_request
     def _apply_cookie_timeout():
         """vB 组 6 的 cookietimeout（秒）：会话 cookie 的有效期。"""
         from flask import session
