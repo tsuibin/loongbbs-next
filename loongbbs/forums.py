@@ -33,6 +33,7 @@ from .models import (
     Thread,
     ThreadRating,
     ThreadSubscription,
+    Template,
     User,
     usertitle_for_posts,
     utcnow,
@@ -462,6 +463,51 @@ def _postmaxchars() -> int:
         return 0
 
 
+def _max_logged_in(total_online: int):
+    """首页「Most users ever online」：对应 vB index.php 的 $loadmaxusers。
+
+    原版把纪录塞在伪模板里：templatesetid=-2、title='maxloggedin'，
+    内容就是 "在线人数 时间戳"（index.php:205-216）。只有在线人数不小于旧纪录、
+    或根本没有可用纪录时才覆盖；否则只读取。
+    返回 dict(users, when)，when 是本地的 datetime（原版用 vbdate 按全站时区渲染）。
+    """
+    row = db.session.execute(
+        select(Template).where(
+            Template.templatesetid == -2, Template.title == "maxloggedin"
+        )
+    ).scalars().first()
+
+    users_count = 0
+    stamp = None
+    if row and (row.template or "").strip():
+        parts = (row.template or "").split()
+        try:
+            users_count = int(parts[0])
+            stamp = int(parts[1]) if len(parts) > 1 else None
+        except (IndexError, ValueError):
+            users_count = 0
+            stamp = None
+
+    if stamp is None or (users_count > 0 and total_online >= users_count):
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        users_count = total_online
+        stamp = now_ts
+        payload = f"{users_count} {now_ts}"
+        if row is None:
+            row = Template(templatesetid=-2, title="maxloggedin", template=payload)
+            db.session.add(row)
+        else:
+            row.template = payload
+        db.session.commit()
+
+    if not users_count or stamp is None:
+        return None
+    return {
+        "users": users_count,
+        "when": datetime.fromtimestamp(stamp, tz=timezone.utc).replace(tzinfo=None),
+    }
+
+
 def _todays_birthdays():
     """首页「今日生日」：对应 vB index.php 的 $loadbirthdays 与 getbirthdays()。
 
@@ -569,6 +615,9 @@ def index():
     # 首页「今日生日」块（原版 index.php 的 $loadbirthdays + forumhome_birthdaybit）
     birthdays = _todays_birthdays()
 
+    # 「历史最多在线」记录行（原版 index.php 的 $loadmaxusers + forumhome_loggedinusers）
+    record = _max_logged_in(stats["online"])
+
     # 组 19 checknewpm：登录后首页提示「你有 N 条未读悄悄话」（原版 forumhome_pmloggedin）
     unread_pm = 0
     if current_user.is_authenticated and get_setting("checknewpm", "1") != "0":
@@ -591,6 +640,7 @@ def index():
         home_depth=home_depth,
         online_users=online_users,
         birthdays=birthdays,
+        max_logged_in=record,
         unread_pm=unread_pm,
     )
 

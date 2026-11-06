@@ -81,7 +81,7 @@
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1" colspan="6"><font face="verdana,arial,helvetica" size="1">
-	<nobr>{% if ui_lang == 'en' %}There have been {{ stats.online }} members active on the board in the last 15 minutes.{% else %}最近 15 分钟内有 {{ stats.online }} 位会员在版面上活动。{% endif %}</nobr><br>
+	<nobr>{% if ui_lang == 'en' %}There have been {{ stats.online }} members active on the board in the last 15 minutes.{% else %}最近 15 分钟内有 {{ stats.online }} 位会员在版面上活动。{% endif %}</nobr>{% if max_logged_in %} | <nobr>{% if ui_lang == 'en' %}Most users ever online was {{ max_logged_in.users }} on {{ max_logged_in.when|dt('%m-%d-%Y') }} at {{ max_logged_in.when|dt('%I:%M %p') }}.{% else %}历史同时在线人数最高为 {{ max_logged_in.users }} 人，发生在 {{ max_logged_in.when|dt('%m-%d-%Y') }} {{ max_logged_in.when|dt('%I:%M %p') }}。{% endif %}</nobr>{% endif %}<br>
 	{% if online_users %}{% for member in online_users %}{% if highlight_admin and member.is_admin %}<b><i>{{ member.username }}</i></b>{% else %}<a href="{{ url_for('auth.profile', username=member.username) }}">{{ member.username }}</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}<br>{% endif %}
 	{% if nav_user %}其中包含你自己。{% else %}登录后可以在这里看到自己的名字。{% endif %}</font></td>
 </tr>
