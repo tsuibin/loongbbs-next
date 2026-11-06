@@ -682,6 +682,7 @@ def edit_profile_post():
         if form.get("resettitle") == "yes":
             # 原版勾 Reset 时把 customtitle 归 0，头衔回落到用户组/发帖数头衔
             user.usertitle = ""
+            user.customtitle = 0
         else:
             customtext = (form.get("customtext") or "").strip()
             if customtext:
@@ -690,6 +691,7 @@ def edit_profile_post():
                 if (not getattr(user, "is_admin", False)) or get_setting("ctCensorMod", "1") == "1":
                     customtext = _ct_censor(customtext)
                 user.usertitle = customtext
+                user.customtitle = 1
 
     db.session.commit()
     flash("个人资料已更新。")

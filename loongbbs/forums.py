@@ -34,6 +34,7 @@ from .models import (
     ThreadRating,
     ThreadSubscription,
     User,
+    usertitle_for_posts,
     utcnow,
 )
 from .settings import get_setting
@@ -889,6 +890,8 @@ def new_thread(forum_id: int):
                     PollOption(poll_id=poll_obj.id, position=index, text=text[:200])
                 )
 
+    db.session.flush()
+    _refresh_usertitle(current_user)
     db.session.commit()
 
     flash("主题已发布。", "success")
@@ -1133,6 +1136,8 @@ def reply(thread_id: int):
     db.session.flush()
     _save_uploads_for(post, thread_obj.forum_id)
     thread_obj.last_post_at = utcnow()
+    db.session.flush()
+    _refresh_usertitle(current_user)
     db.session.commit()
 
     return redirect(url_for("forums.thread", thread_id=thread_id, page=_last_page(thread_obj)))
@@ -1143,6 +1148,20 @@ def _save_uploads_for(post: Post, forum_id: int):
     if not can("canpostattachment", forum_id):
         return []
     return save_uploads(post, request.files.getlist("files"))
+
+
+def _refresh_usertitle(user: User) -> None:
+    """原版 newthread/newreply 发帖后重算 user.usertitle（customtitle=0 时才动）。
+
+    组头衔非空就用组头衔，否则按当前发帖数取 usertitle 表里 minposts<=posts 的最高档。
+    """
+    if user is None or getattr(user, "customtitle", 0):
+        return
+    group = user.usergroup
+    if group is not None and (group.usertitle or "").strip():
+        user.usertitle = group.usertitle
+    else:
+        user.usertitle = usertitle_for_posts(user.post_count)
 
 
 def _can_reply(thread_obj: Thread) -> bool:

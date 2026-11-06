@@ -63,6 +63,8 @@ class User(UserMixin, db.Model):
     referrerid = db.Column(db.Integer, default=0, nullable=False, server_default="0")
     usergroupid = db.Column(db.Integer, nullable=False, default=2, server_default="2")
     usertitle = db.Column(db.String(100), nullable=False, default="", server_default="")
+    # vB 的 customtitle：1 表示用户自填头衔（usertitle 即自定义值），0 表示由组头衔/发帖数档位决定
+    customtitle = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     newstyleset = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     buddylist = db.Column(db.String(255), nullable=False, default="", server_default="")
     ignorelist = db.Column(db.String(255), nullable=False, default="", server_default="")
@@ -87,11 +89,18 @@ class User(UserMixin, db.Model):
 
     @property
     def usertitle_text(self) -> str:
-        """vB 的 ``$post[usertitle]``：用户自填优先，否则取用户组的头衔。"""
-        if self.usertitle:
+        """vB 的 ``$post[usertitle]``：自定义头衔优先，其次用户组头衔，最后按发帖数分档。
+
+        原版在注册 / 发帖 / 编辑资料时把「组头衔为空则按 usertitle 档位」的结果写回
+        user.usertitle，并用 customtitle 标记是否用户自填。本地同样物化这个缓存，
+        但读取时再兜底实时算一次，保证后台改档位后不会显示旧档。
+        """
+        if self.customtitle and self.usertitle:
             return self.usertitle
         group = self.usergroup
-        return group.usertitle if group else ""
+        if group is not None and group.usertitle:
+            return group.usertitle
+        return usertitle_for_posts(self.post_count) or self.usertitle
 
     def set_password(self, raw: str) -> None:
         self.password_hash = generate_password_hash(raw)
@@ -122,6 +131,15 @@ class UserTitle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(120), nullable=False, default="", server_default="")
     minposts = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+
+
+def usertitle_for_posts(posts: int) -> str:
+    """按原版取档口径返回头衔：minposts<=posts 里 minposts 最大的那一档。"""
+    row = db.session.execute(
+        select(UserTitle).where(UserTitle.minposts <= int(posts or 0))
+        .order_by(UserTitle.minposts.desc(), UserTitle.id.desc())
+    ).scalars().first()
+    return row.title if row is not None else ""
 
 
 class UserProfileField(db.Model):

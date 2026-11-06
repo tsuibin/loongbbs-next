@@ -2881,6 +2881,7 @@ def user_add():
         password_hash=generate_password_hash(password),
         usergroupid=group_id,
         usertitle=usertitle,
+        customtitle=custom_title,
         homepage=(request.form.get("homepage") or "").strip(),
         birthday=(request.form.get("birthday") or "").strip(),
         signature=request.form.get("signature") or "",
