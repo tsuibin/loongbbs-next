@@ -15,6 +15,21 @@
 
 <br>
 
+{% if preview %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#8080A6"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>帖子预览:</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ preview.body|safe }}</font></td>
+</tr>
+</table>
+</td></tr></table>
+
+<br>
+{% endif %}
+
 {% if mode == 'new' %}
 <form method="post" action="{{ url_for('forums.new_thread', forum_id=forum.id) }}" enctype="multipart/form-data" name="vbform">
 {% elif mode == 'reply' %}
@@ -45,7 +60,7 @@
 </tr>
 <tr bgcolor="#F1F1F1">
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>帖子标题:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="title" value="{{ request.form.get('title', post.title if post else '') }}" size="40" maxlength="85"></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="title" value="{{ request.form.get('title') or (post.title if post else '') }}" size="40" maxlength="85"></font></td>
 </tr>
 {% endif %}
 
@@ -58,7 +73,7 @@
 		</font></p>
 	</td>
 	<td bgcolor="#DFDFDF">
-		<textarea name="body" rows="20" cols="70" wrap="virtual">{{ post.body if post else request.form.get('body', '') }}</textarea><br>
+		<textarea name="body" rows="20" cols="70" wrap="virtual">{{ request.form.get('body') or (post.body if post else '') }}</textarea><br>
 		<font face="verdana,arial,helvetica" size="1"><a href="#" onclick="return false;">[检查消息长度]</a>　支持 [b] [i] [u] [url] [code] [quote]</font>
 	</td>
 </tr>
@@ -87,7 +102,7 @@
 	<td align="center"><font face="verdana, arial, helvetica" size="2">
 	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 	<input type="submit" class="bginput" name="submit" value="{% if mode == 'edit' %}保存修改{% elif mode == 'reply' %}提交回复{% else %}提交新主题{% endif %}">
-	<input type="reset" class="bginput" value="预览帖子">
+	<input type="submit" class="bginput" name="preview" value="预览帖子">
 	</font></td>
 </tr>
 </table>

@@ -458,6 +458,16 @@ def new_thread(forum_id: int):
 
     title = (request.form.get("title") or "").strip()
     body = request.form.get("body") or ""
+    if request.form.get("preview"):
+        # 对应 vB newthread.php 的 preview 分支：只渲染 newpost_postpreview，不落库
+        return render_template(
+            "post_form.html",
+            forum=forum_obj,
+            mode="new",
+            thread=None,
+            post=None,
+            preview={"title": title, "body": render_body(body)},
+        )
     if not title:
         flash("标题不能为空。", "error")
         return render_template("post_form.html", forum=forum_obj, mode="new", thread=None, post=None), 400
@@ -582,11 +592,20 @@ def reply(thread_id: int):
         return redirect(url_for("forums.thread", thread_id=thread_id))
 
     body = (request.form.get("body") or "").strip()
+    title = (request.form.get("title") or "").strip() or f"Re: {thread_obj.title}"
+    if request.form.get("preview"):
+        return render_template(
+            "post_form.html",
+            forum=thread_obj.forum,
+            mode="reply",
+            thread=thread_obj,
+            post=None,
+            preview={"title": title, "body": render_body(body)},
+        )
     if not body:
         flash("回复内容不能为空。", "error")
         return redirect(url_for("forums.thread", thread_id=thread_id, page="last"))
 
-    title = (request.form.get("title") or "").strip() or f"Re: {thread_obj.title}"
     if len(title) > 200:
         title = title[:200]
 
@@ -635,6 +654,18 @@ def edit_post(post_id: int):
         abort(403)
 
     body = (request.form.get("body") or "").strip()
+    if request.form.get("preview"):
+        return render_template(
+            "post_form.html",
+            forum=post.thread.forum,
+            mode="edit",
+            thread=post.thread,
+            post=post,
+            preview={
+                "title": (request.form.get("title") or "").strip() or post.title,
+                "body": render_body(body),
+            },
+        )
     if not body:
         flash("内容不能为空。", "error")
         return redirect(url_for("forums.edit_post_form", post_id=post_id))
