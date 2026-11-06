@@ -129,7 +129,7 @@ NAV_GROUPS = [
     ]},
     {"title": "Import & Maintenance", "links": [
         {"label": "Back-up Database", "endpoint": "admin.backup_choose"},
-        {"label": "Database Settings", "module": "Database Settings"},
+        {"label": "Database Settings", "endpoint": "admin.dbsettings"},
         {"label": "BB Import Systems", "module": "BB Import Systems"},
         {"label": "Update Counters", "module": "Update Counters"},
     ]},
@@ -1626,6 +1626,191 @@ def _search_backup_path(raw: str):
     if base.resolve() not in candidate.parents:
         return None
     return candidate
+
+
+def _db_migrate(source_uri: str, target_uri: str, recreate: bool) -> list:
+    """把当前库的表结构与数据整体复制到目标库，等价原版 "Copy data to this database and switch"。"""
+    from sqlalchemy import create_engine, MetaData
+
+    details = []
+    src = create_engine(source_uri)
+    dst = create_engine(target_uri)
+    with src.connect() as sconn, dst.begin() as dconn:
+        names = [r[0] for r in sconn.execute(db.text(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        )).all()] if source_uri.startswith("sqlite") else None
+        if names is None:
+            meta = MetaData()
+            meta.reflect(bind=src)
+            names = list(meta.tables.keys())
+        meta = MetaData()
+        meta.reflect(bind=src, only=names)
+        if recreate:
+            meta.drop_all(bind=dst, checkfirst=True)
+            details.append("目标库里同名的表已删除后重建。")
+        meta.create_all(bind=dst, checkfirst=True)
+        total = 0
+        for name in names:
+            table = meta.tables[name]
+            rows = sconn.execute(table.select()).mappings().all()
+            if rows:
+                dconn.execute(table.insert(), [dict(r) for r in rows])
+                total += len(rows)
+        dconn.commit()
+    src.dispose()
+    dst.dispose()
+    details.append(f"已复制 {len(names)} 张表、{total} 行数据到目标库。")
+    return details
+
+
+DB_SETTING_KEYS = ("dbservertype", "servername", "dbport", "dbschema", "dbusername",
+                   "dbpassword", "dbname", "usepconnect")
+
+
+def _env_local_path() -> Path:
+    return Path(current_app.root_path).parent / ".env.local"
+
+
+def _db_uri_parts(uri: str) -> dict:
+    """把 SQLALCHEMY_DATABASE_URI 拆成原版表单那几个字段。"""
+    parts = dict.fromkeys(DB_SETTING_KEYS, "")
+    if uri.startswith("sqlite"):
+        parts["dbservertype"] = "sqlite"
+        parts["dbname"] = uri.split("///", 1)[-1] if "///" in uri else uri
+        parts["usepconnect"] = "0"
+        return parts
+    import urllib.parse as up
+
+    parsed = up.urlparse(uri)
+    scheme = (parsed.scheme or "").split("+")[0]
+    parts["dbservertype"] = "pgsql" if scheme in ("postgresql", "postgres") else (scheme or "mysql")
+    parts["servername"] = parsed.hostname or ""
+    parts["dbport"] = str(parsed.port or "")
+    parts["dbusername"] = up.unquote(parsed.username or "")
+    parts["dbpassword"] = up.unquote(parsed.password or "")
+    parts["dbname"] = (parsed.path or "").lstrip("/")
+    schema = up.parse_qs(parsed.query).get("options", [""])[0]
+    parts["dbschema"] = schema.split("-c")[-1].strip() if schema else ""
+    parts["usepconnect"] = "1" if "pool_pre_ping" in uri else "0"
+    return parts
+
+
+def _db_uri_build(v: dict) -> str:
+    import urllib.parse as up
+
+    if v["dbservertype"] == "sqlite":
+        # SQLite 相对路径会被 SQLAlchemy 按 instance 目录解析，这里统一成绝对路径
+        raw = v["dbname"] or ""
+        target = Path(raw) if Path(raw).is_absolute() else Path(current_app.root_path).parent / raw
+        return "sqlite:///" + str(target).replace("\\", "/")
+    user = up.quote(v["dbusername"] or "", safe="")
+    pwd = up.quote(v["dbpassword"] or "", safe="")
+    auth = f"{user}:{pwd}@" if (user or pwd) else ""
+    host = v["servername"] or "127.0.0.1"
+    port = f":{v['dbport']}" if v["dbport"] else ""
+    base = "postgresql" if v["dbservertype"] == "pgsql" else "mysql+pymysql"
+    uri = f"{base}://{auth}{host}{port}/{v['dbname'] or ''}"
+    if v["dbservertype"] == "pgsql" and v["dbschema"]:
+        uri += f"?options=-csearch_path%3D{v['dbschema']}"
+    return uri
+
+
+def _db_test(uri: str):
+    """返回 (ok, details list)，等价原版 dbsettings_test_connection。"""
+    import importlib.util as ilu
+
+    details = []
+    if uri.startswith("sqlite"):
+        path = Path(uri.split("///", 1)[-1])
+        if not path.is_absolute():
+            path = Path(current_app.root_path).parent / path
+        if not path.parent.exists():
+            details.append(f"SQLite 目录不存在：{path.parent}")
+            return False, details
+        try:
+            import sqlite3
+            conn = sqlite3.connect(str(path))
+            n = conn.execute("SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0]
+            conn.close()
+        except Exception as exc:  # pragma: no cover - 连接异常信息给管理员看
+            details.append(f"SQLite 连接失败：{exc}")
+            return False, details
+        details.append(f"已连接 SQLite 文件 {path}。")
+        details.append(f"该库下现有 {n} 张表。")
+        return True, details
+    if uri.startswith("postgresql"):
+        if not ilu.find_spec("psycopg2"):
+            details.append("Python 未安装 psycopg2 驱动，无法连接 PostgreSQL。")
+            return False, details
+    else:
+        if not (ilu.find_spec("pymysql") or ilu.find_spec("MySQLdb")):
+            details.append("Python 未安装 MySQL 驱动（pymysql / MySQLdb），无法连接 MySQL/MariaDB。")
+            return False, details
+    try:
+        from sqlalchemy import create_engine, text
+
+        engine = create_engine(uri, pool_pre_ping=True)
+        with engine.connect() as conn:
+            version = conn.execute(text("SELECT version()")).scalar()
+            tables = conn.execute(text("SELECT count(*) FROM information_schema.tables "
+                                       "WHERE table_schema NOT IN ('pg_catalog','information_schema')")).scalar()
+        details.append(f"已连接：{version}")
+        details.append(f"该库下现有 {tables} 张表。")
+        return True, details
+    except Exception as exc:
+        details.append(f"连接失败：{exc}")
+        return False, details
+
+
+@bp.route("/dbsettings", methods=["GET", "POST"])
+def dbsettings():
+    """Import & Maintenance → Database Settings：照原版 dbsettings.php 的连接设置表单。"""
+    current_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+    values = _db_uri_parts(current_uri)
+    messages, errors = [], []
+    raw_action = (request.form.get("action") or request.args.get("action") or "modify")
+    action = {"Test Connection": "test", "Save Settings": "save",
+              "Load Saved Settings": "load",
+              "Copy data to this database and switch": "migrate"}.get(raw_action, raw_action)
+
+    if request.method == "POST":
+        values = {k: (request.form.get("db[%s]" % k) or "").strip() for k in DB_SETTING_KEYS}
+        values["dbservertype"] = values["dbservertype"] if values["dbservertype"] in (
+            "mysql", "pgsql", "sqlite") else "mysql"
+        values["usepconnect"] = "1" if values["usepconnect"] == "1" else "0"
+        uri = _db_uri_build(values)
+        if action in ("test", "save", "migrate"):
+            ok, details = _db_test(uri)
+            (messages if ok else errors).extend(details)
+            if ok and action == "migrate":
+                recreate = request.form.get("recreate") == "1"
+                try:
+                    details2 = _db_migrate(current_uri, uri, recreate)
+                    messages.extend(details2)
+                    ok = True
+                except Exception as exc:
+                    errors.append(f"复制数据失败：{exc}")
+                    ok = False
+                if ok:
+                    action = "save"
+            if ok and action == "save":
+                env = _env_local_path()
+                stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                if env.exists():
+                    (env.parent / f"{env.name}.bak.{stamp}").write_text(
+                        env.read_text(encoding="utf-8"), encoding="utf-8")
+                lines = [ln for ln in (env.read_text(encoding="utf-8").splitlines()
+                                       if env.exists() else [])
+                         if not ln.startswith("LOONG_BBS_DATABASE_URL=")]
+                lines.append(f"LOONG_BBS_DATABASE_URL={uri}")
+                env.write_text("\n".join(lines) + "\n", encoding="utf-8")
+                messages.append("已写入 .env.local（旧文件备份为 .env.local.bak." + stamp + "）。")
+                messages.append("新的连接设置在下次启动服务时生效：请重启 start-server.ps1。")
+        elif action == "load":
+            messages.append("本地只有当前这一套连接设置，表单已回填当前值。")
+
+    return render_template("admin/dbsettings.html", values=values, messages=messages,
+                           errors=errors, current_uri=current_uri)
 
 
 @bp.route("/backup")

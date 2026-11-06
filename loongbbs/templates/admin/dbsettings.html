@@ -1,0 +1,71 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Database Settings{% else %}数据库设置{% endif %}{% endblock %}
+{% block content %}
+
+{% for msg in messages %}<p>{{ msg }}</p>{% endfor %}
+{% for err in errors %}<p><b>{{ err }}</b></p>{% endfor %}
+
+<form method="post" action="{{ url_for('admin.dbsettings') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Database Connection Settings</span></b></font></td></tr>
+<tr class="firstalt"><td width="35%" nowrap>Database type</td>
+	<td><select name="db[dbservertype]">
+		<option value="mysql"{% if values.dbservertype == 'mysql' %} selected{% endif %}>MySQL / MariaDB</option>
+		<option value="pgsql"{% if values.dbservertype == 'pgsql' %} selected{% endif %}>PostgreSQL</option>
+		<option value="sqlite"{% if values.dbservertype == 'sqlite' %} selected{% endif %}>SQLite</option>
+	</select><br><font size="1">{% if ui_lang == 'en' %}Current connection string{% else %}当前连接串{% endif %}：{{ current_uri }}</font></td></tr>
+<tr class="secondalt"><td width="35%" nowrap>Server Name</td>
+	<td><input type="text" size="35" name="db[servername]" value="{{ values.servername }}"></td></tr>
+<tr class="firstalt"><td width="35%" nowrap>Port</td>
+	<td><input type="text" size="10" name="db[dbport]" value="{{ values.dbport }}"><br><font size="1">{% if ui_lang == 'en' %}Leave empty for the driver default (MySQL 3306 / PostgreSQL 5432){% else %}留空则用驱动默认端口（MySQL 3306 / PostgreSQL 5432）{% endif %}</font></td></tr>
+<tr class="secondalt"><td width="35%" nowrap>Schema (PostgreSQL)</td>
+	<td><input type="text" size="35" name="db[dbschema]" value="{{ values.dbschema }}"><br><font size="1">{% if ui_lang == 'en' %}Leave empty for public{% else %}留空则用 public{% endif %}</font></td></tr>
+<tr class="firstalt"><td width="35%" nowrap>Username</td>
+	<td><input type="text" size="35" name="db[dbusername]" value="{{ values.dbusername }}"></td></tr>
+<tr class="secondalt"><td width="35%" nowrap>Password</td>
+	<td><input type="text" size="35" name="db[dbpassword]" value="{{ values.dbpassword }}"></td></tr>
+<tr class="firstalt"><td width="35%" nowrap>Database Name / File</td>
+	<td><input type="text" size="35" name="db[dbname]" value="{{ values.dbname }}"><br><font size="1">{% if ui_lang == 'en' %}For SQLite, the database file path (relative to the board root or absolute){% else %}SQLite 时填数据库文件路径（相对应用根目录或绝对路径）{% endif %}</font></td></tr>
+<tr class="secondalt"><td width="35%" nowrap>Persistent connections</td>
+	<td><p>Yes<input type="radio" name="db[usepconnect]" value="1"{% if values.usepconnect == '1' %} checked{% endif %}> No <input type="radio" name="db[usepconnect]" value="0"{% if values.usepconnect != '1' %} checked{% endif %}>
+	<br><font size="1">{% if ui_lang == 'en' %}Reuse pooled connections (pconnect in the original PHP client){% else %}复用连接池（原版 PHP 客户端的 pconnect）{% endif %}</font></p></td></tr>
+<tr class="firstalt"><td width="35%" nowrap>Recreate tables in the target database</td>
+	<td><p><input type="checkbox" name="recreate" value="1"><br><font size="1">{% if ui_lang == 'en' %}Only used when copying: if the target already holds tables with the same names they are dropped and recreated; harmless when the target is empty.{% else %}只用于迁移：目标库已经有同名的表时，勾上会先删除它们再复制。目标库是空库则不用勾。{% endif %}</font></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="save">
+	<input type="submit" value="   Save Settings   ">
+	<input type="button" value="   Reset   " onclick="document.forms[0].reset()">
+	<input type="submit" name="action" value="Copy data to this database and switch">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.dbsettings') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Test Connection / Load Saved Settings</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2"><p>{% if ui_lang == 'en' %}Test after filling the fields: it opens one connection and counts tables, and writes no configuration.{% else %}填好后先测试连接：测试只建立一次连接并统计表数，不会写入任何配置。{% endif %}</p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	{% for k, v in values.items() %}<input type="hidden" name="db[{{ k }}]" value="{{ v }}">{% endfor %}
+	<input type="submit" name="action" value="Test Connection">
+	<input type="submit" name="action" value="Load Saved Settings">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<p><font size="1">{% if ui_lang == 'en' %}Note: this page writes LOONG_BBS_DATABASE_URL into .env.local and backs the old file up as .env.local.bak.&lt;timestamp&gt;. The setting takes effect the next time the service starts. Before switching engines, make sure the matching driver is installed and the new database already holds this board's schema and data (use Back-up Database to produce SQL to import, or the copy button above).{% else %}注意：本页写入的是 .env.local 里的 LOONG_BBS_DATABASE_URL，旧文件会备份为 .env.local.bak.时间戳；配置在下次启动服务时生效。切换数据库引擎前请先确认对应驱动已安装，且新库里已有本站的表结构与数据（可用 Back-up Database 生成 SQL 后导入，或用上面的复制按钮）。{% endif %}</font></p>
+
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">{% if ui_lang == 'en' %}Currently active configuration{% else %}当前生效的配置{% endif %}</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2"><p>type: {{ values.dbservertype }} | server: {{ values.servername }}{% if values.dbport %}:{{ values.dbport }}{% endif %} | port: {{ values.dbport }} | database: {{ values.dbname }}</p>
+<p><font size="1">{% if ui_lang == 'en' %}To switch engines: first prepare the target database (install the board there, or import a dump produced by Back-up Database), then change the settings here and save. The old .env.local is kept as .env.local.bak.&lt;timestamp&gt; — restoring that file brings the previous connection back.{% else %}切换引擎的步骤：先在目标库里准备好本站数据（在那边装好本站，或用备份导出 dump 导入），再在这里改引擎并保存。旧的 .env.local 会保留为 .env.local.bak.时间戳 —— 把该文件恢复回去即可回到原来的连接。{% endif %}</font></p></td></tr>
+</table>
+</td></tr></table>
+
+{% endblock %}
