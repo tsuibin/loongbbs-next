@@ -4,7 +4,7 @@ from __future__ import annotations
 import io
 import re
 import secrets
-from datetime import timezone
+from datetime import timedelta, timezone
 from pathlib import Path
 
 from flask import (
@@ -18,12 +18,13 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from .extensions import db
 from .models import (
     Avatar,
     Forum,
+    ForumRead,
     Post,
     PrivateMessage,
     Thread,
@@ -534,7 +535,7 @@ def usercp():
     )
 
 
-def _my_subscriptions(limit: int | None = None):
+def _my_subscriptions(limit: int | None = None, daysprune: int | None = None):
     """当前用户订阅的主题（vB 的 subscribethread），按最后发表倒序。"""
     stmt = (
         select(ThreadSubscription)
@@ -542,21 +543,102 @@ def _my_subscriptions(limit: int | None = None):
         .where(ThreadSubscription.user_id == current_user.id)
         .order_by(Thread.last_post_at.desc())
     )
+    # 原版 viewsubscription 的 daysprune：只留最后发表在这段时间内的主题（1000 = 全部）
+    if daysprune and daysprune < 1000:
+        stmt = stmt.where(Thread.last_post_at >= utcnow() - timedelta(days=daysprune))
     if limit:
         stmt = stmt.limit(limit)
     return db.session.execute(stmt).scalars().all()
 
 
+def _naive_dt(value):
+    """把可能带时区的时间戳归一成 naive（与 forum_reads / last_visit 比较时用）。"""
+    if value is None:
+        return None
+    return value.astimezone(timezone.utc).replace(tzinfo=None) if value.tzinfo else value
+
+
+def _int_setting(key: str, default: int) -> int:
+    """读一个整数型 setting，值坏了就退回默认值。"""
+    try:
+        return int(get_setting(key) or default)
+    except (TypeError, ValueError):
+        return default
+
+
 @bp.get("/usercp/subscriptions")
 @login_required
 def subscriptions():
-    """对应 vB 的 subscription.php?do=viewsubscription。"""
+    """对应 vB 的 member2.php?action=viewsubscription（订阅的主题列表）。"""
+    prune_options = (1, 2, 5, 10, 20, 30, 45, 60, 75, 100, 365, 1000)
+    try:
+        daysprune = int(request.args.get("daysprune") or 30)
+    except (TypeError, ValueError):
+        daysprune = 30
+    if daysprune not in prune_options:
+        daysprune = 30
+    rows = _my_subscriptions(daysprune=daysprune)
+    marks = {
+        row.forum_id: row.marked_at
+        for row in db.session.execute(
+            select(ForumRead).where(ForumRead.user_id == current_user.id)
+        ).scalars()
+    }
+    fallback = _naive_dt(current_user.last_visit or current_user.joined_at)
+    hot_on = get_setting("usehotthreads") == "1"
+    hot_posts = _int_setting("hotnumberposts", 15)
+    hot_views = _int_setting("hotnumberviews", 150)
+    show_dots = get_setting("showdots") == "1"
+    for sub in rows:
+        thread = sub.thread
+        cutoff = None
+        for key in (thread.forum_id, -1):
+            mark = _naive_dt(marks.get(key))
+            if mark is not None and (cutoff is None or mark > cutoff):
+                cutoff = mark
+        if fallback is not None and (cutoff is None or fallback > cutoff):
+            cutoff = fallback
+        last_at = _naive_dt(thread.last_post_at)
+        thread._has_new = bool(cutoff and last_at and last_at > cutoff)
+        replies = max(0, (thread.reply_count or 0) - 1)
+        thread._replies = replies
+        thread._dot = bool(show_dots and thread.author_id == current_user.id)
+        # 与版块页同一套图标规则：closed → lock，热门 → hot，有新帖 → new，自己开的 → dot_
+        name = "folder"
+        if thread.is_closed:
+            name = "lock" + name
+        if hot_on and (
+            (hot_posts > 0 and replies >= hot_posts)
+            or (hot_views > 0 and (thread.views or 0) >= hot_views)
+        ):
+            name = "hot" + name
+        if thread._has_new:
+            name = "new" + name
+        if thread._dot:
+            name = "dot_" + name
+        thread._icon = name
     return render_template(
         "auth/subscriptions.html",
         cpnav_current="home",
         forums=_forum_jump_list(),
-        rows=_my_subscriptions(),
+        rows=rows,
+        hot_posts=hot_posts,
+        hot_views=hot_views,
+        daysprune=daysprune,
+        prune_options=prune_options,
     )
+
+
+@bp.post("/usercp/subscriptions/remove-all")
+@login_required
+def subscriptions_remove_all():
+    """对应 vB member2.php?action=removesubscription&type=allthread。"""
+    removed = db.session.execute(
+        delete(ThreadSubscription).where(ThreadSubscription.user_id == current_user.id)
+    ).rowcount
+    db.session.commit()
+    flash(f"所有订阅的主题都已取消（共 {removed} 个）。")
+    return redirect(url_for("auth.subscriptions"))
 
 
 def _forum_jump_list():
