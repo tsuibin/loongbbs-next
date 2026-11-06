@@ -19,7 +19,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 
 from .extensions import db
 from .models import (
@@ -149,9 +149,9 @@ NAV_GROUPS = [
         {"label": "Download/Upload", "endpoint": "admin.styles_download_upload"},
     ]},
     {"title": "Replacements", "links": [
-        {"label": "Add", "module": "Add Replacement"},
-        {"label": "Modify", "module": "Modify Replacements"},
-        {"label": "Add Set", "module": "Add Replacement Set"},
+        {"label": "Add", "endpoint": "admin.replacement_add"},
+        {"label": "Modify", "endpoint": "admin.replacement_list"},
+        {"label": "Add Set", "endpoint": "admin.replacement_addset"},
     ]},
     {"title": "Templates", "links": [
         {"label": "Add", "module": "Add Template"},
@@ -3997,6 +3997,175 @@ def styles_remove(style_id: int):
         flash("Deleted!", "success")
         return redirect(url_for("admin.styles_page"))
     return render_template("admin/styles.html", mode="remove", style=style)
+
+
+# ---------------------------------------------------------------------------
+# Replacements（照 admin/replacement.php）
+# ---------------------------------------------------------------------------
+
+
+def _replacement_sets_all() -> list:
+    return db.session.execute(select(ReplacementSet).order_by(ReplacementSet.id)).scalars().all()
+
+
+def _replacement_master() -> list:
+    return db.session.execute(select(Replacement).where(
+        Replacement.replacementsetid == -1).order_by(Replacement.findword)).scalars().all()
+
+
+@bp.route("/replacements")
+@bp.route("/replacements/modify")
+def replacement_list():
+    """原版 action=modify：按替换集列出，默认折叠，expandset 指定哪个展开。"""
+    raw_expand = request.args.get("expandset")
+    expandset = int(raw_expand) if raw_expand and raw_expand.lstrip("-").isdigit() else -1
+    master = _replacement_master()
+    master_by_word = {row.findword: row.replaceword for row in master}
+    groups = []
+    for group in _replacement_sets_all():
+        expanded = expandset == group.id
+        item = {"id": group.id, "title": group.title, "expanded": expanded,
+                "custom": [], "defaults": []}
+        if expanded:
+            rows = db.session.execute(select(Replacement).where(
+                Replacement.replacementsetid == group.id).order_by(Replacement.findword)).scalars().all()
+            for row in rows:
+                if row.findword not in master_by_word:
+                    item["custom"].append({"id": row.id, "findword": row.findword,
+                                           "replaceword": row.replaceword})
+            for word in sorted(master_by_word):
+                found = next((row for row in rows if row.findword == word), None)
+                if found is None:
+                    item["defaults"].append({"findword": word, "row_id": 0, "replaceword": ""})
+                else:
+                    item["defaults"].append({"findword": word, "row_id": found.id,
+                                             "replaceword": found.replaceword})
+        groups.append(item)
+    return render_template("admin/replacements.html", mode="list", groups=groups,
+                           expandset=expandset)
+
+
+@bp.route("/replacements/add")
+def replacement_add():
+    """原版 action=add：新建替换（带 findword 时预填母版默认值）。"""
+    findword = (request.args.get("findword") or "").strip()
+    replaceword = ""
+    if findword:
+        row = db.session.execute(select(Replacement).where(
+            Replacement.replacementsetid == -1, Replacement.findword == findword)).scalars().first()
+        replaceword = row.replaceword if row is not None else ""
+    raw = request.args.get("replacementsetid")
+    setid = int(raw) if raw and raw.lstrip("-").isdigit() else -1
+    return render_template("admin/replacements.html", mode="add", sets=_replacement_sets_all(),
+                           replacement={"findword": findword, "replaceword": replaceword},
+                           setid=setid)
+
+
+@bp.route("/replacements/insert", methods=["POST"])
+def replacement_insert():
+    """原版 action=insert：同集合同 findword 存在则更新，否则新插入。"""
+    findword = (request.form.get("findword") or "")
+    replaceword = (request.form.get("replaceword") or "")
+    raw = request.form.get("replacementsetid") or "-1"
+    setid = int(raw) if raw.lstrip("-").isdigit() else -1
+    row = db.session.execute(select(Replacement).where(
+        Replacement.replacementsetid == setid, Replacement.findword == findword)).scalars().first()
+    if row is None:
+        db.session.add(Replacement(replacementsetid=setid, findword=findword, replaceword=replaceword))
+    else:
+        row.replaceword = replaceword
+    db.session.commit()
+    return redirect(url_for("admin.replacement_list", expandset=setid))
+
+
+@bp.route("/replacements/edit/<int:replacement_id>", methods=["GET", "POST"])
+def replacement_edit(replacement_id: int):
+    """原版 action=edit / doupdate。"""
+    row = db.session.get(Replacement, replacement_id)
+    if row is None:
+        abort(404)
+    if request.method == "POST":
+        raw = request.form.get("replacementsetid") or str(row.replacementsetid)
+        row.replacementsetid = int(raw) if raw.lstrip("-").isdigit() else row.replacementsetid
+        row.findword = request.form.get("findword") or row.findword
+        row.replaceword = request.form.get("replaceword") or ""
+        db.session.commit()
+        return redirect(url_for("admin.replacement_list", expandset=row.replacementsetid))
+    return render_template("admin/replacements.html", mode="edit", sets=_replacement_sets_all(),
+                           replacement=row, setid=row.replacementsetid)
+
+
+@bp.route("/replacements/remove/<int:replacement_id>", methods=["GET", "POST"])
+def replacement_remove(replacement_id: int):
+    """原版 action=remove / kill：确认后删除（母版项即"还原成默认"）。"""
+    row = db.session.get(Replacement, replacement_id)
+    if row is None:
+        abort(404)
+    if request.method == "POST":
+        setid = row.replacementsetid
+        db.session.delete(row)
+        db.session.commit()
+        return redirect(url_for("admin.replacement_list", expandset=setid))
+    return render_template("admin/replacements.html", mode="remove", replacement=row)
+
+
+@bp.route("/replacements/view")
+def replacement_view():
+    """原版 action=view：显示母版里该 findword 的默认替换值。"""
+    findword = (request.args.get("findword") or "").strip()
+    row = db.session.execute(select(Replacement).where(
+        Replacement.replacementsetid == -1, Replacement.findword == findword)).scalars().first()
+    return render_template("admin/replacements.html", mode="view", findword=findword,
+                           replaceword=(row.replaceword if row is not None else None))
+
+
+@bp.route("/replacements/addset")
+def replacement_addset():
+    """原版 action=addset。"""
+    return render_template("admin/replacements.html", mode="addset")
+
+
+@bp.route("/replacements/insertset", methods=["POST"])
+def replacement_insertset():
+    title = (request.form.get("title") or "").strip()
+    if not title:
+        return redirect(url_for("admin.replacement_addset"))
+    group = ReplacementSet(title=title)
+    db.session.add(group)
+    db.session.commit()
+    return redirect(url_for("admin.replacement_list", expandset=group.id))
+
+
+@bp.route("/replacements/editset/<int:set_id>", methods=["GET", "POST"])
+def replacement_editset(set_id: int):
+    group = db.session.get(ReplacementSet, set_id)
+    if group is None:
+        abort(404)
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        if title:
+            group.title = title
+            db.session.commit()
+        return redirect(url_for("admin.replacement_list", expandset=set_id))
+    return render_template("admin/replacements.html", mode="editset", group=group)
+
+
+@bp.route("/replacements/removeset/<int:set_id>", methods=["GET", "POST"])
+def replacement_removeset(set_id: int):
+    """原版 action=removeset / killset：删集合及其替换，并把指向它的 style 挪到最小集合。"""
+    group = db.session.get(ReplacementSet, set_id)
+    if group is None:
+        abort(404)
+    if request.method == "POST":
+        db.session.execute(delete(Replacement).where(Replacement.replacementsetid == set_id))
+        db.session.delete(group)
+        db.session.flush()
+        min_set = db.session.execute(select(func.min(ReplacementSet.id))).scalar() or 1
+        db.session.execute(update(StyleSet).where(
+            StyleSet.replacementsetid == set_id).values(replacementsetid=min_set))
+        db.session.commit()
+        return redirect(url_for("admin.replacement_list"))
+    return render_template("admin/replacements.html", mode="removeset", group=group)
 
 
 @bp.route("/styles/properties/<int:style_id>", methods=["GET", "POST"])

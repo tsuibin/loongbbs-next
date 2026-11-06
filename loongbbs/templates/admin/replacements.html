@@ -1,0 +1,158 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Replacements{% else %}替换变量{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'add' %}
+<form method="post" action="{{ url_for('admin.replacement_insert') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add new replacement variable</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Replacement set</p></td><td><p><select name="replacementsetid">
+	{% for s in sets %}<option value="{{ s.id }}"{% if setid == s.id %} selected{% endif %}>{{ s.title }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="secondalt"><td><p>Code to find</p></td><td><p><input type="text" name="findword" value="{{ replacement.findword }}" size="60"></p></td></tr>
+<tr class="firstalt"><td><p>Code to insert</p></td><td><p><textarea name="replaceword" rows="3" cols="60">{{ replacement.replaceword }}</textarea></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save   ">
+	<input type="button" value="   Reset   " onclick="window.location='{{ url_for('admin.replacement_add') }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'edit' %}
+<form method="post" action="{{ url_for('admin.replacement_edit', replacement_id=replacement.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit replacement variable</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Replacement set</p></td><td><p><select name="replacementsetid">
+	{% for s in sets %}<option value="{{ s.id }}"{% if setid == s.id %} selected{% endif %}>{{ s.title }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="secondalt"><td><p>Code to find</p></td><td><p><input type="text" name="findword" value="{{ replacement.findword }}" size="60"></p></td></tr>
+<tr class="firstalt"><td><p>Code to insert</p></td><td><p><textarea name="replaceword" rows="3" cols="60">{{ replacement.replaceword }}</textarea></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="button" value="   Reset   " onclick="window.location='{{ url_for('admin.replacement_list', expandset=setid) }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'remove' %}
+<form method="post" action="{{ url_for('admin.replacement_remove', replacement_id=replacement.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="60%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Are you sure you want to delete (revert) this replacement variable?</p></td></tr>
+<tr class="tblhead" id="submitrow"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="window.location='{{ url_for('admin.replacement_list', expandset=replacement.replacementsetid) }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'view' %}
+<p>Default replacement:</p>
+{% if replaceword is not none %}
+<p>{{ findword }} is replaced by {{ replaceword }}</p>
+{% else %}
+<p>{{ findword }} is not a default replacement.</p>
+{% endif %}
+<p><a href="{{ url_for('admin.replacement_list') }}" class="lc">[go back]</a></p>
+
+{% elif mode == 'addset' %}
+<form method="post" action="{{ url_for('admin.replacement_insertset') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add new replacement set</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Title</p></td><td><p><input type="text" name="title" value="" size="60"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'editset' %}
+<form method="post" action="{{ url_for('admin.replacement_editset', set_id=group.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit replacement set</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Title</p></td><td><p><input type="text" name="title" value="{{ group.title }}" size="60"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="button" value="   Reset   " onclick="window.location='{{ url_for('admin.replacement_list', expandset=group.id) }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'removeset' %}
+<form method="post" action="{{ url_for('admin.replacement_removeset', set_id=group.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="60%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Are you sure you want to delete this replacement set? Doing so will also delete
+(revert) all replacement variables in this set!</p></td></tr>
+<tr class="tblhead" id="submitrow"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="window.location='{{ url_for('admin.replacement_list') }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<p>Replacements with <span class="gc">this color</span> names are using the original replacements and may only
+be added in order to create a custom replacement.<br>
+Replacements with <span class="cc">this color</span> names are custom replacements, and may be edited or
+reverted back to the default.</p>
+
+<p>To edit an original replacement, click the "change original" link. To edit any other replacement, click
+the "edit" link. To delete a replacement, click the "revert to original" link</p>
+
+<ul>
+{% for g in groups %}
+<li><b>{{ g.title }}</b>
+	<a href="{{ url_for('admin.replacement_editset', set_id=g.id) }}" class="lc">[edit]</a>
+	<a href="{{ url_for('admin.replacement_removeset', set_id=g.id) }}" class="lc">[remove]</a>
+	<a href="{{ url_for('admin.replacement_add', replacementsetid=g.id) }}" class="lc">[add custom replacement]</a>
+	<ul>
+	{% if g.expanded %}
+		{% if g.custom %}<b>Custom replacements</b>{% endif %}
+		{% for c in g.custom %}
+		<li><span class="cc">{{ c.findword }} is replaced by {{ c.replaceword }}</span>
+			<a href="{{ url_for('admin.replacement_edit', replacement_id=c.id) }}" class="lc">[edit]</a>
+			<a href="{{ url_for('admin.replacement_remove', replacement_id=c.id) }}" class="lc">[remove]</a></li>
+		{% endfor %}
+		{% if g.custom %}<br><b>Default replacements</b>{% endif %}
+		{% for d in g.defaults %}
+			{% if d.row_id %}
+			<li><span class="cc">{{ d.findword }} is replaced by {{ d.replaceword }}</span>
+				<a href="{{ url_for('admin.replacement_edit', replacement_id=d.row_id) }}" class="lc">[edit]</a>
+				<a href="{{ url_for('admin.replacement_remove', replacement_id=d.row_id) }}" class="lc">[revert to original]</a>
+				<a href="{{ url_for('admin.replacement_view', findword=d.findword) }}" class="lc">[view original]</a></li>
+			{% else %}
+			<li><span class="gc">{{ d.findword }}</span>
+				<a href="{{ url_for('admin.replacement_add', replacementsetid=g.id, findword=d.findword) }}" class="lc">[change original]</a></li>
+			{% endif %}
+		{% endfor %}
+	{% else %}
+		<li><b><a href="{{ url_for('admin.replacement_list', expandset=g.id) }}" class="lc">[expand list]</a></b></li>
+	{% endif %}
+	</ul>
+</li>
+{% endfor %}
+</ul>
+<p>That's all folks</p>
+{% endif %}
+
+{% endblock %}

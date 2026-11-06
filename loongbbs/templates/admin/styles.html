@@ -69,7 +69,8 @@ Style file template version: {{ version }}</p>
 
 {% elif mode == 'properties' %}
 <p>&quot;<b>{{ style.title }}</b>&quot;
-<a href="{{ url_for('admin.styles_edit', style_id=style.id) }}" class="lc">[edit style properties]</a></p>
+<a href="{{ url_for('admin.styles_edit', style_id=style.id) }}" class="lc">[edit style properties]</a>
+<a href="{{ url_for('admin.replacement_list', expandset=style.replacementsetid) }}" class="lc">[edit replacements]</a></p>
 <p>Make sure you keep this page refreshed and up to date after making changes! Don't use a cached version!</p>
 <p><font size="1">This area of the control panel provides a more friendly interface to the templates and
 replacements sections. If you find that you cannot do something through this area, go directly to the
