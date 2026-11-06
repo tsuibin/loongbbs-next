@@ -11,7 +11,6 @@ from .models import Setting
 LOCAL_DEFAULTS = {
     "site_name": "LoongBBS Next",
     "site_tagline": "龙芯社区论坛 · Python 重制版",
-    "threads_per_page": "25",
 }
 
 # vB 后台 Options 的默认值打底，本站自有键覆盖同名项

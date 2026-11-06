@@ -33,23 +33,21 @@
 </tr>
 
 {% for thread in threads %}
-{% set hot = thread.reply_count - 1 > 15 %}
+{% set hot = thread._hot %}
 {% set r_avg, r_cnt = thread.rating_stats %}
 <tr align="center">
-	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/' ~ ('lockfolder.gif' if thread.is_closed else ('newhotfolder.gif' if thread.has_new and hot else ('newfolder.gif' if thread.has_new else ('hotfolder.gif' if hot else 'folder.gif'))))) }}" border="0" alt=""></td>
+	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/' ~ ('dot_' if thread._dot else '') ~ ('lockfolder.gif' if thread.is_closed else ('newhotfolder.gif' if thread.has_new and hot else ('newfolder.gif' if thread.has_new else ('hotfolder.gif' if hot else 'folder.gif'))))) }}" border="0" alt=""></td>
 	<td bgcolor="#DFDFDF">{% if thread._icon_cache %}<img src="{{ url_for('static', filename='images/icons/icon' ~ thread._icon_cache ~ '.gif') }}" width="15" height="15" border="0" alt="图标 {{ thread._icon_cache }}" title="图标 {{ thread._icon_cache }}">{% elif settings.get('showdeficon', '0') == '1' %}<img src="{{ url_for('static', filename='images/icons/icon1.gif') }}" width="15" height="15" border="0" alt="">{% else %}&nbsp;{% endif %}</td>
-	<td bgcolor="#F1F1F1" align="left" width="70%"><font face="verdana, arial, helvetica" size="2">{% if thread.is_sticky %}置顶: {% endif %}<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title|wordwrap }}</a></font> <font face="verdana,arial,helvetica" size="1">
-	{% if thread.reply_count > 1 %}
-	  ( 页:
-	  {% for p in range(1, (thread.reply_count + settings.get('maxposts', '15')|int - 1) // (settings.get('maxposts', '15')|int) + 1) %}
-	    <a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% if not loop.last %},{% endif %}
-	  {% endfor %}
+	<td bgcolor="#F1F1F1" align="left" width="70%"><font face="verdana, arial, helvetica" size="2">{% if thread.is_sticky %}{{ settings.get('stickythreadprefix', '') }}{% endif %}{% if thread._has_poll %}{{ settings.get('pollthreadprefix', '') }}{% endif %}<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title|wordwrap }}</a></font> <font face="verdana,arial,helvetica" size="1">
+	{% if thread._page_nav %}
+	  ( <img src="{{ url_for('static', filename='images/multipage.gif') }}" border="0" alt="">
+	  {% for p in thread._page_nav %}{% if p is none %} ... <a href="{{ url_for('forums.thread', thread_id=thread.id, page=thread._page_last) }}">Last page</a>{% else %} <a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a> {% endif %}{% endfor %}
 	  )
 	{% endif %}</font></td>
 	<td bgcolor="#DFDFDF" width="30%" nowrap><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a></font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ thread.views }}</font></td>
-	<td bgcolor="#F1F1F1" align="center"><img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" alt="{{ r_cnt }} 票 - 平均 {{ '%.4f'|format(r_avg) }}"></td>
+	<td bgcolor="#F1F1F1" align="center">{% set show_votes = settings.get('showvotes', '2')|int %}{% if r_cnt >= show_votes and r_cnt > 0 %}<img src="{{ url_for('static', filename='images/' ~ ('%.0f'|format(r_avg)) ~ 'stars.gif') }}" border="0" alt="{{ r_cnt }} 票 - 平均 {{ '%.4f'|format(r_avg) }}">{% else %}<img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" alt="">{% endif %}</td>
 	<td bgcolor="#DFDFDF">
 		<table cellpadding="0" cellspacing="0" border="0" width="100%" id="ltlink"><tr align="right">
 			<td nowrap><font face="verdana,arial,helvetica" size="1">{{ thread.last_post_at|dt('%m-%d-%Y') }} <font color="#666686">{{ thread.last_post_at|dt('%I:%M %p') }}</font><br>
@@ -67,7 +65,7 @@
 <tr id="cat">
 	<td bgcolor="#8080A6" width="100%" colspan="8" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">
 	<nobr>
-	<b>显示第 {{ (page - 1) * (settings.threads_per_page|int) + 1 }} 至 {{ [page * (settings.threads_per_page|int), total]|min }} 条，共 {{ total }} 个主题，排序方式为 </b>
+	<b>显示第 {{ (page - 1) * per_page + 1 }} 至 {{ [page * per_page, total]|min }} 条，共 {{ total }} 个主题，排序方式为 </b>
 	<select name="sortfield">
 		<option value="title"{% if sortfield == 'title' %} selected{% endif %}>主题标题</option>
 		<option value="lastpost"{% if sortfield == 'lastpost' %} selected{% endif %}>最后发表时间</option>
@@ -112,6 +110,7 @@
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr valign="bottom">
 	<td>
+	{% if settings.get('useforumjump', '1') == '1' %}
 	<table cellpadding="0" cellspacing="0" border="0">
 	<form action="{{ url_for('forums.index') }}" method="get"><tr><td>
 		<font face="verdana,arial,helvetica" size="1">
@@ -131,6 +130,7 @@
 		</font>
 	</td></tr></form>
 	</table>
+	{% endif %}
 	</td>
 	<td align="right">
 	<table cellpadding="0" cellspacing="0" border="0"><tr>
@@ -152,12 +152,12 @@
 <tr><td colspan="8" align="center"><font face="verdana,arial,helvetica" size="1">All times are GMT. The time now is {{ now_gmt() }}.</font></td></tr>
 <tr><td rowspan="2" width="50%">&nbsp;</td>
 	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/newfolder.gif') }}" border="0" alt="New Posts"> <b>有新帖</b> &nbsp;&nbsp;</font></td>
-	<td nowrap><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/newhotfolder.gif') }}" border="0" alt="Hot Thread"> <b>回复超过 15 或查看超过 150</b> )&nbsp;&nbsp;</font></td>
+	<td nowrap><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/newhotfolder.gif') }}" border="0" alt="Hot Thread"> <b>回复超过 {{ settings.get('hotnumberposts', '15') }} 或查看超过 {{ settings.get('hotnumberviews', '150') }}</b> )&nbsp;&nbsp;</font></td>
 	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/lockfolder.gif') }}" border="0" alt="Closed Thread"> <b>已关闭的主题</b></font></td>
 </tr>
 <tr>
 	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/folder.gif') }}" border="0" alt="No New Posts"> <b>无新帖</b> &nbsp;&nbsp;</font></td>
-	<td nowrap colspan="2"><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/hotfolder.gif') }}" border="0" alt="Hot Thread"> <b>回复超过 15 或查看超过 150</b> )&nbsp;&nbsp;</font></td>
+	<td nowrap colspan="2"><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/hotfolder.gif') }}" border="0" alt="Hot Thread"> <b>回复超过 {{ settings.get('hotnumberposts', '15') }} 或查看超过 {{ settings.get('hotnumberviews', '150') }}</b> )&nbsp;&nbsp;</font></td>
 <td rowspan="2" width="50%">&nbsp;</td></tr>
 </table>
 <!-- /icon key -->

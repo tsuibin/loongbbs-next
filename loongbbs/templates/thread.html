@@ -235,6 +235,9 @@
 	<td align="right"><font face="verdana,arial,helvetica" size="1">
 	{% if nav_user %}
 	<table cellpadding="0" cellspacing="0" border="0">
+	{% if my_rating and settings.get('votechange', '0') != '1' %}
+	<tr><td><font face="verdana,arial,helvetica" size="1"><b>评价本主题:</b> 你已经给这个主题打过分了。</font></td></tr>
+	{% else %}
 	<form action="{{ url_for('forums.rate_thread', thread_id=thread.id) }}" method="post"><tr><td>
 	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 	<b>评价本主题:</b>{% set r_avg, r_cnt = thread.rating_stats %}{% if r_cnt %}<font face="verdana,arial,helvetica" size="1"> 当前 {{ '%.2f'|format(r_avg) }} 分（{{ r_cnt }} 票）</font>{% endif %}<br>
@@ -247,6 +250,7 @@
 		<option value="1">1 .. 最差</option>
 	</select><input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom">
 	</td></tr></form>
+	{% endif %}
 	</table>
 	{% endif %}
 	</font></td>

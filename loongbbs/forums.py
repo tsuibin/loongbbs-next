@@ -153,6 +153,10 @@ def rate_thread(thread_id: int):
             ThreadRating(thread_id=thread_obj.id, user_id=current_user.id, vote=vote)
         )
         flash("感谢评分。")
+    elif get_setting("votechange") != "1":
+        # 组 9 votechange=0：原版 threadrate.php 直接拒绝改票
+        flash("管理员没有开放修改评分。")
+        return redirect(url_for("forums.thread", thread_id=thread_obj.id))
     else:
         existing.vote = vote
         flash("你的评分已更新。")
@@ -310,6 +314,15 @@ def _per_page(key: str, fallback: int) -> int:
         return fallback
 
 
+def _setting_int(name: str, default: int, low: int = 0, high: int = 200) -> int:
+    """读一个整数设置，夹在 [low, high] 之间。"""
+    try:
+        value = int(get_setting(name, str(default)) or default)
+    except (TypeError, ValueError):
+        value = default
+    return max(low, min(value, high))
+
+
 def _thread_per_page() -> int:
     """组 8 maxposts / usermaxposts：每页帖数。
 
@@ -459,7 +472,8 @@ def forum(forum_id: int):
         abort(404)
 
     page = clamp_page(request.args.get("page"))
-    per_page = _per_page("threads_per_page", 25)
+    # 组 9 maxthreads：版块页每页主题数（原版 sanitize_pageresults 上限 200）
+    per_page = _setting_int("maxthreads", 25, low=1)
 
     # 排序/时间范围：对应 vB forumdisplay.php 的 sortfield / sortorder / daysprune
     sortfield = (request.args.get("sortfield") or "lastpost").lower()
@@ -542,6 +556,57 @@ def forum(forum_id: int):
     for thread_obj in threads:
         thread_obj._icon_cache = first_icons.get(thread_obj.id, 0)
 
+    # ---- 组 9「版块显示选项」：热门图标 / 参与点 / 多页导航 / 投票前缀 ----
+    hot_on = get_setting("usehotthreads") == "1"
+    hot_posts = _setting_int("hotnumberposts", 15)
+    hot_views = _setting_int("hotnumberviews", 150)
+    show_dots = get_setting("showdots") == "1"
+    link_to_pages = get_setting("linktopages") == "1"
+    max_multi = _setting_int("maxmultipage", 5, low=1, high=50)
+    post_per_page = _thread_per_page()
+
+    dot_threads: set[int] = set()
+    if show_dots and current_user.is_authenticated:
+        dot_threads = set(
+            db.session.scalars(
+                select(Post.thread_id)
+                .where(
+                    Post.author_id == current_user.id,
+                    Post.is_deleted.is_(False),
+                    Post.thread_id.in_([t.id for t in threads] or [-1]),
+                )
+                .distinct()
+            )
+        )
+
+    poll_threads = set(
+        db.session.scalars(
+            select(Poll.thread_id).where(Poll.thread_id.in_([t.id for t in threads] or [-1]))
+        )
+    )
+
+    for thread_obj in threads:
+        replies = max(0, (thread_obj.reply_count or 0) - 1)
+        thread_obj._hot = bool(
+            hot_on
+            and (
+                (hot_posts > 0 and replies >= hot_posts)
+                or (hot_views > 0 and (thread_obj.views or 0) >= hot_views)
+            )
+        )
+        thread_obj._dot = thread_obj.id in dot_threads
+        thread_obj._has_poll = thread_obj.id in poll_threads
+        thread_obj._page_nav = []
+        if link_to_pages and post_per_page > 0 and replies + 1 > post_per_page:
+            page_count = (replies + 1 + post_per_page - 1) // post_per_page
+            if page_count > 1:
+                # 原版：到 maxmultipage 就只留「more...」，不再往下排
+                nav = list(range(1, min(page_count, max_multi - 1) + 1))
+                if page_count >= max_multi:
+                    nav.append(None)
+                thread_obj._page_nav = nav
+                thread_obj._page_last = page_count
+
     return render_template(
         "forum.html",
         forum=forum_obj,
@@ -550,6 +615,7 @@ def forum(forum_id: int):
         page=page,
         pages=pages,
         total=total,
+        per_page=per_page,
         page_args=page_args,
         time_ago=time_ago,
         sortfield=sortfield,
@@ -779,6 +845,16 @@ def thread(thread_id: int):
                 )
             )
 
+    # 组 9 votechange：0 时已投过的用户不再看到评分表单
+    my_rating = None
+    if current_user.is_authenticated:
+        my_rating = db.session.scalar(
+            select(ThreadRating.vote).where(
+                ThreadRating.thread_id == thread_obj.id,
+                ThreadRating.user_id == current_user.id,
+            )
+        )
+
     return render_template(
         "thread.html",
         thread=thread_obj,
@@ -787,6 +863,7 @@ def thread(thread_id: int):
         page=page,
         pages=pages,
         total=total,
+        my_rating=my_rating,
         page_args=page_args,
         page_links=_page_links(page, pages),
         post_order=post_order,

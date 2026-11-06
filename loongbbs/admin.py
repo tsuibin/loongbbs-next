@@ -134,7 +134,6 @@ NAV_GROUPS = [
 EDITABLE_SETTINGS = {
     "site_name": ("站点名称", "text"),
     "site_tagline": ("站点副标题", "text"),
-    "threads_per_page": ("每页主题数", "number"),
 }
 
 
@@ -214,8 +213,6 @@ def settings_page():
                         value = str(int(value))
                     except ValueError:
                         continue
-                    if key == "threads_per_page" and int(value) < 1:
-                        value = "1"
             set_setting(key, value)
 
         # vB 后台 Options 的字段：只认表里定义过的变量名
