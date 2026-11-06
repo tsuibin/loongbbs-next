@@ -1,34 +1,76 @@
-{% extends "base.html" %}
-{% block title %}后台 · {{ settings.site_name }}{% endblock %}
+{% extends "admin/admin_base.html" %}
+{% set active = 'home' %}
+{% block title %}控制面板{% endblock %}
 {% block content %}
-<nav class="crumbs">后台 / <strong>概览</strong></nav>
 
-<section class="admin-grid">
-  <div class="card stat-card"><strong>{{ stats.users }}</strong><span>会员</span></div>
-  <div class="card stat-card"><strong>{{ stats.threads }}</strong><span>主题</span></div>
-  <div class="card stat-card"><strong>{{ stats.posts }}</strong><span>帖子</span></div>
-  <div class="card stat-card"><strong>{{ stats.attachments }}</strong><span>附件（{{ human_size(stats.attachment_bytes) }}）</span></div>
-  <div class="card stat-card"><strong>{{ stats.messages }}</strong><span>私信</span></div>
-</section>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px">
+<tr><td class="cp-title" style="color:#3F3849;font-size:13px"><b>控制面板</b></td>
+<td align="right"><span class="hint">系统概况与快捷入口</span></td></tr>
+</table>
 
-<section class="card">
-  <header class="card-head split">
-    <h2>管理入口</h2>
-  </header>
-  <ul class="simple-list">
-    <li><a href="{{ url_for('admin.settings_page') }}">站点设置</a><span class="muted small">站名、每页数量、注册开关、附件缩略图</span></li>
-    <li><a href="{{ url_for('admin.forums_page') }}">版块管理</a><span class="muted small">分类与版块的增删、开关</span></li>
-    <li><a href="{{ url_for('admin.users_page') }}">用户管理</a><span class="muted small">封禁、管理员权限</span></li>
-  </ul>
-</section>
+<div class="statrow">
+  <div class="statbox"><div class="num">{{ stats.users }}</div><div class="lbl">会员总数</div></div>
+  <div class="statbox"><div class="num">{{ stats.threads }}</div><div class="lbl">主题总数</div></div>
+  <div class="statbox"><div class="num">{{ stats.posts }}</div><div class="lbl">帖子总数</div></div>
+  <div class="statbox"><div class="num">{{ stats.attachments }}</div><div class="lbl">附件（{{ human_size(stats.attachment_bytes) }}）</div></div>
+  <div class="statbox"><div class="num">{{ stats.messages }}</div><div class="lbl">悄悄话</div></div>
+</div>
 
-<section class="card">
-  <header class="card-head"><h2>最近注册</h2></header>
-  <ul class="simple-list">
-    {% for user in recent_users %}
-      <li><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a>
-        <span class="muted small">{{ user.joined_at|dt('%Y-%m-%d %H:%M') }}</span></li>
-    {% endfor %}
-  </ul>
-</section>
+<table class="tbl" cellpadding="0" cellspacing="1">
+<tr><td class="headcell" colspan="2">管理入口</td></tr>
+<tr>
+  <td width="160"><b>站点设置</b></td>
+  <td><a href="{{ url_for('admin.settings_page') }}">编辑站点设置</a> <span class="hint">— 站名、每页显示数量、注册开关、附件缩略图</span></td>
+</tr>
+<tr>
+  <td class="b"><b>版块与分类</b></td>
+  <td class="b"><a href="{{ url_for('admin.forums_page') }}">管理版块与分类</a> <span class="hint">— 新增分类/版块、开关版块、删除空版块</span></td>
+</tr>
+<tr>
+  <td><b>用户管理</b></td>
+  <td><a href="{{ url_for('admin.users_page') }}">管理用户</a> <span class="hint">— 封禁账号、授予或撤销管理员</span></td>
+</tr>
+</table>
+
+<br>
+
+<table class="tbl" cellpadding="0" cellspacing="1">
+<tr><td class="headcell" colspan="4">最近注册的会员</td></tr>
+<tr>
+  <td class="headcell" style="background:#51485F">用户名</td>
+  <td class="headcell" style="background:#51485F">注册时间</td>
+  <td class="headcell" style="background:#51485F">帖子</td>
+  <td class="headcell" style="background:#51485F">角色</td>
+</tr>
+{% for user in recent_users %}
+<tr>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a></td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ user.joined_at|dt('%Y-%m-%d %H:%M') }}</span></td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ user.post_count }}</td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %} · 已封禁{% endif %}</td>
+</tr>
+{% else %}
+<tr><td colspan="4">暂无用户</td></tr>
+{% endfor %}
+</table>
+
+<br>
+
+<table class="tbl" cellpadding="0" cellspacing="1">
+<tr><td class="headcell" colspan="3">最近发布的帖子</td></tr>
+<tr>
+  <td class="headcell" style="background:#51485F">主题</td>
+  <td class="headcell" style="background:#51485F">作者</td>
+  <td class="headcell" style="background:#51485F">时间</td>
+</tr>
+{% for post in recent_posts %}
+<tr>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><a href="{{ url_for('forums.thread', thread_id=post.thread_id) }}#p{{ post.id }}">{{ post.thread.title }}</a></td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ post.author.username }}</td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ post.created_at|dt }}</span></td>
+</tr>
+{% else %}
+<tr><td colspan="3">暂无帖子</td></tr>
+{% endfor %}
+</table>
 {% endblock %}

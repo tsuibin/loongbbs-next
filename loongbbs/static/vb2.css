@@ -1,0 +1,194 @@
+/* LoongBBS Next —— 还原 vBulletin 2.3.11 默认风格（紫蓝经典）
+   配色取自真实 2.3.11 渲染结果：
+   body #666696 / 表框 #555576 / 表头 #8080A6 / 分类条 #606096+#FFF788
+   交替行 #DFDFDF、#F1F1F1 / 链接 #000020 / 悬停 #FF4400
+*/
+body {
+  margin: 10px;
+  background: #666696;
+  color: #000000;
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+}
+a:link, a:visited, a:active { color: #000020; text-decoration: underline; }
+a:hover { color: #FF4400; }
+
+td, th, p, li, div, span { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 11px; }
+form { font-size: 11px; }
+
+/* vB 用 font size=1/2 区分 10px 正文与 13px 标题 */
+.smallfont { font-size: 10px; }
+.normalfont { font-size: 13px; }
+.bigfont { font-size: 15px; }
+.bold { font-weight: bold; }
+.white { color: #EEEEFF; }
+.lightyellow { color: #FFF788; }
+.muted { color: #666686; }
+.tiny { font-size: 10px; }
+
+img { border: 0; }
+
+/* ------------------------------------------------------------- 顶部 */
+.topbar { width: 100%; border-collapse: collapse; }
+.topbar td { background: #606096 url(images/menu_background.gif) repeat; vertical-align: bottom; }
+.topbar .logo-cell { padding: 4px 8px; vertical-align: top; }
+.logo {
+  display: inline-block;
+  line-height: 1.15;
+  padding-top: 2px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #FFF788;
+  letter-spacing: 1px;
+  text-decoration: none;
+}
+.logo:hover { color: #FFF788; text-decoration: none; }
+.logo .accent { color: #FFFFFF; }
+.topbar .toplinks { padding: 4px 8px 6px 0; text-align: right; white-space: nowrap; }
+.topbar .toplinks a { margin-left: 6px; }
+.topbar .toplinks img { vertical-align: bottom; }
+
+/* 内容白底区 */
+.pagebody { width: 100%; background: #FFFFFF; border-collapse: collapse; }
+.pagebody td { padding: 10px; vertical-align: top; }
+
+/* ------------------------------------------------------------- 面包屑/导航 */
+.navbar { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+.navbar td { padding: 2px 0; }
+.navbar .crumbs { font-size: 13px; font-weight: bold; }
+.navbar .crumbs a { text-decoration: none; }
+.navbar .navlinks { text-align: right; white-space: nowrap; font-size: 10px; }
+.navbar .navlinks a { text-decoration: none; }
+.navbar .navlinks .sep { color: #C0C0C0; padding: 0 4px; }
+
+/* ------------------------------------------------------------- 表格骨架 */
+table.tborder {
+  width: 100%;
+  background: #555576;
+  border-collapse: separate;
+  border-spacing: 1px;
+}
+table.tborder.auto { width: auto; }
+.tcat { background: #606096; color: #FFF788; font-weight: bold; }
+.tcat a { color: #FFF788; text-decoration: none; }
+.tcat a:hover { color: #FFF788; text-decoration: underline; }
+.thead {
+  background: #8080A6;
+  color: #EEEEFF;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+}
+.thead.left { text-align: left; }
+.thead a { color: #EEEEFF; text-decoration: none; }
+.alt1 { background: #F1F1F1; }
+.alt2 { background: #DFDFDF; }
+.cellpad { padding: 4px; }
+.center { text-align: center; }
+.navcell { padding: 4px; }
+
+/* 分类/版块行 */
+.forum-title { font-size: 13px; font-weight: bold; text-decoration: none; display: block; }
+.forum-desc { font-size: 10px; }
+.status-icon { vertical-align: middle; }
+.modCol { font-size: 10px; }
+
+/* 主题列表 */
+.thread-title { font-size: 11px; text-decoration: none; font-weight: bold; }
+.thread-title.normal { font-weight: normal; }
+.rowicon { text-align: center; width: 24px; }
+.pagenav { font-size: 10px; color: #666686; }
+.pagenav a { text-decoration: none; }
+.forum-jump { font-size: 11px; }
+
+/* ------------------------------------------------------------- 帖子 postbit */
+.postbit { width: 100%; border-collapse: separate; border-spacing: 1px; background: #555576; margin-bottom: 10px; }
+.postbit .author-col { width: 175px; vertical-align: top; background: #DFDFDF; padding: 4px; }
+.postbit .author-col .username { font-size: 13px; font-weight: bold; }
+.postbit .author-col .userinfo { font-size: 10px; line-height: 1.6; }
+.postbit .avatar { margin: 4px 0; }
+.postbit .post-col { vertical-align: top; background: #DFDFDF; padding: 4px; }
+.postbit .post-date { background: #DFDFDF; padding: 4px; font-size: 10px; white-space: nowrap; }
+.postbit .post-date .postnum { float: right; }
+.posttitle { font-size: 11px; font-weight: bold; }
+.postbody { font-size: 13px; line-height: 1.5; word-break: break-word; }
+.postbody pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  background: #FFFFFF;
+  border: 1px solid #999999;
+  padding: 6px;
+  overflow-x: auto;
+}
+.postbody blockquote {
+  margin: 6px 0;
+  font-style: italic;
+  color: #444444;
+}
+.postbuttons { text-align: right; }
+.postbuttons img { vertical-align: middle; }
+.signature {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid #BBBBBB;
+  font-size: 10px;
+  color: #666686;
+}
+.attachment-box { margin-top: 6px; font-size: 10px; }
+
+/* ------------------------------------------------------------- 表单 */
+input, select, textarea {
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #000000;
+  background: #CFCFCF;
+  border: 1px solid #808080;
+}
+textarea { font-size: 12px; }
+input[type="submit"], input[type="button"], button {
+  background: #DFDFDF;
+  border: 1px outset #FFFFFF;
+  padding: 1px 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+input[type="submit"]:hover, button:hover { background: #EFEFEF; }
+input[type="file"] { background: #FFFFFF; border: 1px solid #808080; }
+.field-label { font-size: 10px; font-weight: bold; }
+.formtable td { padding: 3px 4px; vertical-align: top; }
+
+/* 登录/注册小表格 */
+.login-table { margin: 0 auto; }
+.login-table td { padding: 3px 6px; white-space: nowrap; }
+
+/* ------------------------------------------------------------- 页脚 */
+.footer { text-align: center; padding: 10px 0 6px; color: #FFFFFF; font-size: 10px; }
+.footer a { color: #EEEEFF; }
+.footer .copyright { color: #DDDDEE; margin-top: 4px; }
+
+.flashbox {
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #FFF788;
+  border: 1px solid #606096;
+  color: #000020;
+  font-size: 11px;
+}
+.flashbox.error { background: #FFDDDD; border-color: #990000; color: #660000; }
+
+.statsblock { font-size: 10px; }
+.hero-stats { font-size: 10px; }
+
+/* 按钮式链接 */
+.btnlink {
+  display: inline-block;
+  padding: 1px 8px;
+  background: #DFDFDF;
+  border: 1px outset #FFFFFF;
+  font-size: 11px;
+  color: #000020;
+  text-decoration: none;
+}
+.btnlink:hover { background: #EFEFEF; text-decoration: none; }

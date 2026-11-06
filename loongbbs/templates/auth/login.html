@@ -1,21 +1,43 @@
 {% extends "base.html" %}
-{% block title %}登录 · {{ settings.site_name }}{% endblock %}
+{% block title %}{{ settings.site_name }} - 登录{% endblock %}
 {% block content %}
-<section class="card narrow">
-  <header class="card-head"><h2>登录</h2></header>
-  <form method="post" action="{{ url_for('auth.login') }}" class="stack-form">
-    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <label class="field"><span>用户名</span>
-      <input type="text" name="username" value="{{ username or '' }}" required autofocus>
-    </label>
-    <label class="field"><span>密码</span>
-      <input type="password" name="password" required>
-    </label>
-    <label class="checkbox"><input type="checkbox" name="remember" value="1"> 记住我</label>
-    <button class="button" type="submit">登录</button>
-  </form>
-  {% if settings.allow_registration == '1' %}
-    <p class="muted small">还没有账号？<a href="{{ url_for('auth.register_form') }}">注册一个</a></p>
-  {% endif %}
-</section>
+<br><br>
+<table class="tborder auto" cellpadding="4" cellspacing="1" width="420" align="center">
+<tr><td class="tcat" align="left"><a name="login">请登录:</a></td></tr>
+<tr>
+  <td class="alt1" align="center">
+    <span class="smallfont">你还没有登录，或者上次的会话已过期。</span>
+    <form method="post" action="{{ url_for('auth.login') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <table cellpadding="0" cellspacing="1">
+      <tr>
+        <td><input type="text" name="username" size="18" value="{{ username or '' }}" required></td>
+        <td><input type="password" name="password" size="18" required></td>
+        <td><input type="submit" value="  登录  "></td>
+      </tr>
+      <tr>
+        <td><span class="smallfont">用户名</span></td>
+        <td colspan="2"><span class="smallfont">密码</span></td>
+      </tr>
+      <tr>
+        <td colspan="3"><span class="smallfont"><input type="checkbox" name="remember" value="1"> 记住我</span></td>
+      </tr>
+      </table>
+    </form>
+  </td>
+</tr>
+<tr>
+  <td class="alt2" align="center">
+    <span class="smallfont">
+      {% if settings.allow_registration == '1' %}
+        还没有账号？<a href="{{ url_for('auth.register_form') }}">免费注册</a>
+      {% else %}
+        本站暂未开放注册。
+      {% endif %}
+    </span>
+  </td>
+</tr>
+</table>
+<br>
+<div align="center"><span class="smallfont">LoongBBS Next —— 界面参照 vBulletin 2.3.11</span></div>
 {% endblock %}

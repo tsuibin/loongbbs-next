@@ -1,49 +1,122 @@
 {% extends "base.html" %}
-{% block title %}{{ settings.site_name }}{% endblock %}
+{% block title %}{{ settings.site_name }} - 论坛首页{% endblock %}
 
 {% block content %}
-<section class="hero">
-  <div>
-    <h1>{{ settings.site_name }}</h1>
-    <p class="muted">{{ settings.site_tagline }}</p>
-  </div>
-  <div class="hero-stats">
-    <div><strong>{{ stats.threads }}</strong><span>主题</span></div>
-    <div><strong>{{ stats.posts }}</strong><span>帖子</span></div>
-    <div><strong>{{ stats.users }}</strong><span>会员</span></div>
-  </div>
-</section>
+<table width="100%" cellpadding="2" cellspacing="0">
+<tr valign="top">
+  <td>
+    <img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="{{ settings.site_name }}">
+    <span class="normalfont bold">{{ settings.site_name }}</span>
+  </td>
+  <td align="right">
+    <span class="smallfont"><b><a href="{{ url_for('search.search', q='') }}">查看今日新帖</a></b></span>
+  </td>
+</tr>
+</table>
+
+<table width="100%" cellpadding="2" cellspacing="0">
+<tr>
+  <td colspan="2">
+    <span class="normalfont bold">欢迎来到 {{ settings.site_name }}。</span><br>
+    <span class="smallfont">
+      如果你是第一次访问，可以先看看
+      <a href="{{ url_for('auth.register_form') if settings.allow_registration == '1' else url_for('auth.login_form') }}"><b>注册</b></a>
+      说明；发帖前请先
+      <a href="{{ url_for('auth.login_form') }}"><b>登录</b></a>。
+      选择下列版块开始浏览。
+    </span>
+    <hr>
+  </td>
+</tr>
+<tr valign="bottom">
+  <td class="statsblock">
+    会员: {{ stats.users }}，主题: {{ stats.threads }}，帖子: {{ stats.posts }}<br>
+    {% if stats.last_thread %}
+      最新主题来自 <a href="{{ url_for('forums.thread', thread_id=stats.last_thread.id) }}">{{ stats.last_thread.title }}</a>
+    {% endif %}
+  </td>
+  <td align="right" class="statsblock">
+    现在时间 {{ server_time }}<br>
+    {% if nav_user %}你已登录：{{ nav_user.username }}{% else %}你尚未登录或未注册{% endif %}
+  </td>
+</tr>
+</table>
+
+<br>
+
+<!-- 版块总表 -->
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr align="center">
+  <td class="thead" width="2%">&nbsp;</td>
+  <td class="thead left" width="48%">版块</td>
+  <td class="thead">主题</td>
+  <td class="thead">帖子</td>
+  <td class="thead nowrap">最后发表</td>
+  <td class="thead" width="18%">版主</td>
+</tr>
 
 {% for category in categories %}
-  <section class="card">
-    <header class="card-head">
-      <h2>{{ category.name }}</h2>
-    </header>
-    <div class="forum-list">
-      {% for forum in category.forums %}
-        <a class="forum-row" href="{{ url_for('forums.forum', forum_id=forum.id) }}">
-          <div class="forum-main">
-            <span class="forum-name">{{ forum.name }}{% if forum.is_closed %}<span class="badge">已关闭</span>{% endif %}</span>
-            <span class="forum-desc">{{ forum.description }}</span>
-          </div>
-          <div class="forum-meta">
-            <span>{{ forum.thread_count }} 主题 / {{ forum.post_count }} 帖</span>
-            {% set last = forum.last_post %}
-            {% if last %}
-              <span class="muted">最后：{{ last.thread.title }} · {{ last.created_at|ago }}</span>
-            {% else %}
-              <span class="muted">还没有帖子</span>
-            {% endif %}
-          </div>
-        </a>
-      {% endfor %}
-    </div>
-  </section>
-{% else %}
-  <p class="empty">还没有版块，先到后台添加。</p>
-{% endfor %}
+<tr>
+  <td class="tcat" colspan="6" align="left">
+    <a href="{{ url_for('forums.index') }}#cat{{ category.id }}"><span class="normalfont bold lightyellow">{{ category.name }}</span></a>
+    {% if category.description %}<br><span class="smallfont lightyellow">{{ category.description }}</span>{% endif %}
+  </td>
+</tr>
 
-{% if stats.last_thread %}
-  <p class="latest-hint">最新讨论：<a href="{{ url_for('forums.thread', thread_id=stats.last_thread.id) }}">{{ stats.last_thread.title }}</a></p>
-{% endif %}
+{% set outer = loop %}
+{% for forum in category.forums %}
+  {% set last = forum.last_post %}
+  <tr align="center">
+    <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" valign="top">
+      <img class="status-icon" src="{{ url_for('static', filename='images/off.gif' if forum.is_closed else 'images/on.gif') }}" alt="">
+    </td>
+    <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" align="left">
+      <a class="forum-title" href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a>
+      <span class="smallfont">{{ forum.description }}</span>
+      {% if forum.is_closed %}<span class="smallfont muted">（版块已关闭）</span>{% endif %}
+    </td>
+    <td class="{{ 'alt2' if loop.index0 % 2 == 0 else 'alt1' }}"><span class="normalfont">{{ forum.thread_count }}</span></td>
+    <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}"><span class="normalfont">{{ forum.post_count }}</span></td>
+    <td class="{{ 'alt2' if loop.index0 % 2 == 0 else 'alt1' }}" align="left">
+      {% if last %}
+        <span class="smallfont">
+          <a href="{{ url_for('forums.thread', thread_id=last.thread_id) }}#p{{ last.id }}">{{ last.thread.title|truncate(28, True) }}</a><br>
+          {{ last.created_at|ago }} · <a href="{{ url_for('auth.profile', username=last.author.username) }}">{{ last.author.username }}</a>
+        </span>
+      {% else %}
+        <span class="smallfont muted">从来没有</span>
+      {% endif %}
+    </td>
+    <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" align="left">
+      <span class="smallfont modCol">&nbsp;</span>
+    </td>
+  </tr>
+{% endfor %}
+{% else %}
+<tr><td class="alt1" colspan="6" align="center" class="smallfont">还没有版块，先登录后台添加。</td></tr>
+{% endfor %}
+</table>
+
+<br>
+
+<!-- 论坛跳转 -->
+<table width="100%" cellpadding="2" cellspacing="0">
+<tr valign="bottom">
+  <td>
+    <span class="smallfont"><b>论坛跳转:</b></span><br>
+    <select onchange="if(this.value) window.location=this.value">
+      <option value="">请选择:</option>
+      {% for category in categories %}
+        <option value="{{ url_for('forums.index') }}#cat{{ category.id }}">{{ category.name }}</option>
+        {% for forum in category.forums %}
+          <option value="{{ url_for('forums.forum', forum_id=forum.id) }}">&nbsp;&nbsp;-- {{ forum.name }}</option>
+        {% endfor %}
+      {% endfor %}
+    </select>
+  </td>
+  <td align="right">
+    <span class="smallfont"><b>站点统计:</b> {{ stats.threads }} 主题 / {{ stats.posts }} 帖子 / {{ stats.users }} 会员</span>
+  </td>
+</tr>
+</table>
 {% endblock %}

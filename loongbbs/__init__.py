@@ -71,6 +71,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "nav_user": current_user_or_none(),
             "attachment_css": attachment_css,
             "thumb_limits": thumb_limits(),
+            "server_time": format_dt(__import__("datetime").datetime.now(__import__("datetime").timezone.utc), "%m-%d-%Y %I:%M %p"),
         }
 
     @app.errorhandler(403)

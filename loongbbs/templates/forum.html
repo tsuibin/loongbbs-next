@@ -1,53 +1,133 @@
 {% extends "base.html" %}
-{% block title %}{{ forum.name }} · {{ settings.site_name }}{% endblock %}
+{% block title %}{{ settings.site_name }} - {{ forum.name }}{% endblock %}
 
 {% block content %}
-<nav class="crumbs">
-  <a href="{{ url_for('forums.index') }}">版块</a> / <span>{{ forum.category.name }}</span> / <strong>{{ forum.name }}</strong>
-</nav>
-
-<section class="card">
-  <header class="card-head split">
-    <div>
-      <h2>{{ forum.name }}{% if forum.is_closed %}<span class="badge">已关闭</span>{% endif %}</h2>
-      <p class="muted">{{ forum.description }}</p>
-    </div>
-    {% if nav_user and not forum.is_closed %}
-      <a class="button" href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发新主题</a>
+<table class="navbar" cellpadding="0" cellspacing="0">
+<tr>
+  <td class="crumbs">
+    <a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+    <a href="{{ url_for('forums.index') }}">{{ forum.category.name }}</a> &gt;
+    {{ forum.name }}
+  </td>
+  <td class="navlinks">
+    {% if nav_user %}
+      <a href="{{ url_for('pm.inbox') }}">用户控制面板</a><span class="sep">|</span>
     {% endif %}
-  </header>
+    <a href="{{ url_for('search.search') }}">搜索</a><span class="sep">|</span>
+    <a href="{{ url_for('forums.index') }}">论坛首页</a>
+  </td>
+</tr>
+</table>
 
-  {% if threads %}
-    <table class="thread-table">
-      <thead>
-        <tr><th>主题</th><th>作者</th><th class="num">回复</th><th class="num">浏览</th><th>最后活动</th></tr>
-      </thead>
-      <tbody>
-      {% for thread in threads %}
-        <tr>
-          <td>
-            {% if thread.is_sticky %}<span class="badge badge-sticky">置顶</span>{% endif %}
-            {% if thread.is_closed %}<span class="badge">已关闭</span>{% endif %}
-            <a class="thread-link" href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a>
-          </td>
-          <td><a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a></td>
-          <td class="num">{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</td>
-          <td class="num">{{ thread.views }}</td>
-          <td class="muted">{{ thread.last_post_at|ago }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p class="empty">这个版块还没有主题{% if nav_user %}，<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发第一个</a>{% endif %}。</p>
-  {% endif %}
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr>
+  <td class="tcat" align="left">
+    <span class="normalfont bold lightyellow">{{ forum.name }}</span>
+    {% if forum.is_closed %}<span class="smallfont lightyellow">（版块已关闭）</span>{% endif %}
+  </td>
+  <td class="tcat" align="right" nowrap>
+    {% if nav_user and not forum.is_closed %}
+      <a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" alt="发表新主题"></a>
+    {% endif %}
+  </td>
+</tr>
+<tr>
+  <td class="alt1" colspan="2" align="left">
+    <span class="smallfont">{{ forum.description }}</span>
+    <br><span class="smallfont muted">显示所有主题，共 {{ total }} 个主题{{ '，第 %d 页' % page if pages > 1 }}</span>
+  </td>
+</tr>
+</table>
 
-  {% if pages > 1 %}
-    <nav class="pager">
-      {% for p in range(1, pages + 1) %}
-        <a class="{% if p == page %}active{% endif %}" href="{{ url_for('forums.forum', forum_id=forum.id, page=p) }}">{{ p }}</a>
-      {% endfor %}
-    </nav>
-  {% endif %}
-</section>
+<br>
+
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr align="center">
+  <td class="thead" width="2%">&nbsp;</td>
+  <td class="thead left" width="44%">主题</td>
+  <td class="thead">主题发起人</td>
+  <td class="thead">回复</td>
+  <td class="thead">查看</td>
+  <td class="thead nowrap">最后发表</td>
+</tr>
+
+{% for thread in threads %}
+<tr align="center">
+  <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}">
+    {% if thread.is_sticky %}
+      <img src="{{ url_for('static', filename='images/announcement.gif') }}" alt="置顶">
+    {% elif thread.is_closed %}
+      <img src="{{ url_for('static', filename='images/lockfolder.gif') }}" alt="已关闭">
+    {% else %}
+      <img src="{{ url_for('static', filename='images/folder.gif') }}" alt="主题">
+    {% endif %}
+  </td>
+  <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" align="left">
+    {% if thread.is_sticky %}<span class="smallfont bold" style="color:#CC0000">[置顶]</span> {% endif %}
+    <a class="thread-title" href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a>
+    {% if thread.reply_count > 1 %}
+      <span class="pagenav">
+        ( 页:
+        {% for p in range(1, (thread.reply_count + settings.posts_per_page|int - 1) // (settings.posts_per_page|int) + 1) %}
+          <a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% if not loop.last %},{% endif %}
+        {% endfor %}
+        )
+      </span>
+    {% endif %}
+  </td>
+  <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" nowrap>
+    <a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a>
+  </td>
+  <td class="{{ 'alt2' if loop.index0 % 2 == 0 else 'alt1' }}">{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</td>
+  <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}">{{ thread.views }}</td>
+  <td class="{{ 'alt2' if loop.index0 % 2 == 0 else 'alt1' }}" align="left" nowrap>
+    <span class="smallfont">
+      {{ thread.last_post_at|ago }}<br>
+      <a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a>
+    </span>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td class="alt1" colspan="6" align="center">
+    <span class="smallfont">这个版块还没有主题{% if nav_user %}，<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发表第一个主题</a>{% endif %}。</span>
+  </td>
+</tr>
+{% endfor %}
+</table>
+
+{% if pages > 1 %}
+<table width="100%" cellpadding="2" cellspacing="0">
+<tr>
+  <td align="right" class="smallfont">
+    第 {{ page }} 页，共 {{ pages }} 页
+    {% if page > 1 %}<a href="{{ url_for('forums.forum', forum_id=forum.id, page=1) }}"><img src="{{ url_for('static', filename='images/firstnew.gif') }}" alt="第一页"></a>
+      <a href="{{ url_for('forums.forum', forum_id=forum.id, page=page-1) }}"><img src="{{ url_for('static', filename='images/prev.gif') }}" alt="上一页"></a>{% endif %}
+    {% if page < pages %}<a href="{{ url_for('forums.forum', forum_id=forum.id, page=page+1) }}"><img src="{{ url_for('static', filename='images/next.gif') }}" alt="下一页"></a>{% endif %}
+  </td>
+</tr>
+</table>
+{% endif %}
+
+<br>
+<table width="100%" cellpadding="2" cellspacing="0">
+<tr valign="bottom">
+  <td>
+    <span class="smallfont"><b>论坛跳转:</b> </span>
+    <select onchange="if(this.value) window.location=this.value">
+      <option value="">请选择:</option>
+      <option value="{{ url_for('forums.index') }}">论坛首页</option>
+      {% for forum in forums_all %}<option value="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</option>{% endfor %}
+    </select>
+  </td>
+  <td align="right">
+    <form method="get" action="{{ url_for('search.search') }}">
+      <span class="smallfont"><b>搜索本版:</b>
+      <input type="hidden" name="forum" value="{{ forum.id }}">
+      <input type="text" name="q" size="14">
+      <input type="submit" value=" 搜索 "></span>
+    </form>
+  </td>
+</tr>
+</table>
 {% endblock %}

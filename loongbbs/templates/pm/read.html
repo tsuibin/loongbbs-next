@@ -1,17 +1,31 @@
 {% extends "base.html" %}
-{% block title %}{{ message.subject }} · 私信{% endblock %}
+{% block title %}{{ settings.site_name }} - {{ message.subject }}{% endblock %}
 {% block content %}
-<section class="card">
-  <header class="card-head split">
-    <h2>{{ message.subject }}</h2>
-    <div class="head-actions">
-      <a class="button" href="{{ url_for('pm.compose_form', reply=message.id) if message.recipient_id == nav_user.id else url_for('pm.compose_form', to=message.recipient.username) }}">回复</a>
-      <a class="link-button" href="{{ url_for('pm.inbox') }}">返回收件箱</a>
-    </div>
-  </header>
-  <p class="muted small">
-    {{ message.sender.username }} → {{ message.recipient.username }} · {{ message.created_at|dt }}
-  </p>
-  <div class="post-body">{{ body|safe }}</div>
-</section>
+<table class="navbar" cellpadding="0" cellspacing="0">
+<tr>
+  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话 &gt; {{ message.subject }}</td>
+  <td class="navlinks">
+    <a href="{{ url_for('pm.compose_form', reply=message.id) if message.recipient_id == nav_user.id else url_for('pm.compose_form', to=message.recipient.username) }}">回复</a>
+    <span class="sep">|</span><a href="{{ url_for('pm.inbox') }}">收件箱</a>
+  </td>
+</tr>
+</table>
+
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr><td class="tcat" align="left">悄悄话: {{ message.subject }}</td></tr>
+<tr>
+  <td class="alt2" align="left">
+    <span class="smallfont">
+      发件人: <a href="{{ url_for('auth.profile', username=message.sender.username) }}">{{ message.sender.username }}</a> ·
+      收件人: <a href="{{ url_for('auth.profile', username=message.recipient.username) }}">{{ message.recipient.username }}</a> ·
+      时间: {{ message.created_at|dt }}
+    </span>
+  </td>
+</tr>
+<tr>
+  <td class="alt1">
+    <div class="postbody">{{ body|safe }}</div>
+  </td>
+</tr>
+</table>
 {% endblock %}

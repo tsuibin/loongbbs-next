@@ -70,9 +70,12 @@ def forum(forum_id: int):
     ) or 0
     pages = max(1, (total + per_page - 1) // per_page)
 
+    forums_all = db.session.execute(select(Forum).order_by(Forum.position, Forum.id)).scalars().all()
+
     return render_template(
         "forum.html",
         forum=forum_obj,
+        forums_all=forums_all,
         threads=threads,
         page=page,
         pages=pages,

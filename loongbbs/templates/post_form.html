@@ -1,57 +1,94 @@
 {% extends "base.html" %}
-{% block title %}{{ '编辑帖子' if mode == 'edit' else '发新主题' }} · {{ settings.site_name }}{% endblock %}
+{% block title %}{{ settings.site_name }} - {{ '编辑帖子' if mode == 'edit' else '发表新主题' }}{% endblock %}
 
 {% block content %}
-<nav class="crumbs">
-  <a href="{{ url_for('forums.index') }}">版块</a> /
-  <a href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a> /
-  <strong>{{ '编辑帖子' if mode == 'edit' else '发新主题' }}</strong>
-</nav>
+<table class="navbar" cellpadding="0" cellspacing="0">
+<tr>
+  <td class="crumbs">
+    <a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+    <a href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a> &gt;
+    {{ '编辑帖子' if mode == 'edit' else '发表新主题' }}
+  </td>
+  <td class="navlinks">
+    <a href="{{ url_for('forums.forum', forum_id=forum.id) }}">返回版块</a><span class="sep">|</span>
+    <a href="{{ url_for('forums.index') }}">论坛首页</a>
+  </td>
+</tr>
+</table>
 
-<section class="card">
-  {% if mode == 'new' %}
-    <form method="post" action="{{ url_for('forums.new_thread', forum_id=forum.id) }}" enctype="multipart/form-data" class="post-form">
-  {% else %}
-    <form method="post" action="{{ url_for('forums.edit_post', post_id=post.id) }}" enctype="multipart/form-data" class="post-form">
-  {% endif %}
+{% if mode == 'new' %}
+<form method="post" action="{{ url_for('forums.new_thread', forum_id=forum.id) }}" enctype="multipart/form-data">
+{% else %}
+<form method="post" action="{{ url_for('forums.edit_post', post_id=post.id) }}" enctype="multipart/form-data">
+{% endif %}
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr>
+  <td class="tcat" align="left" colspan="2">{{ '编辑帖子' if mode == 'edit' else '发表新主题' }}</td>
+</tr>
+
+{% if mode == 'new' %}
+<tr>
+  <td class="alt1" width="120" align="right"><span class="field-label">标题:</span></td>
+  <td class="alt1"><input type="text" name="title" size="60" maxlength="200" value="{{ request.form.get('title', '') }}" required></td>
+</tr>
+{% else %}
+<tr>
+  <td class="alt1" width="120" align="right"><span class="field-label">主题:</span></td>
+  <td class="alt1"><span class="smallfont">{{ thread.title }}</span></td>
+</tr>
+{% endif %}
+
+<tr>
+  <td class="alt1" align="right" valign="top"><span class="field-label">消息:</span></td>
+  <td class="alt1">
+    <textarea name="body" rows="16" cols="80" wrap="virtual" required>{{ post.body if post else request.form.get('body', '') }}</textarea>
+    <br><span class="smallfont muted">支持 vB 代码：[b]粗体[/b] [i]斜体[/i] [u]下划线[/u] [url=链接]文字[/url] [code]代码[/code] [quote]引用[/quote]</span>
+  </td>
+</tr>
+
+<tr>
+  <td class="alt2" align="right" valign="top"><span class="field-label">附件:</span></td>
+  <td class="alt2">
+    <input type="file" name="files" multiple size="45">
+    <br><span class="smallfont muted">每帖最多 5 个文件，图片会直接显示在帖子里</span>
+  </td>
+</tr>
+
+<tr>
+  <td class="alt1" align="right"><span class="field-label">选项:</span></td>
+  <td class="alt1"><span class="smallfont">发帖后立刻生效，管理员可以稍后置顶或关闭主题。</span></td>
+</tr>
+
+<tr>
+  <td class="alt2" colspan="2" align="center">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="submit" value="{{ '  保存修改  ' if mode == 'edit' else '  提交新主题  ' }}">
+    <input type="reset" value="  重置  ">
+    <input type="button" value="  取消  " onclick="window.location='{{ url_for('forums.thread', thread_id=thread.id) if thread else url_for('forums.forum', forum_id=forum.id) }}'">
+  </td>
+</tr>
+</table>
+</form>
 
-    {% if mode == 'new' %}
-      <label class="field">
-        <span>标题</span>
-        <input type="text" name="title" maxlength="200" required value="{{ request.form.get('title', '') }}">
-      </label>
-    {% endif %}
-
-    <label class="field">
-      <span>正文</span>
-      <textarea name="body" rows="14" required>{{ post.body if post else request.form.get('body', '') }}</textarea>
-    </label>
-
-    <label class="field">
-      <span>附件（可多选，最多 5 个）</span>
-      <input type="file" name="files" multiple>
-    </label>
-
-    <div class="form-row">
-      <button class="button" type="submit">{{ '保存修改' if mode == 'edit' else '发布主题' }}</button>
-      <a class="link-button" href="{{ url_for('forums.thread', thread_id=thread.id) if thread else url_for('forums.forum', forum_id=forum.id) }}">取消</a>
-    </div>
-  </form>
-
-  {% if post and post.attachments %}
-    <div class="attachments">
-      {% for attachment in post.attachments %}
-        <div class="attachment-file">
-          <a href="{{ url_for('attachments.download', attachment_id=attachment.id) }}">{{ attachment.filename }}</a>
-          <span class="muted small">{{ attachment.size|size }}</span>
-          <form method="post" action="{{ url_for('attachments.delete', attachment_id=attachment.id) }}" class="inline-form">
-            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-            <button class="link-button danger" type="submit">删除</button>
-          </form>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-</section>
+{% if post and post.attachments %}
+<br>
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr><td class="tcat" align="left" colspan="3">已上传的附件</td></tr>
+{% for attachment in post.attachments %}
+<tr>
+  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}" width="20"><img src="{{ url_for('static', filename='images/paperclip.gif') }}" alt=""></td>
+  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}">
+    <a href="{{ url_for('attachments.download', attachment_id=attachment.id) }}">{{ attachment.filename }}</a>
+    <span class="smallfont muted">({{ attachment.size|size }})</span>
+  </td>
+  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}" align="right">
+    <form method="post" action="{{ url_for('attachments.delete', attachment_id=attachment.id) }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="submit" value="  删除  ">
+    </form>
+  </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
 {% endblock %}

@@ -1,25 +1,43 @@
 {% extends "base.html" %}
-{% block title %}注册 · {{ settings.site_name }}{% endblock %}
+{% block title %}{{ settings.site_name }} - 注册{% endblock %}
 {% block content %}
-<section class="card narrow">
-  <header class="card-head"><h2>注册</h2></header>
-  <form method="post" action="{{ url_for('auth.register') }}" class="stack-form">
+<table class="navbar" cellpadding="0" cellspacing="0">
+<tr>
+  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 注册</td>
+  <td class="navlinks"><a href="{{ url_for('auth.login_form') }}">已有账号？去登录</a></td>
+</tr>
+</table>
+
+<form method="post" action="{{ url_for('auth.register') }}">
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr><td class="tcat" align="left" colspan="2">注册新账号</td></tr>
+<tr>
+  <td class="alt1" width="160" align="right"><span class="field-label">用户名:</span></td>
+  <td class="alt1">
+    <input type="text" name="username" size="30" value="{{ username or '' }}" required>
+    <br><span class="smallfont muted">3–20 位，允许中文、字母、数字和下划线</span>
+  </td>
+</tr>
+<tr>
+  <td class="alt2" align="right"><span class="field-label">邮箱地址:</span></td>
+  <td class="alt2"><input type="email" name="email" size="30" value="{{ email or '' }}" required></td>
+</tr>
+<tr>
+  <td class="alt1" align="right"><span class="field-label">密码:</span></td>
+  <td class="alt1"><input type="password" name="password" size="30" required minlength="8">
+    <br><span class="smallfont muted">至少 8 位</span></td>
+</tr>
+<tr>
+  <td class="alt2" align="right"><span class="field-label">确认密码:</span></td>
+  <td class="alt2"><input type="password" name="password2" size="30" required minlength="8"></td>
+</tr>
+<tr>
+  <td class="alt1" colspan="2" align="center">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <label class="field"><span>用户名</span>
-      <input type="text" name="username" value="{{ username or '' }}" required autofocus>
-      <small class="muted">3–20 位，允许中文、字母、数字和下划线</small>
-    </label>
-    <label class="field"><span>邮箱</span>
-      <input type="email" name="email" value="{{ email or '' }}" required>
-    </label>
-    <label class="field"><span>密码</span>
-      <input type="password" name="password" required minlength="8">
-    </label>
-    <label class="field"><span>确认密码</span>
-      <input type="password" name="password2" required minlength="8">
-    </label>
-    <button class="button" type="submit">创建账号</button>
-  </form>
-  <p class="muted small">已有账号？<a href="{{ url_for('auth.login_form') }}">去登录</a></p>
-</section>
+    <input type="submit" value="  提交注册  ">
+    <input type="reset" value="  重置  ">
+  </td>
+</tr>
+</table>
+</form>
 {% endblock %}

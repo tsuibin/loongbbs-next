@@ -1,0 +1,86 @@
+/* LoongBBS Next 后台 —— 还原 vBulletin 2.3.11 Administrator Control Panel
+   取自真实 cp.css：底色 #BBBBBB、正文 #3F3849、表头 #40364D + #F5D300、
+   表框 #51485F、交替行 #D0D0D0 / #C5C5C5、链接 #3F3849、悬停黄字紫底
+*/
+body {
+  margin: 10px;
+  background: #BBBBBB;
+  color: #3F3849;
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 12px;
+}
+ul, li, p, td, tr, th, div, span { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; }
+
+a:link, a:visited, a:active { color: #3F3849; text-decoration: underline; }
+a:hover { color: #F5D300; background: #40364D; text-decoration: none; }
+.lc { font-size: 11px; }
+
+form { font-size: 10px; }
+select, input, textarea {
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  color: #51485F;
+  border: 1px solid #8B839A;
+  background: #FFFFFF;
+}
+#submitrow input[type="submit"] {
+  background: #40364D;
+  color: #F5D300;
+  font-weight: bold;
+  border: 1px solid #2A2333;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+/* 表头 / 表框 / 交替行 */
+.tblhead { background: #40364D; color: #F5D300; font-size: 10px; }
+.tblborder { background: #51485F; }
+.firstalt { background: #D0D0D0; }
+.secondalt { background: #C5C5C5; }
+
+/* 顶栏：vB 后台的深紫标题条 */
+.cpheader {
+  background: #40364D;
+  color: #F5D300;
+  padding: 6px 10px;
+  border-bottom: 2px solid #2A2333;
+}
+.cpheader .cp-title { font-size: 13px; font-weight: bold; color: #F5D300; }
+.cpheader .cp-sub { font-size: 10px; color: #BCB6CD; }
+.cpnav {
+  background: #51485F;
+  padding: 4px 10px;
+  font-size: 10px;
+}
+.cpnav a { color: #BCB6CD; text-decoration: none; padding: 2px 8px; }
+.cpnav a:hover { color: #F5D300; background: #40364D; }
+.cpnav a.active { color: #F5D300; font-weight: bold; }
+.cpnav .sep { color: #90869E; padding: 0 2px; }
+
+.wrap { max-width: 1100px; margin: 10px auto 20px; }
+
+/* 分组表 */
+table.tbl {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 1px;
+  background: #51485F;
+}
+table.tbl td { padding: 4px 6px; background: #D0D0D0; vertical-align: middle; }
+table.tbl td.headcell { background: #40364D; color: #F5D300; font-weight: bold; font-size: 10px; }
+table.tbl td.b { background: #C5C5C5; }
+table.tbl td.label { white-space: nowrap; font-size: 11px; font-weight: bold; }
+
+.cpfooter { text-align: center; padding: 12px 0; font-size: 10px; color: #3F3849; }
+.cpfooter a { font-size: 10px; }
+
+/* 统计块 */
+.statrow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.statbox { background: #D0D0D0; border: 1px solid #8B839A; padding: 6px 12px; min-width: 110px; }
+.statbox .num { font-size: 18px; font-weight: bold; color: #40364D; }
+.statbox .lbl { font-size: 10px; color: #51485F; }
+
+.msg { padding: 4px 8px; margin-bottom: 8px; font-size: 10px; border: 1px solid #8B839A; }
+.msg.ok { background: #DDF2D8; }
+.msg.err { background: #F6D6D6; }
+.hint { font-size: 10px; color: #51485F; }

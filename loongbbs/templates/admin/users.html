@@ -1,44 +1,66 @@
-{% extends "base.html" %}
-{% block title %}用户管理 · 后台{% endblock %}
+{% extends "admin/admin_base.html" %}
+{% set active = 'users' %}
+{% block title %}用户管理{% endblock %}
 {% block content %}
-<nav class="crumbs">后台 / <strong>用户管理</strong></nav>
 
-<section class="card">
-  <header class="card-head"><h2>用户（共 {{ total }}）</h2></header>
-  <table class="thread-table">
-    <thead><tr><th>用户名</th><th>邮箱</th><th>注册时间</th><th>帖子</th><th>角色</th><th></th></tr></thead>
-    <tbody>
-    {% for user in users %}
-      <tr>
-        <td><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a></td>
-        <td class="muted">{{ user.email }}</td>
-        <td class="muted">{{ user.joined_at|dt('%Y-%m-%d') }}</td>
-        <td class="num">{{ user.post_count }}</td>
-        <td>
-          {% if user.is_admin %}<span class="badge">管理员</span>{% endif %}
-          {% if user.is_banned %}<span class="badge badge-danger">已封禁</span>{% endif %}
-        </td>
-        <td class="row-actions">
-          <form method="post" action="{{ url_for('admin.ban_user', user_id=user.id) }}" class="inline-form">
-            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-            <button class="link-button" type="submit">{{ '解封' if user.is_banned else '封禁' }}</button>
-          </form>
-          <form method="post" action="{{ url_for('admin.promote_user', user_id=user.id) }}" class="inline-form">
-            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-            <button class="link-button" type="submit">{{ '取消管理员' if user.is_admin else '设为管理员' }}</button>
-          </form>
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px">
+<tr><td style="color:#3F3849"><b>用户管理</b></td>
+<td align="right"><span class="hint">共 {{ total }} 位会员，第 {{ page }} / {{ pages }} 页</span></td></tr>
+</table>
 
-  {% if pages > 1 %}
-    <nav class="pager">
-      {% for p in range(1, pages + 1) %}
-        <a class="{% if p == page %}active{% endif %}" href="{{ url_for('admin.users_page', page=p) }}">{{ p }}</a>
-      {% endfor %}
-    </nav>
-  {% endif %}
-</section>
+<table class="tbl" cellpadding="0" cellspacing="1">
+<tr>
+  <td class="headcell" width="6%">ID</td>
+  <td class="headcell">用户名</td>
+  <td class="headcell">邮箱</td>
+  <td class="headcell" width="12%">注册时间</td>
+  <td class="headcell" width="6%">帖子</td>
+  <td class="headcell" width="12%">角色</td>
+  <td class="headcell" width="24%">操作</td>
+</tr>
+{% for user in users %}
+<tr>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ user.id }}</td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a></td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ user.email }}</span></td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ user.joined_at|dt('%Y-%m-%d') }}</span></td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ user.post_count }}</td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}">
+    {{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %}<span style="color:#990000"> · 已封禁</span>{% endif %}
+  </td>
+  <td class="{{ 'b' if loop.index0 % 2 else '' }}">
+    <form method="post" action="{{ url_for('admin.ban_user', user_id=user.id) }}" style="display:inline">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="submit" value="{{ '解封' if user.is_banned else '封禁' }}">
+    </form>
+    <form method="post" action="{{ url_for('admin.promote_user', user_id=user.id) }}" style="display:inline">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="submit" value="{{ '撤销管理员' if user.is_admin else '设为管理员' }}">
+    </form>
+  </td>
+</tr>
+{% else %}
+<tr><td colspan="7"><span class="hint">没有用户。</span></td></tr>
+{% endfor %}
+</table>
+
+{% if pages > 1 %}
+<br>
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="right"><span class="hint">
+  第
+  {% for p in range(1, pages + 1) %}<a href="{{ url_for('admin.users_page', page=p) }}">{{ p }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+  页
+</span></td></tr>
+</table>
+{% endif %}
+
+<br>
+<form method="get" action="{{ url_for('admin.users_page') }}">
+<table class="tbl" cellpadding="0" cellspacing="1">
+<tr><td class="headcell" colspan="2">按页浏览</td></tr>
+<tr><td width="120"><b>页码</b></td>
+<td><input type="text" name="page" size="6" value="{{ page }}"> <input type="submit" value="  跳转  "></td></tr>
+</table>
+</form>
 {% endblock %}

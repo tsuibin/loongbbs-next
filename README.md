@@ -36,6 +36,41 @@ flask --app run.py run --debug     # http://127.0.0.1:5000
 | `LOONG_BBS_MAX_UPLOAD` | `8388608` | 单个请求上传上限（字节） |
 | `LOONG_BBS_TIMEZONE` | `Asia/Shanghai` | 展示用站点时区（库里统一存 UTC） |
 
+## 界面风格：对齐 vBulletin 2.3.11
+
+前后台都按 2.3.11 的真实渲染结果复刻，配色不是凭印象挑的，是从本机那套
+vBulletin 2.3.11 页面上量出来的：
+
+| 用途 | 值 |
+|---|---|
+| 页面底色 | `#666696` |
+| 表格边框（`cellspacing=1` 的那一圈） | `#555576` |
+| 表头行（`thead`） | `#8080A6` + `#EEEEFF` 文字 |
+| 分类条（`tcat`） | `#606096` + `#FFF788` 文字 |
+| 交替行 | `#DFDFDF` / `#F1F1F1` |
+| 链接 / 悬停 | `#000020` / `#FF4400` |
+| 正文字号 | 11px Verdana，标题 13px（对应 vB 的 `font size=1/2`） |
+
+后台另用一套（vB 的 `cp.css`）：
+
+| 用途 | 值 |
+|---|---|
+| 页面底色 | `#BBBBBB`，正文 `#3F3849` |
+| 表头 | `#40364D` + `#F5D300` |
+| 表格边框 | `#51485F`，交替行 `#D0D0D0` / `#C5C5C5` |
+
+结构也是照搬的：顶部 `menu_background.gif` 底纹条 + 左侧 logo + 右侧
+`top_profile/top_register/top_search/top_home/top_logout` 图标按钮，面包屑
+「站点 › 分类 › 版块」，`tborder` 网格表，帖子用 postbit 左右分栏
+（左 175px 作者栏：用户名 / 身份 / 头像 / 注册日期 / 帖子数），主题页底部
+带「快速回复」区块和「管理选项」，页脚是 vB 式「Powered by …」版权行。
+
+样式集中在两个文件：`loongbbs/static/vb2.css`（前台）、
+`loongbbs/static/admin.css`（后台）。模板里只引用类名，不再写 inline 颜色。
+
+> 图标（`static/images/*.gif`）取自 vBulletin 2.3.11 默认风格附带的资源，
+> 仅为还原原生观感而保留；若要对外发布，建议换成自制图标以避开 Jelsoft 的版权。
+
 ## 功能进度
 
 已实现（第一轮）：

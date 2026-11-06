@@ -1,31 +1,36 @@
 {% extends "base.html" %}
-{% block title %}私信 · {{ settings.site_name }}{% endblock %}
-
+{% block title %}{{ settings.site_name }} - 悄悄话收件箱{% endblock %}
 {% block content %}
-<section class="card">
-  <header class="card-head split">
-    <h2>收件箱{% if unread %} <span class="badge badge-sticky">{{ unread }} 未读</span>{% endif %}</h2>
-    <div class="head-actions">
-      <a class="link-button" href="{{ url_for('pm.sent') }}">已发送</a>
-      <a class="button" href="{{ url_for('pm.compose_form') }}">写私信</a>
-    </div>
-  </header>
+<table class="navbar" cellpadding="0" cellspacing="0">
+<tr>
+  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话</td>
+  <td class="navlinks">
+    <a href="{{ url_for('pm.sent') }}">已发送</a><span class="sep">|</span>
+    <a href="{{ url_for('pm.compose_form') }}">写新悄悄话</a><span class="sep">|</span>
+    <a href="{{ url_for('forums.index') }}">论坛首页</a>
+  </td>
+</tr>
+</table>
 
-  {% if rows %}
-    <table class="thread-table">
-      <thead><tr><th>主题</th><th>发件人</th><th>时间</th></tr></thead>
-      <tbody>
-      {% for row in rows %}
-        <tr class="{{ 'unread' if not row.read_at }}">
-          <td><a href="{{ url_for('pm.read', message_id=row.id) }}">{{ row.subject }}</a></td>
-          <td>{{ row.sender.username }}</td>
-          <td class="muted">{{ row.created_at|ago }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p class="empty">收件箱是空的。</p>
-  {% endif %}
-</section>
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr><td class="tcat" align="left" colspan="4">悄悄话收件箱{% if unread %}（{{ unread }} 条未读）{% endif %}</td></tr>
+<tr>
+  <td class="thead" width="2%">&nbsp;</td>
+  <td class="thead left" width="70%">主题</td>
+  <td class="thead">发件人</td>
+  <td class="thead nowrap">时间</td>
+</tr>
+{% for row in rows %}
+<tr>
+  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}"><img src="{{ url_for('static', filename='images/newpm.gif' if not row.read_at else 'images/pm.gif') }}" alt=""></td>
+  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}" align="left">
+    <a class="thread-title {{ '' if not row.read_at else 'normal' }}" href="{{ url_for('pm.read', message_id=row.id) }}">{{ row.subject }}</a>
+  </td>
+  <td class="alt{{ 2 if loop.index0 % 2 == 0 else 1 }}" align="center">{{ row.sender.username }}</td>
+  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}" nowrap><span class="smallfont">{{ row.created_at|ago }}</span></td>
+</tr>
+{% else %}
+<tr><td class="alt1" colspan="4" align="center"><span class="smallfont">收件箱里没有悄悄话。</span></td></tr>
+{% endfor %}
+</table>
 {% endblock %}

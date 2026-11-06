@@ -1,53 +1,67 @@
 {% extends "base.html" %}
-{% block title %}{{ profile_user.username }} · {{ settings.site_name }}{% endblock %}
-
+{% block title %}{{ settings.site_name }} - {{ profile_user.username }}{% endblock %}
 {% block content %}
-<section class="card profile-head">
-  <div class="avatar avatar-lg">{{ profile_user.username[0]|upper }}</div>
-  <div>
-    <h2>{{ profile_user.username }}
-      {% if profile_user.is_admin %}<span class="badge">管理员</span>{% endif %}
-      {% if profile_user.is_banned %}<span class="badge badge-danger">已封禁</span>{% endif %}
-    </h2>
-    <p class="muted">加入于 {{ joined }} · {{ profile_user.post_count }} 帖 · 最后活动 {{ profile_user.last_seen|ago }}</p>
-    {% if nav_user and nav_user.id == profile_user.id %}
-      <p class="muted small">邮箱：{{ profile_user.email }}</p>
-    {% endif %}
-  </div>
-  {% if nav_user and nav_user.id != profile_user.id %}
-    <a class="button ghost" href="{{ url_for('pm.compose_form', to=profile_user.username) }}">发私信</a>
-  {% endif %}
-</section>
+<table class="navbar" cellpadding="0" cellspacing="0">
+<tr>
+  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 会员资料 &gt; {{ profile_user.username }}</td>
+  <td class="navlinks">
+    <a href="{{ url_for('pm.compose_form', to=profile_user.username) if nav_user and nav_user.id != profile_user.id else url_for('pm.inbox') }}">发送悄悄话</a>
+    <span class="sep">|</span><a href="{{ url_for('forums.index') }}">论坛首页</a>
+  </td>
+</tr>
+</table>
 
-<section class="card">
-  <header class="card-head"><h2>最近主题</h2></header>
-  {% if threads %}
-    <ul class="simple-list">
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr><td class="tcat" align="left" colspan="2">查看会员资料: {{ profile_user.username }}</td></tr>
+<tr>
+  <td class="alt2" width="175" valign="top" align="left">
+    <span class="normalfont bold">{{ profile_user.username }}</span><br>
+    <span class="smallfont">
+      {% if profile_user.is_admin %}管理员{% elif profile_user.is_banned %}已封禁{% else %}注册会员{% endif %}
+    </span>
+    <div style="margin:6px 0"><img src="{{ url_for('static', filename='images/clear_avatar.gif') }}" width="65" height="65" alt="头像"></div>
+    <span class="smallfont">
+      注册日期: {{ profile_user.joined_at|dt('%Y-%m-%d') }}<br>
+      帖子: {{ profile_user.post_count }}<br>
+      最后活动: {{ profile_user.last_seen|ago }}
+    </span>
+  </td>
+  <td class="alt1" valign="top">
+    <table class="formtable" cellpadding="2" cellspacing="0">
+      <tr><td class="field-label" width="120">会员名称:</td><td>{{ profile_user.username }}</td></tr>
+      <tr><td class="field-label">邮箱:</td><td>{{ profile_user.email if nav_user and nav_user.id == profile_user.id else '（仅本人可见）' }}</td></tr>
+      <tr><td class="field-label">会员状态:</td><td>{{ '管理员' if profile_user.is_admin else '普通会员' }}{% if profile_user.is_banned %} · 已封禁{% endif %}</td></tr>
+      <tr><td class="field-label">签名:</td><td>{{ profile_user.signature or '（未设置）' }}</td></tr>
+    </table>
+  </td>
+</tr>
+</table>
+
+<br>
+
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr><td class="tcat" align="left" colspan="2">最近主题与回复</td></tr>
+<tr>
+  <td class="alt2" width="50%" valign="top">
+    <span class="field-label">最近发表的主题:</span>
+    <ul style="margin:4px 0 0 16px;padding:0">
       {% for thread in threads %}
-        <li>
-          <a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a>
-          <span class="muted small">{{ thread.forum.name }} · {{ thread.created_at|ago }}</span>
-        </li>
+        <li><span class="smallfont"><a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a> （{{ thread.forum.name }} · {{ thread.created_at|ago }}）</span></li>
+      {% else %}
+        <li><span class="smallfont muted">没有主题</span></li>
       {% endfor %}
     </ul>
-  {% else %}
-    <p class="empty">还没有发过主题。</p>
-  {% endif %}
-</section>
-
-<section class="card">
-  <header class="card-head"><h2>最近回复</h2></header>
-  {% if posts %}
-    <ul class="simple-list">
+  </td>
+  <td class="alt1" valign="top">
+    <span class="field-label">最近的帖子:</span>
+    <ul style="margin:4px 0 0 16px;padding:0">
       {% for post in posts %}
-        <li>
-          <a href="{{ url_for('forums.thread', thread_id=post.thread_id) }}#p{{ post.id }}">{{ post.thread.title }}</a>
-          <span class="muted small">{{ post.created_at|ago }}</span>
-        </li>
+        <li><span class="smallfont"><a href="{{ url_for('forums.thread', thread_id=post.thread_id) }}#p{{ post.id }}">{{ post.thread.title }}</a> （{{ post.created_at|ago }}）</span></li>
+      {% else %}
+        <li><span class="smallfont muted">没有帖子</span></li>
       {% endfor %}
     </ul>
-  {% else %}
-    <p class="empty">还没有回复。</p>
-  {% endif %}
-</section>
+  </td>
+</tr>
+</table>
 {% endblock %}
