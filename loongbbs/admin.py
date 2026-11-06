@@ -58,7 +58,7 @@ NAV_GROUPS = [
         {"label": "Modify", "endpoint": "admin.announcements_page"},
     ]},
     {"title": "Forums & Moderators", "links": [
-        {"label": "Add", "module": "Add Forum"},
+        {"label": "Add", "endpoint": "admin.forum_add"},
         {"label": "Modify", "endpoint": "admin.forums_page"},
         {"label": "Permissions", "endpoint": "admin.permissions_page"},
     ]},
@@ -852,6 +852,58 @@ def _confirm_page(thread_ids):
         ids_text=",".join(str(i) for i in thread_ids),
         total=total,
     )
+
+
+@bp.route("/forums/add", methods=["GET", "POST"])
+def forum_add():
+    """Forums & Moderators → Add：照原版 forum.php 的 add / insert 新建版块。"""
+    categories = (
+        db.session.execute(select(Category).order_by(Category.position, Category.id))
+        .scalars()
+        .all()
+    )
+    if request.method == "GET":
+        return render_template("admin/forum_add.html", categories=categories)
+
+    title = (request.form.get("title") or "").strip()
+    description = (request.form.get("description") or "").strip()
+    category_id = request.form.get("parentid", type=int) or 0
+    position = request.form.get("displayorder", type=int) or 0
+    private = (request.form.get("private") or "0") == "1"
+    allow_posting = (request.form.get("allowposting") or "1") == "1"
+
+    if not title:
+        flash("Please enter a title for this forum.", "error")
+        return render_template("admin/forum_add.html", categories=categories)
+    category_obj = db.session.get(Category, category_id)
+    if category_obj is None:
+        flash("Please choose a parent forum.", "error")
+        return render_template("admin/forum_add.html", categories=categories)
+
+    forum_obj = Forum(
+        category_id=category_obj.id,
+        name=title,
+        description=description,
+        position=position,
+        is_closed=not allow_posting,
+    )
+    db.session.add(forum_obj)
+    db.session.flush()
+
+    if private:
+        # 原版 private=1 时把 usergroupid<5 或 >6 的组全部写成 deny，只有 admin / super mod 能看
+        groups = db.session.execute(
+            select(UserGroup.id).where((UserGroup.id < 5) | (UserGroup.id > 6))
+        ).scalars().all()
+        for gid in groups:
+            perm = ForumPermission(usergroup_id=gid, forum_id=forum_obj.id)
+            for field in PERMISSION_FIELDS:
+                setattr(perm, field, False)
+            db.session.add(perm)
+
+    db.session.commit()
+    flash("Record added", "success")
+    return redirect(url_for("admin.forums_page"))
 
 
 @bp.route("/threads/poll", methods=["GET", "POST"])

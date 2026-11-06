@@ -1,0 +1,71 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Add New Forum{% else %}新增版块{% endif %}{% endblock %}
+{% block content %}
+
+{% macro yesno(name, label, default=0) %}
+<tr class="{{ rowclass() }}" valign="top">
+	<td width="50%">{{ label|safe }}</td>
+	<td>Yes<input type="radio" name="{{ name }}" value="1"{% if default == 1 %} checked{% endif %}> No <input type="radio" name="{{ name }}" value="0"{% if default == 0 %} checked{% endif %}></td>
+</tr>
+{% endmacro %}
+
+{% set counter = {'n': 0} %}
+{% macro rowclass() %}
+{%- set _ = counter.update({'n': counter.n + 1}) -%}
+{{ 'firstalt' if counter.n % 2 == 1 else 'secondalt' }}
+{% endmacro %}
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add New Forum</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2" align="center">
+	<div align="center"><hr width="75%"><b>Please note that child forums will not inherit any of this forum's settings.</b><br><hr width="75%"></div>
+</td></tr>
+<tr class="secondalt" valign="top"><td width="50%">Title</td><td><input type="text" name="title" size="35" value=""></td></tr>
+<tr class="firstalt" valign="top"><td>Description<br>You may use HTML</td><td><textarea name="description" rows="4" cols="40"></textarea></td></tr>
+<tr class="secondalt" valign="top"><td>Display Order<br>0=do not display</td><td><input type="text" name="displayorder" size="35" value="1"></td></tr>
+<tr class="firstalt" valign="top"><td>Default view age<br>'Select threads from last x days'<br>Recommended values: 1, 2, 5, 10, 20, 30, 45, 60, 75, 100, 365, 1000 (ie all)</td><td><input type="text" name="daysprune" size="35" value="30"></td></tr>
+<tr class="secondalt" valign="top"><td>Parent Forum:</td>
+	<td><select name="parentid">
+	<option value="-1" selected>No one</option>
+	{% for cat in categories %}
+		<option value="{{ cat.id }}">--{{ cat.name }}--</option>
+	{% endfor %}
+	</select></td></tr>
+
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Moderation Options</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td>Emails addresses to notify when there is a new post<br>(Separate each with a SPACE)</td><td><input type="text" name="newpostemail" size="35" value=""></td></tr>
+<tr class="secondalt" valign="top"><td>Emails addresses to notify when there is a new thread<br>(Separate each with a SPACE)</td><td><input type="text" name="newthreademail" size="35" value=""></td></tr>
+{{ yesno('moderatenew', 'Moderator Queue<br>(Require moderator validation before new posts are displayed)', 0) }}
+{{ yesno('moderateattach', 'Attachment Queue<br>(Require moderator validation before new attachment are displayed)', 0) }}
+
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Style Options</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td>Custom style set for this forum</td><td><select name="styleset"><option value="1">Default Style</option></select></td></tr>
+{{ yesno('styleoverride', 'Override users custom styles<BR>(will force this forums specified colors)', 0) }}
+
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Posting Options</span></b></font></td></tr>
+{{ yesno('private', 'Private forum<br>(Invisible to all except moderators and admins; user access masks must be on!)', 0) }}
+{{ yesno('cancontainthreads', 'Act as forum?<br>(Will act as a category if no)', 1) }}
+{{ yesno('isactive', 'Is active?<br>(Will not appear if not)', 1) }}
+{{ yesno('allowposting', 'Open for new posts?<br>(Will have lock if not, but still act as forum)', 1) }}
+
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Enable/Disable Features</span></b></font></td></tr>
+{{ yesno('aallowhtmlcode', 'Allow HTML Code in posts', 0) }}
+{{ yesno('aallowbbcode', 'Allow BB Code in posts', 1) }}
+{{ yesno('aallowimgcode', 'Allow BB IMG Code in posts', 0) }}
+{{ yesno('aallowsmilies', 'Allow Smilies in posts', 1) }}
+{{ yesno('aallowicons', 'Allow Icons for posts', 1) }}
+{{ yesno('allowratings', 'Allow thread ratings in this forum?', 1) }}
+{{ yesno('countposts', 'Count posts made in this forum towards user post counts?', 1) }}
+
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="Save Forum">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% endblock %}
