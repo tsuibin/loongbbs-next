@@ -1,0 +1,197 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Smilies{% else %}表情符号{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'list' %}
+<form method="post" action="{{ url_for('admin.smilies') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="5"><font size="1"><b><span class="tblhead">Current Smilies</span></b></font></td></tr>
+{% for rowgroup in rows|batch(5) %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+{% for r in rowgroup %}
+	<td valign="bottom" nowrap align="center">{{ r.title }}<br><br>
+		<img src="{{ icon_src(r.smiliepath) }}">&nbsp;&nbsp;<b>{{ r.smilietext }}</b><br><br>
+		<a href="{{ url_for('admin.smilies_edit', smilieid=r.id, perpage=perpage, startpage=startpage) }}" class="lc">[edit]</a> <a href="{{ url_for('admin.smilies_remove', smilieid=r.id, perpage=perpage, startpage=startpage) }}" class="lc">[remove]</a>
+	</td>
+{% endfor %}
+{% for _ in range(5 - rowgroup|length) %}<td>&nbsp;</td>{% endfor %}
+</tr>
+{% endfor %}
+<tr class="{{ 'firstalt' if (rows|batch(5)|list|length) % 2 == 0 else 'secondalt' }}">
+	<td align="center" colspan="5"><table border="0"><tr><td width="100%" valign="top" align="center">
+	<font size="1"><b>Showing smilies {{ sicon }} to {{ eicon }} of {{ total }}</b></font></td><td nowrap>
+	<font size="1"><b>Perpage:</b></font> <input type="text" name="perpage" value="{{ perpage }}" size="5"> <input type="submit" value="GO">
+	</td></tr></table><font size="1">
+	{% if numpages > 1 %}
+	{% if startpage != 1 %}<a href="{{ url_for('admin.smilies', startpage=startpage-1, perpage=perpage) }}">&lt;</a> {% endif %}
+	{% for x in range(1, numpages + 1) %}{% if x == startpage %}<b> <font size="+1">{{ x }}</font> </b>{% else %} <a href="{{ url_for('admin.smilies', startpage=x, perpage=perpage) }}">{{ x }}</a> {% endif %}{% endfor %}
+	{% if startpage != numpages %}<a href="{{ url_for('admin.smilies', startpage=startpage+1, perpage=perpage) }}">&gt;</a>{% endif %}
+	{% endif %}
+	</font></td></tr>
+</table>
+</td></tr></table>
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+</form>
+
+{% elif mode == 'add' %}
+<form method="post" action="{{ url_for('admin.smilies_add') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add a single smilie</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Name</p></td>
+	<td><p><input type="text" size="35" name="title" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Text to replace<br>(note this IS case sensitive)</p></td>
+	<td><p><input type="text" size="35" name="smilietext" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Path to image<BR>(such as images/smilies/smilie.gif)</p></td>
+	<td><p><input type="text" size="35" name="smiliepath" value=""></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Add Smilie   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="get" action="{{ url_for('admin.smilies_multiple') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add multiple smilies</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Path to images (relative to your forums directory)</p></td>
+	<td><p><input type="text" size="35" name="smiliepath" value="images/smilies"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Number of smilies to display per page?</p></td>
+	<td><p><input type="text" size="35" name="iconsperpage" value="7"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="submit" value="   Add Smilies   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'multiple' %}
+<form method="post" action="{{ url_for('admin.smilies_multiple') }}" name="form">
+<input type="hidden" value="{{ smiliepath }}" name="smiliepath">
+<input type="hidden" value="{{ iconsperpage }}" name="iconsperpage">
+<table align="center" border="0" cellspacing="1" cellpadding="5" class="tblborder">
+<tr class="secondalt"><td align="center" colspan="4">Adding Multiple Smilies from<br><b>/static/{{ smiliepath }}</b></td></tr>
+<tr class="tblhead"><td align="center"><b><span class="tblhead">Image</span></b></td><td align="center"><b><span class="tblhead">Title</span></b></td><td align="center"><b><span class="tblhead">Text to Replace</b><br><font size="1">(case sensitive)</font></span></b></td>
+	<td align="center"><input name="allbox" type="checkbox" value="Check All" onclick="CheckAll();"></td></tr>
+{% for name in names %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+	<td align="center" valign="bottom"><img src="{{ icon_src(smiliepath) }}/{{ name }}" border="0" align="center"></td>
+	<td align="center"><input type="text" name="smilietitle[{{ name }}]" size="25"></td>
+	<td align="center"><input type="text" name="smilietext[{{ name }}]" size="25"></td>
+	<td align="center"><input type="checkbox" name="smilieuse" value="{{ name }}"></td>
+</tr>
+{% endfor %}
+<tr class="tblhead"><td align="center" colspan="4">
+Showing smilies {{ (startpage-1)*iconsperpage + 1 }} to {{ [startpage*iconsperpage, total]|min }} of {{ total }}<br><br>
+{% if numpages > 1 %}
+{% if startpage != 1 %}<a href="{{ url_for('admin.smilies_multiple', startpage=startpage-1, iconsperpage=iconsperpage, smiliepath=smiliepath) }}">&lt;</a> {% endif %}
+{% for x in range(1, numpages + 1) %}{% if x == startpage %}<b> {{ x }} </b>{% else %} <a href="{{ url_for('admin.smilies_multiple', startpage=x, iconsperpage=iconsperpage, smiliepath=smiliepath) }}">{{ x }}</a> {% endif %}{% endfor %}
+{% if startpage != numpages %}<a href="{{ url_for('admin.smilies_multiple', startpage=startpage+1, iconsperpage=iconsperpage, smiliepath=smiliepath) }}">&gt;</a>{% endif %}
+{% endif %}
+</td></tr>
+</table>
+<input type="submit" value="   Save   ">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+</form>
+<script language="JavaScript">
+function CheckAll()
+{
+	for (var i=0;i<document.form.elements.length;i++)
+	{
+		var e = document.form.elements[i];
+		if ((e.name != 'allbox') && (e.type=='checkbox'))
+		e.checked = document.form.allbox.checked;
+	}
+}
+function CheckCheckAll()
+{
+	var TotalBoxes = 0;
+	var TotalOn = 0;
+	for (var i=0;i<document.form.elements.length;i++)
+	{
+		var e = document.form.elements[i];
+		if ((e.name != 'allbox') && (e.type=='checkbox'))
+		{
+			TotalBoxes++;
+			if (e.checked) { TotalOn++; }
+		}
+	}
+	if (TotalBoxes==TotalOn) { document.form.allbox.checked=true; }
+	else { document.form.allbox.checked=false; }
+}
+</script>
+
+{% elif mode == 'multiple_empty' %}
+<p>No Smilies Selected<p>
+
+{% elif mode == 'edit' %}
+<form method="post" action="{{ url_for('admin.smilies_edit') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit Smilie {{ row.smilietext }}</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Name</p></td>
+	<td><p><input type="text" size="35" name="title" value="{{ row.title }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Text to replace<br>(note this IS case sensitive)</p></td>
+	<td><p><input type="text" size="35" name="smilietext" value="{{ row.smilietext }}"></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Path to image</p></td>
+	<td><p><input type="text" size="35" name="smiliepath" value="{{ row.smiliepath }}"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="smilieid" value="{{ row.id }}">
+	<input type="hidden" name="startpage" value="{{ startpage }}">
+	<input type="hidden" name="perpage" value="{{ perpage }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'remove' %}
+<form method="post" action="{{ url_for('admin.smilies_remove') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2" align="center">Are you sure you want to delete this smilie?</td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="smilieid" value="{{ row.id }}">
+	<input type="hidden" name="perpage" value="{{ perpage }}">
+	<input type="hidden" name="startpage" value="{{ startpage }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="history.back()">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<p><b>Using this feature requires your web server and PHP to have permission to write files to disk in the directory you specify. If they do not have the neccessary permissions, it will fail.</b></p>
+<form method="post" action="{{ url_for('admin.smilies_upload') }}" enctype="multipart/form-data">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Upload new smilie from your computer</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Smilie file</p></td>
+	<td><p><input type="file" name="smiliefile" size="35"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Name</p></td>
+	<td><p><input type="text" size="35" name="title" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Text to replace<br>(note this IS case sensitive)</p></td>
+	<td><p><input type="text" size="35" name="smilietext" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Path to save image to <BR>(no filename; no trailing slash; relative from main vB directory)</p></td>
+	<td><p><input type="text" size="35" name="smiliepath" value="images/smilies"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Upload   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

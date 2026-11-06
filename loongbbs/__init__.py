@@ -29,6 +29,34 @@ def _ensure_icons() -> None:
     db.session.commit()
 
 
+def _ensure_smilies() -> None:
+    """Smilies 表为空时写入参考站 smilie 表的 11 条原值。"""
+    from sqlalchemy import func, select
+
+    from .extensions import db
+    from .models import Smilie
+
+    if db.session.scalar(select(func.count(Smilie.id))):
+        return
+    rows = [
+        ("smile", ":)", "smile.gif"),
+        ("frown", ":(", "frown.gif"),
+        ("embarrasment", ":o", "redface.gif"),
+        ("big grin", ":D", "biggrin.gif"),
+        ("wink", ";)", "wink.gif"),
+        ("stick out tongue", ":p", "tongue.gif"),
+        ("cool", ":cool:", "cool.gif"),
+        ("roll eyes (sarcastic)", ":rolleyes:", "rolleyes.gif"),
+        ("mad", ":mad:", "mad.gif"),
+        ("eek!", ":eek:", "eek.gif"),
+        ("confused", ":confused:", "confused.gif"),
+    ]
+    db.session.add_all([
+        Smilie(title=t, smilietext=x, smiliepath=f"images/smilies/{f}") for t, x, f in rows
+    ])
+    db.session.commit()
+
+
 def _ensure_usergroup_extras() -> None:
     """把参考站 usergroup 表里的组级权限原值写进 usergroup_permissions（只做一次）。"""
     from sqlalchemy import select, text
@@ -534,5 +562,6 @@ def create_app(test_config: dict | None = None) -> Flask:
         _ensure_profilefields()
         _ensure_usergroup_extras()
         _ensure_icons()
+        _ensure_smilies()
 
     return app

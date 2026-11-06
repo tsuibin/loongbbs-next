@@ -330,6 +330,20 @@ class Icon(db.Model):
         return f"<Icon {self.id} {self.title}>"
 
 
+class Smilie(db.Model):
+    """vB 2.3.11 的 ``smilie`` 表：表情符号（后台 Smilies 维护）。"""
+
+    __tablename__ = "smilies"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False, default="", server_default="")
+    smilietext = db.Column(db.String(120), nullable=False, default="", server_default="")
+    smiliepath = db.Column(db.String(255), nullable=False, default="", server_default="")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Smilie {self.id} {self.title}>"
+
+
 class UserGroup(db.Model):
     """vB 2.3.11 的 ``usergroup`` 表（只保留显示身份要用到的两列）。"""
 

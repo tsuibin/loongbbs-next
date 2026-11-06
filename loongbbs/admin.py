@@ -29,6 +29,7 @@ from .models import (
     Forum,
     ForumPermission,
     Icon,
+    Smilie,
     PERMISSION_FIELDS,
     generate_password_hash,
     PERMISSION_LABELS,
@@ -116,8 +117,8 @@ NAV_GROUPS = [
         {"label": "Upload", "endpoint": "admin.icons_upload"},
     ]},
     {"title": "Smilies", "links": [
-        {"label": "Add", "module": "Add Smilie"},
-        {"label": "Modify", "module": "Modify Smilies"},
+        {"label": "Add", "endpoint": "admin.smilies_add"},
+        {"label": "Modify", "endpoint": "admin.smilies"},
         {"label": "Upload", "module": "Upload Smilies"},
     ]},
     {"title": "Custom vB Codes", "links": [
@@ -1389,6 +1390,163 @@ def icons_upload():
     db.session.commit()
     flash("Icon successfuly uploaded", "success")
     return redirect(url_for("admin.icons"))
+
+
+def _smilies_dir() -> Path:
+    return Path(current_app.static_folder) / "images" / "smilies"
+
+
+def _smilies_page(startpage: int, perpage: int):
+    total = db.session.scalar(select(func.count(Smilie.id))) or 0
+    if startpage < 1:
+        startpage = 1
+    if perpage < 1:
+        perpage = 15
+    numpages = max(1, (total + perpage - 1) // perpage)
+    if startpage > numpages:
+        startpage = numpages
+    rows = db.session.execute(
+        select(Smilie).order_by(Smilie.title).offset((startpage - 1) * perpage).limit(perpage)
+    ).scalars().all()
+    sicon = (startpage - 1) * perpage + 1
+    eicon = min(total, startpage * perpage)
+    return rows, total, startpage, perpage, numpages, sicon, eicon
+
+
+@bp.route("/smilies")
+def smilies():
+    """Smilies → Modify：照原版 smilie.php 的 modify。"""
+    startpage = request.args.get("startpage", type=int) or 1
+    perpage = request.values.get("perpage", type=int) or 15
+    rows, total, startpage, perpage, numpages, sicon, eicon = _smilies_page(startpage, perpage)
+    return render_template("admin/smilies.html", mode="list", rows=rows, total=total,
+                           startpage=startpage, perpage=perpage, numpages=numpages,
+                           sicon=sicon, eicon=eicon, icon_src=_icon_src)
+
+
+@bp.route("/smilies/add", methods=["GET", "POST"])
+def smilies_add():
+    """Smilies → Add：原版 add（单条）/ insert（保存单条）。"""
+    if request.method == "GET":
+        return render_template("admin/smilies.html", mode="add")
+    form = request.form
+    db.session.add(Smilie(title=(form.get("title") or "").strip(),
+                          smilietext=(form.get("smilietext") or ""),
+                          smiliepath=(form.get("smiliepath") or "").strip()))
+    db.session.commit()
+    flash("Record added", "success")
+    return redirect(url_for("admin.smilies"))
+
+
+@bp.route("/smilies/multiple", methods=["GET", "POST"])
+def smilies_multiple():
+    """Add multiple smilies：原版 insertmultiple（扫目录）/ domultiple（批量入库）。"""
+    if request.method == "POST":
+        smiliepath = (request.form.get("smiliepath") or "images/smilies").strip().rstrip("/")
+        used = request.form.getlist("smilieuse")
+        count = 0
+        for name in used:
+            db.session.add(Smilie(
+                title=(request.form.get("smilietitle[%s]" % name) or "").strip(),
+                smilietext=(request.form.get("smilietext[%s]" % name) or ""),
+                smiliepath=f"{smiliepath}/{name}"))
+            count += 1
+        db.session.commit()
+        if count == 0:
+            return render_template("admin/smilies.html", mode="multiple_empty")
+        flash("Record added", "success")
+        return redirect(url_for("admin.smilies"))
+
+    smiliepath = (request.args.get("smiliepath") or "images/smilies").strip().rstrip("/")
+    startpage = request.args.get("startpage", type=int) or 1
+    iconsperpage = request.args.get("iconsperpage", type=int) or 10
+    if startpage < 1:
+        startpage = 1
+    if iconsperpage < 1:
+        iconsperpage = 10
+    folder = _smilies_dir()
+    existing = {r.smiliepath for r in db.session.execute(select(Smilie)).scalars().all()}
+    names = []
+    if folder.is_dir():
+        for f in sorted(folder.iterdir()):
+            if not f.is_file():
+                continue
+            if f.suffix.lower() not in (".gif", ".bmp", ".jpg", ".jpeg", ".png"):
+                continue
+            if f"{smiliepath}/{f.name}" in existing:
+                continue
+            names.append(f.name)
+    numpages = max(1, (len(names) + iconsperpage - 1) // iconsperpage)
+    if startpage > numpages:
+        startpage = numpages
+    chunk = names[(startpage - 1) * iconsperpage:startpage * iconsperpage]
+    return render_template("admin/smilies.html", mode="multiple", names=chunk,
+                           smiliepath=smiliepath, startpage=startpage,
+                           iconsperpage=iconsperpage, numpages=numpages,
+                           total=len(names), folder_missing=not folder.is_dir(),
+                           icon_src=_icon_src)
+
+
+@bp.route("/smilies/edit", methods=["GET", "POST"])
+def smilies_edit():
+    """Smilies 编辑：原版 edit / doupdate。"""
+    sid = request.values.get("smilieid", type=int) or 0
+    row = db.session.get(Smilie, sid) if sid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.smilies"))
+    if request.method == "GET":
+        return render_template("admin/smilies.html", mode="edit", row=row,
+                               perpage=request.args.get("perpage", type=int) or 15,
+                               startpage=request.args.get("startpage", type=int) or 1)
+    row.title = (request.form.get("title") or "").strip()
+    row.smilietext = request.form.get("smilietext") or ""
+    row.smiliepath = (request.form.get("smiliepath") or "").strip()
+    db.session.commit()
+    flash("Record updated!", "success")
+    return redirect(url_for("admin.smilies", startpage=request.form.get("startpage", type=int) or 1,
+                            perpage=request.form.get("perpage", type=int) or 15))
+
+
+@bp.route("/smilies/remove", methods=["GET", "POST"])
+def smilies_remove():
+    """Smilies 删除：原版 remove / kill。"""
+    sid = request.values.get("smilieid", type=int) or 0
+    row = db.session.get(Smilie, sid) if sid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.smilies"))
+    if request.method == "GET":
+        return render_template("admin/smilies.html", mode="remove", row=row,
+                               perpage=request.args.get("perpage", type=int) or 15,
+                               startpage=request.args.get("startpage", type=int) or 1)
+    db.session.execute(delete(Smilie).where(Smilie.id == row.id))
+    db.session.commit()
+    flash("Deleted!", "success")
+    return redirect(url_for("admin.smilies", startpage=request.form.get("startpage", type=int) or 1,
+                            perpage=request.form.get("perpage", type=int) or 15))
+
+
+@bp.route("/smilies/upload", methods=["GET", "POST"])
+def smilies_upload():
+    """Smilies → Upload：原版 upload / doupload（存盘后按单条插入）。"""
+    if request.method == "GET":
+        return render_template("admin/smilies.html", mode="upload")
+    iconfile = request.files.get("smiliefile")
+    title = (request.form.get("title") or "").strip()
+    smilietext = request.form.get("smilietext") or ""
+    smiliepath = (request.form.get("smiliepath") or "images/smilies").strip().rstrip("/")
+    if not iconfile or not iconfile.filename:
+        flash("No file uploaded", "error")
+        return redirect(url_for("admin.smilies_upload"))
+    dest_dir = _smilies_dir()
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    name = Path(iconfile.filename).name
+    iconfile.save(dest_dir / name)
+    db.session.add(Smilie(title=title, smilietext=smilietext, smiliepath=f"{smiliepath}/{name}"))
+    db.session.commit()
+    flash("Smilie successfuly uploaded", "success")
+    return redirect(url_for("admin.smilies"))
 
 
 @bp.route("/usergroups")
