@@ -34,23 +34,51 @@ from .utils import censor_text, clamp_page, format_dt
 
 bp = Blueprint("auth", __name__)
 
-USERNAME_RE = re.compile(r"^[A-Za-z0-9_\u4e00-\u9fa5]{3,20}$")
+USERNAME_CHARS = "A-Za-z0-9_\u4e00-\u9fa5"
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _username_limits() -> tuple[int, int]:
+    """vB 组 6：minuserlength / maxuserlength（默认 3 / 15）。"""
+    try:
+        low = max(1, int(get_setting("minuserlength") or 3))
+    except ValueError:
+        low = 3
+    try:
+        high = int(get_setting("maxuserlength") or 15)
+    except ValueError:
+        high = 15
+    return low, max(low, high)
+
+
+def _username_allowed(name: str) -> bool:
+    low, high = _username_limits()
+    return bool(re.match(rf"^[{USERNAME_CHARS}]{{{low},{high}}}$", name))
+
+
+def _username_forbidden(name: str) -> bool:
+    """vB 组 6 的 illegalusernames：空格分隔的片段，命中小写子串即禁止。"""
+    raw = (get_setting("illegalusernames") or "").strip().lower()
+    if not raw:
+        return False
+    lowered = name.lower()
+    return any(token and token in lowered for token in raw.split())
 
 
 @bp.get("/register")
 def register_form():
     if current_user.is_authenticated:
         return redirect(url_for("forums.index"))
-    if get_setting("allow_registration") != "1":
+    if get_setting("allowregistration") != "1":
         flash("本站暂未开放注册。", "error")
         return redirect(url_for("forums.index"))
-    return render_template("auth/register.html")
+    low, high = _username_limits()
+    return render_template("auth/register.html", min_user=low, max_user=high)
 
 
 @bp.post("/register")
 def register():
-    if get_setting("allow_registration") != "1":
+    if get_setting("allowregistration") != "1":
         flash("本站暂未开放注册。", "error")
         return redirect(url_for("forums.index"))
 
@@ -59,9 +87,12 @@ def register():
     password = request.form.get("password") or ""
     password2 = request.form.get("password2") or ""
 
+    low, high = _username_limits()
     errors: list[str] = []
-    if not USERNAME_RE.match(username):
-        errors.append("用户名需为 3–20 位，允许中文、字母、数字和下划线。")
+    if not _username_allowed(username):
+        errors.append(f"用户名需为 {low}–{high} 位，允许中文、字母、数字和下划线。")
+    elif _username_forbidden(username):
+        errors.append("这个用户名不被允许。")
     if not EMAIL_RE.match(email):
         errors.append("请填写有效的邮箱地址。")
     if len(password) < 8:
@@ -70,18 +101,23 @@ def register():
         errors.append("两次输入的密码不一致。")
 
     if not errors:
-        exists = db.session.scalar(
-            select(User).where(
-                (func.lower(User.username) == username.lower()) | (User.email == email)
-            )
-        )
-        if exists:
-            errors.append("用户名或邮箱已被注册。")
+        if db.session.scalar(select(User).where(func.lower(User.username) == username.lower())):
+            errors.append("用户名已被注册。")
+        elif db.session.scalar(select(User).where(func.lower(User.email) == email)):
+            # 本项目的 users.email 带唯一索引，所以 requireuniqueemail=0 也不能真的重复；
+            # 仍然给出可读提示，避免数据库抛出 IntegrityError 变 500。
+            if get_setting("requireuniqueemail") == "0":
+                errors.append("本站数据库要求邮箱唯一，这个邮箱已被注册。")
+            else:
+                errors.append("邮箱已被注册。")
 
     if errors:
         for message in errors:
             flash(message, "error")
-        return render_template("auth/register.html", username=username, email=email), 400
+        return (
+            render_template("auth/register.html", username=username, email=email, min_user=low, max_user=high),
+            400,
+        )
 
     user = User(username=username, email=email)
     user.set_password(password)

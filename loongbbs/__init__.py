@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import Flask, g, render_template, request
@@ -92,6 +92,21 @@ def create_app(test_config: dict | None = None) -> Flask:
             return None
         reason = (current.get("bbclosedreason") or "论坛暂时关闭，请稍后再来。").strip()
         return render_template("board_closed.html", reason=reason), 503
+
+    @app.before_request
+    def _apply_cookie_timeout():
+        """vB 组 6 的 cookietimeout（秒）：会话 cookie 的有效期。"""
+        from flask import session
+
+        from .settings import get_setting
+
+        try:
+            timeout = int(get_setting("cookietimeout") or 900)
+        except ValueError:
+            timeout = 900
+        timeout = max(60, timeout)
+        session.permanent = True
+        app.permanent_session_lifetime = timedelta(seconds=timeout)
 
     @app.before_request
     def _touch_last_seen():

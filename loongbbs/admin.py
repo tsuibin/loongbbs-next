@@ -136,7 +136,6 @@ EDITABLE_SETTINGS = {
     "site_tagline": ("站点副标题", "text"),
     "posts_per_page": ("每页帖子数", "number"),
     "threads_per_page": ("每页主题数", "number"),
-    "allow_registration": ("开放注册", "bool"),
 }
 
 

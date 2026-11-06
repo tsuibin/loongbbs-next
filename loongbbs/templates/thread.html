@@ -137,7 +137,7 @@
 		{% endif %}
 	{% endfor %}
 	{% endif %}
-	<p><font face="verdana,arial,helvetica" size="1">{% if post.author.signature %}{{ post.author.signature }}{% endif %}</font></p>
+	{% if settings.get('allowsignatures', '1') != '0' and (not nav_user or nav_user.showsignatures) %}<p><font face="verdana,arial,helvetica" size="1">{% if post.author.signature %}{{ post.author.signature }}{% endif %}</font></p>{% endif %}
 	<p><font face="verdana,arial,helvetica" size="1">{% if post.updated_at %}（本帖最后由 {{ post.author.username }} 于 {{ post.updated_at|dt('%m-%d-%Y %I:%M %p') }} 修改过）{% endif %}</font></p>
 	<p align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}<a href="{{ url_for('forums.report_form', post_id=post.id) }}">向版主举报本帖</a>{% else %}<a href="{{ url_for('auth.login_form') }}">向版主举报本帖</a>{% endif %} | IP: {% if nav_user %}已登录{% else %}未登录{% endif %}</font></p>
 	{% if nav_user and nav_user.is_admin %}

@@ -13,7 +13,6 @@ LOCAL_DEFAULTS = {
     "site_tagline": "龙芯社区论坛 · Python 重制版",
     "posts_per_page": "10",
     "threads_per_page": "25",
-    "allow_registration": "1",
 }
 
 # vB 后台 Options 的默认值打底，本站自有键覆盖同名项
