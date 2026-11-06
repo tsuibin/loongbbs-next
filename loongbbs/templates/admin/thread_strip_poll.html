@@ -1,0 +1,62 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Poll Stripper{% else %}删除主题投票{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'form' %}
+<p><b>Threads &amp; Posts &rsaquo; Strip Poll</b></p>
+<p>This function allows you to completely remove a poll from a thread, while leaving the thread contents intact.</p>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Poll Stripper</span></b></font></td></tr>
+<tr class="firstalt" valign="top">
+	<td><p>Enter the thread id of the thread containing the poll you want to remove</p></td>
+	<td><p><input type="text" name="threadid" size="10" value=""></p></td>
+</tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="lookup">
+	<input type="submit" value="Continue">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'confirm' %}
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Kill this poll?</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Thread Creator:</p></td><td><p><i>{{ thread_obj.author.username }}</i></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Thread Title:</p></td><td><p><i>{{ thread_obj.title }}</i></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Poll Question</p></td><td><p><i>{{ poll_obj.question }}</i></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Delete the poll from this thread?</p></td>
+	<td><p>Yes<input type="radio" name="dodelete" value="1"> No <input type="radio" name="dodelete" value="0" checked></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="kill">
+	<input type="hidden" name="threadid" value="{{ thread_obj.id }}">
+	<input type="submit" value="Kill it now!">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<p>Deleting Votes ....</p>
+<p>votes deleted.</p>
+<p>Deleting Poll ....</p>
+<p>poll deleted.</p>
+<p>Updating Thread ....</p>
+<p>thread updated.</p>
+<p><b>Poll Removed From Thread.</b></p>
+<p>
+	<a href="{{ url_for('forums.thread', thread_id=thread_obj.id) }}">click here to view the thread</a>
+	&nbsp;
+	<a href="{{ url_for('admin.threads_strip_poll') }}">strip another poll</a>
+</p>
+{% endif %}
+
+{% endblock %}

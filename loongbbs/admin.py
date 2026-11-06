@@ -65,7 +65,7 @@ NAV_GROUPS = [
         {"label": "Mass Prune", "endpoint": "admin.threads_prune"},
         {"label": "Mass Move", "endpoint": "admin.threads_move"},
         {"label": "Unsubscribe Thread", "endpoint": "admin.threads_unsubscribe"},
-        {"label": "Strip Poll", "module": "Strip Poll"},
+        {"label": "Strip Poll", "endpoint": "admin.threads_strip_poll"},
         {"label": "Who Voted?", "module": "Who Voted?"},
     ]},
     {"title": "Moderation", "links": [
@@ -851,6 +851,61 @@ def _confirm_page(thread_ids):
         ids_text=",".join(str(i) for i in thread_ids),
         total=total,
     )
+
+
+@bp.route("/threads/poll", methods=["GET", "POST"])
+def threads_strip_poll():
+    """Threads & Posts → Strip Poll（原版 thread.php 的 killpoll / removepoll / doremovepoll）。"""
+    step = (request.form.get("step") or "").strip()
+
+    def _entry():
+        return render_template("admin/thread_strip_poll.html", mode="form")
+
+    if request.method == "GET" or not step:
+        return _entry()
+
+    if step == "lookup":
+        raw = (request.form.get("threadid") or "").strip()
+        if not raw.isdigit():
+            flash("No thread id specified!", "error")
+            return _entry()
+        thread_obj = db.session.get(Thread, int(raw))
+        if thread_obj is None:
+            flash("Invalid thread id specified", "error")
+            return _entry()
+        poll_obj = db.session.scalar(select(Poll).where(Poll.thread_id == thread_obj.id))
+        if poll_obj is None:
+            flash("No poll found in this thread!", "error")
+            return _entry()
+        return render_template(
+            "admin/thread_strip_poll.html",
+            mode="confirm",
+            thread_obj=thread_obj,
+            poll_obj=poll_obj,
+        )
+
+    if step == "kill":
+        thread_id = request.form.get("threadid", type=int)
+        do_delete = (request.form.get("dodelete") or "0") == "1"
+        thread_obj = db.session.get(Thread, thread_id) if thread_id else None
+        poll_obj = (
+            db.session.scalar(select(Poll).where(Poll.thread_id == thread_id))
+            if thread_obj is not None
+            else None
+        )
+        if thread_obj is None or poll_obj is None or not do_delete:
+            flash("Poll NOT deleted.", "error")
+            return _entry()
+        db.session.execute(delete(PollVote).where(PollVote.poll_id == poll_obj.id))
+        db.session.delete(poll_obj)
+        db.session.commit()
+        return render_template(
+            "admin/thread_strip_poll.html",
+            mode="done",
+            thread_obj=thread_obj,
+        )
+
+    return _entry()
 
 
 @bp.route("/threads/prune", methods=["GET", "POST"])
