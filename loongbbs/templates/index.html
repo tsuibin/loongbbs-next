@@ -7,7 +7,7 @@
 <tr valign="top">
 	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
 	<font face="verdana, arial, helvetica" size="2"><b>{{ settings.site_name }}</b></font></td>
-	<td align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}欢迎回来，<b>{{ nav_user.username }}</b>{% else %}你尚未登录{% endif %}{% if unread_pm %}<br>你有 <a href="{{ url_for('pm.inbox') }}"><b>{{ unread_pm }}</b> 条未读悄悄话</a>{% endif %}<br><b><a href="{{ url_for('search.search', q='') }}">查看今日新帖</a></b></font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}欢迎回来，<b>{{ nav_user.username }}</b>{% else %}你尚未登录{% endif %}{% if unread_pm %}<br>你有 <a href="{{ url_for('pm.inbox') }}"><b>{{ unread_pm }}</b> 条未读悄悄话</a>{% endif %}<br>{% if nav_user %}<b><a href="{{ url_for('search.search', action='getnew') }}">{% if ui_lang == 'en' %}View New Posts{% else %}查看新帖{% endif %}</a></b>{% else %}<b><a href="{{ url_for('search.search', action='getdaily') }}">{% if ui_lang == 'en' %}View Today's Active Threads{% else %}查看今日活跃主题{% endif %}</a></b>{% endif %}</font></td>
 </tr>
 </table>
 

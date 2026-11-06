@@ -13,7 +13,7 @@ function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999
 </tr>
 <tr>
 	<td><font face="verdana,arial,helvetica" size="1">Displaying Topics {{ limitlower }} to {{ limitupper }} of {{ total }}</font></td>
-	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, action='finduser' if finduser else None, userid=finduser_id if finduser else None, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, action=(list_action or ('finduser' if finduser else None)), userid=finduser_id if finduser else None, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
 </tr>
 </table>
 <!-- /display and pagenav -->
@@ -59,23 +59,13 @@ function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
 	<td><font face="verdana,arial,helvetica" size="1">Displaying Topics {{ limitlower }} to {{ limitupper }} of {{ total }}</font></td>
-	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, action='finduser' if finduser else None, userid=finduser_id if finduser else None, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, action=(list_action or ('finduser' if finduser else None)), userid=finduser_id if finduser else None, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
 </tr>
 <tr>
 	<td><font face="verdana,arial,helvetica" size="1"><b>All times are GMT. The time now is {{ now_gmt() }}.</b></font></td>
 	<td align="right">
-	<select onchange="if(this.value) location.href=this.value;">
-		<option value="">{% if ui_lang == 'en' %}Please select one:{% else %}请选择一项：{% endif %}</option>
-		<option value="">--------------------</option>
-		<option value="{{ url_for('pm.inbox') }}">{% if ui_lang == 'en' %}Private Messages{% else %}私信{% endif %}</option>
-		<option value="{{ url_for('auth.usercp') }}">{% if ui_lang == 'en' %}User Control Panel{% else %}用户控制面板{% endif %}</option>
-		<option value="{{ url_for('online.whos_online') }}">{% if ui_lang == 'en' %}Who's Online{% else %}在线用户{% endif %}</option>
-		<option value="{{ url_for('search.search') }}">{% if ui_lang == 'en' %}Search Forums{% else %}搜索版块{% endif %}</option>
-		<option value="{{ url_for('forums.index') }}">{% if ui_lang == 'en' %}Forums Home{% else %}论坛首页{% endif %}</option>
-		<option value="">--------------------</option>
-		{% for c in categories %}<option value="-1"> {{ c.name }}</option>
-		{% for f in c.forums %}<option value="{{ url_for('forums.forum', forum_id=f.id) }}">-- {{ f.name }}</option>{% endfor %}{% endfor %}
-	</select></td></tr>
+{% set page_key = 'search' %}
+	{% include "_forumjump.html" %}</td></tr>
 </table>
 <!-- /timezone, display and pagenav -->
 

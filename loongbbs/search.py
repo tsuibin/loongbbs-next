@@ -86,6 +86,75 @@ def _naive(dt):
     return dt.astimezone(timezone.utc).replace(tzinfo=None) if dt.tzinfo else dt
 
 
+def _local_day_start_utc() -> datetime:
+    """按站点时区（timeoffset）算「今天 0 点」，再转回库里存的 UTC naive 值。
+
+    原版 getdaily 用 vbdate 取当天 0 点，vbdate 就是按 timeoffset 换算的本地时间。
+    """
+    try:
+        offset = int(get_setting("timeoffset", "8") or 8)
+    except (TypeError, ValueError):
+        offset = 8
+    now_utc = _naive(utcnow())
+    local_now = now_utc + timedelta(minutes=offset * 60)
+    day_local = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return day_local - timedelta(minutes=offset * 60)
+
+
+def _new_posts_result(getnew: bool, page: int, per_page: int):
+    """原版 index.php 的两个入口：action=getnew（上次访问之后有新帖）/ action=getdaily（今日活跃主题）。
+
+    getnew 对登录会员按 last_visit 起算；游客没有上次访问时间，回落到「今天 0 点」（与
+    getdaily 同一口径），这一点与原版（游客 lastvisit=0 会捞出全部帖子）不同，见 commit 说明。
+    """
+    from flask_login import current_user
+
+    if getnew and current_user.is_authenticated and current_user.last_visit:
+        start = _naive(current_user.last_visit)
+    else:
+        start = _local_day_start_utc()
+
+    threads = (
+        db.session.execute(
+            select(Thread)
+            .where(Thread.last_post_at >= start)
+            .order_by(Thread.last_post_at.desc())
+        )
+        .scalars()
+        .all()
+    )
+    total = len(threads)
+    first = (page - 1) * per_page
+    rows = threads[first : first + per_page]
+    categories = db.session.execute(select(Category).order_by(Category.position)).scalars().all()
+    return render_template(
+        "search_results.html",
+        query="",
+        results=[{"thread": thread_obj, "post": None} for thread_obj in rows],
+        total=total,
+        page=page,
+        pages=max(1, (total + per_page - 1) // per_page),
+        page_args=page_args,
+        selected_forum=None,
+        author="",
+        sortby="lastpost",
+        sortorder="desc",
+        searchin="both",
+        showposts=False,
+        limitlower=first + 1 if total else 0,
+        limitupper=first + len(rows),
+        categories=categories,
+        forumchoice=-1,
+        searchdate=-1,
+        beforeafter="after",
+        exactname=True,
+        titleonly=False,
+        finduser=False,
+        finduser_id=None,
+        list_action="getnew" if getnew else "getdaily",
+    )
+
+
 @bp.get("/search")
 def search():
     # 组 10 enablesearches：管理员关掉后照原版直接给错误页
@@ -121,6 +190,12 @@ def search():
     forum_raw = (args.get("forumchoice") or args.get("forum") or "").strip()
     forum_id = int(forum_raw) if forum_raw.isdigit() and int(forum_raw) > 0 else None
     selected_forum = db.session.get(Forum, forum_id) if forum_id else None
+
+    # 参考站 index.php 的两个入口：「查看新帖」search.php?action=getnew、
+    # 游客态的「今日活跃主题」search.php?action=getdaily（forumhome_todayposts）
+    action = (args.get("action") or "").strip().lower()
+    if action in {"getnew", "getdaily"}:
+        return _new_posts_result(action == "getnew", page, per_page)
 
     # 组 10 searchfloodtime：两次搜索之间的最小间隔（按会话记录上次搜索时间）
     flood = _setting_int("searchfloodtime", 0, low=0, high=3600)
@@ -331,6 +406,7 @@ def search():
             titleonly=titleonly,
             finduser=finduser,
             finduser_id=finduser_id,
+            list_action=None,
         )
 
     categories = db.session.execute(select(Category).order_by(Category.position)).scalars().all()
