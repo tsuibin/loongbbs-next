@@ -59,10 +59,10 @@
 <tr>
 	<td bgcolor="#DFDFDF" valign="top"><font face="verdana, arial, helvetica" size="2"><b>个人签名:</b></font><br>
 	<font face="verdana,arial,helvetica" size="1">可选的签名，会显示在你每个帖子的底部。
-	<p>HTML 代码是 OFF<br>
-	vB 代码是 <b>ON</b><br>
-	[IMG] 代码是 ON<br>
-	表情符号是 ON</p></font></td>
+	<p>HTML 代码是 {{ settings.get('offtext', 'OFF') }}<br>
+	vB 代码是 <b>{{ settings.get('ontext', 'ON') if nav_user.vbcode else settings.get('offtext', 'OFF') }}</b><br>
+	[IMG] 代码是 {{ settings.get('ontext', 'ON') if nav_user.showimages else settings.get('offtext', 'OFF') }}<br>
+	表情符号是 {{ settings.get('ontext', 'ON') }}</p></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><textarea name="signature" rows="6" cols="40">{{ nav_user.signature }}</textarea></font></td>
 </tr>
 <tr>

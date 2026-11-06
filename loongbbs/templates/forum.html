@@ -176,10 +176,10 @@
 		你可以上传附件<br>
 		你可以编辑自己的帖子</font></td>
 		<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
-		HTML 代码是 <b>OFF</b><br>
-		vB 代码是 <b>ON</b><br>
-		表情符号是 <b>ON</b><br>
-		[IMG] 代码是 <b>ON</b></font></td>
+		HTML 代码是 <b>{{ settings.get('offtext', 'OFF') }}</b><br>
+		vB 代码是 <b>{{ settings.get('ontext', 'ON') }}</b><br>
+		表情符号是 <b>{{ settings.get('ontext', 'ON') }}</b><br>
+		[IMG] 代码是 <b>{{ settings.get('ontext', 'ON') }}</b></font></td>
 	</tr>
 	</table></td></tr></table></font></td>
 	<td align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user and nav_user.is_admin %}<a href="{{ url_for('admin.forums_page') }}">管理员选项</a>{% endif %}</font></td>
