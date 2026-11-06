@@ -181,9 +181,9 @@ def main() -> int:
             "posts_per_page": "10",
             "threads_per_page": "25",
             "allow_registration": "1",
-            "thumb_width": "480",
-            "thumb_height": "360",
-            # thumb_mode 不提交 = 关闭
+            "attachthumbmode": "0",
+            "attachthumbwidth": "480",
+            "attachthumbheight": "360",
         },
         follow_redirects=True,
     )
@@ -204,9 +204,9 @@ def main() -> int:
             "posts_per_page": "10",
             "threads_per_page": "25",
             "allow_registration": "1",
-            "thumb_mode": "1",
-            "thumb_width": "480",
-            "thumb_height": "360",
+            "attachthumbmode": "1",
+            "attachthumbwidth": "480",
+            "attachthumbheight": "360",
         },
         follow_redirects=True,
     )

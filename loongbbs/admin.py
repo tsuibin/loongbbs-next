@@ -137,13 +137,6 @@ EDITABLE_SETTINGS = {
     "posts_per_page": ("每页帖子数", "number"),
     "threads_per_page": ("每页主题数", "number"),
     "allow_registration": ("开放注册", "bool"),
-    "thumb_mode": ("附件图片显示缩略图", "bool"),
-    "thumb_width": ("缩略图最大宽度 (px)", "number"),
-    "thumb_height": ("缩略图最大高度 (px)", "number"),
-    "avatarenabled": ("启用头像", "bool"),
-    "avatarmaxdimension": ("头像最大尺寸 (px)", "number"),
-    "avatarmaxsize": ("自定义头像最大体积 (KB)", "number"),
-    "avatarcustomposts": ("使用自定义头像所需帖子数", "number"),
 }
 
 
@@ -210,8 +203,10 @@ def settings_page():
     current_group_id = int(groupid_raw) if groupid_raw.isdigit() else None
 
     if request.method == "POST":
-        # 本项目自有设置（网站名称等）
-        for key, (_, kind) in EDITABLE_SETTINGS.items():
+        # 本项目自有设置（网站名称等）只在「全部组」页面上出现，
+        # 提交单个分组（groupid）时不能拿空表单把它们清空。
+        saving_group = (request.form.get("groupid") or request.args.get("groupid") or "").strip()
+        for key, (_, kind) in (EDITABLE_SETTINGS.items() if not saving_group else ()):
             if kind == "bool":
                 value = "1" if request.form.get(key) == "1" else "0"
             else:
@@ -223,8 +218,6 @@ def settings_page():
                         continue
                     if key in ("posts_per_page", "threads_per_page") and int(value) < 1:
                         value = "1"
-                    if key in ("thumb_width", "thumb_height") and int(value) < 0:
-                        value = "0"
             set_setting(key, value)
 
         # vB 后台 Options 的字段：只认表里定义过的变量名
@@ -701,10 +694,13 @@ def avatars_do_upload():
     storage.save(target)
 
     size = target.stat().st_size
-    limit_kb = int(get_settings().get("avatarmaxsize") or 60)
-    if size > limit_kb * 1024:
+    try:
+        limit_bytes = int(get_settings().get("avatarmaxsize") or 20000)
+    except ValueError:
+        limit_bytes = 20000
+    if limit_bytes and size > limit_bytes:
         target.unlink(missing_ok=True)
-        flash(f"图片超过 {limit_kb} KB 上限，已放弃。", "error")
+        flash(f"图片超过 {limit_bytes // 1024 or 1} KB（后台「头像」组 avatarmaxsize）上限，已放弃。", "error")
         return redirect(url_for("admin.avatars_upload"))
 
     rel = f"{AVATAR_SUBDIR}/{target.name}"

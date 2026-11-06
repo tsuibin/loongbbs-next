@@ -6,7 +6,7 @@ import re
 import secrets
 from pathlib import Path
 
-from flask import Blueprint, abort, current_app, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
@@ -24,6 +24,17 @@ BLOCKED_EXT = {
 IMAGE_TYPES = {
     "image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/svg+xml",
 }
+
+
+def attach_limits() -> tuple[set[str], int]:
+    """后台「附件」组的 attachextensions / maxattachsize：允许的扩展名与单文件字节上限。"""
+    raw = (get_setting("attachextensions") or "").strip().lower()
+    allowed = {item.strip().lstrip(".") for item in raw.replace(",", " ").split() if item.strip()}
+    try:
+        max_bytes = int(get_setting("maxattachsize") or 102400)
+    except ValueError:
+        max_bytes = 102400
+    return allowed, max(0, max_bytes)
 
 
 def _detect_type(path: Path, filename: str) -> str:
@@ -53,16 +64,25 @@ def save_uploads(post: Post, files) -> list[Attachment]:
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     existing = len(post.attachments or [])
+    allowed_ext, max_bytes = attach_limits()
 
     for storage in files:
         if not storage or not storage.filename:
             continue
         if existing + len(created) >= MAX_PER_POST:
+            flash(f"每帖最多 {MAX_PER_POST} 个附件，多出的文件已跳过。", "error")
             break
 
         display_name = secure_filename(storage.filename) or "attachment"
         ext = display_name.rsplit(".", 1)[-1].lower() if "." in display_name else ""
         if ext in BLOCKED_EXT:
+            flash(f"出于安全考虑，不允许上传 .{ext} 文件。", "error")
+            continue
+        if allowed_ext and ext not in allowed_ext:
+            flash(
+                f"后台「附件」组不允许 .{ext} 类型，允许的类型：{' '.join(sorted(allowed_ext))}。",
+                "error",
+            )
             continue
 
         stored_name = f"{secrets.token_hex(16)}.bin"
@@ -71,6 +91,13 @@ def save_uploads(post: Post, files) -> list[Attachment]:
         size = target.stat().st_size
         if size == 0:
             target.unlink(missing_ok=True)
+            continue
+        if max_bytes and size > max_bytes:
+            target.unlink(missing_ok=True)
+            flash(
+                f"附件「{display_name}」有 {size // 1024 or 1} KB，超过 {max_bytes // 1024 or 1} KB 上限，已跳过。",
+                "error",
+            )
             continue
 
         content_type = _detect_type(target, display_name)
@@ -145,12 +172,21 @@ def delete(attachment_id: int):
 
 
 def thumb_limits() -> tuple[int, int] | None:
-    """Return (width, height) when thumbnail mode is on, else None."""
-    if get_setting("thumb_mode") != "1":
+    """Return (width, height) when thumbnail mode is on, else None.
+
+    取后台「附件」组的 attachthumbmode / attachthumbwidth / attachthumbheight，
+    兼容早期的 thumb_mode / thumb_width / thumb_height 键。
+    """
+    mode = get_setting("attachthumbmode")
+    if mode is None:
+        mode = get_setting("thumb_mode")
+    if mode != "1":
         return None
+    raw_width = get_setting("attachthumbwidth") or get_setting("thumb_width") or 480
+    raw_height = get_setting("attachthumbheight") or get_setting("thumb_height") or 360
     try:
-        width = int(get_setting("thumb_width") or 480)
-        height = int(get_setting("thumb_height") or 360)
+        width = int(raw_width)
+        height = int(raw_height)
     except ValueError:
         width, height = 480, 360
     if width <= 0 or height <= 0:

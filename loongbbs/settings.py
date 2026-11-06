@@ -14,13 +14,6 @@ LOCAL_DEFAULTS = {
     "posts_per_page": "10",
     "threads_per_page": "25",
     "allow_registration": "1",
-    "thumb_mode": "1",
-    "thumb_width": "480",
-    "thumb_height": "360",
-    "avatarenabled": "1",
-    "avatarmaxdimension": "100",
-    "avatarmaxsize": "1024",
-    "avatarcustomposts": "0",
 }
 
 # vB 后台 Options 的默认值打底，本站自有键覆盖同名项

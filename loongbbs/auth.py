@@ -144,11 +144,12 @@ def _custom_avatar_dir() -> Path:
     return path
 
 
-def _store_uploaded_avatar(storage, user_id: int, max_dim: int, max_kb: int) -> tuple[str, str]:
+def _store_uploaded_avatar(storage, user_id: int, max_dim: int, max_bytes: int) -> tuple[str, str]:
     """把上传的图片等比缩到上限再落盘。返回 (相对 static 的路径, 错误信息)。
 
     vB 2.x 只认 50×50 / 20000 字节这种小图，现代照片直接拒绝；这里先缩放再存，
-    保证用户上传任何常见格式都能得到一个可用的小头像。
+    保证用户上传任何常见格式都能得到一个可用的小头像。max_bytes 就是后台
+    「头像」组 avatarmaxsize 的字节数。
     """
     from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -162,7 +163,7 @@ def _store_uploaded_avatar(storage, user_id: int, max_dim: int, max_kb: int) -> 
     if max(image.size) > max_dim:
         image.thumbnail((max_dim, max_dim), Image.LANCZOS)
 
-    limit = max(1, max_kb) * 1024
+    limit = max(1, max_bytes)
     payload = b""
     suffix = ".png"
     for scale in (1.0, 0.8, 0.65, 0.5, 0.35):
@@ -236,8 +237,10 @@ def edit_avatar():
         lower=(page - 1) * perpage + 1 if total else 0,
         upper=min(page * perpage, total),
         custom_required=int(get_setting("avatarcustomposts") or 0),
-        max_dimension=int(get_setting("avatarmaxdimension") or 65),
-        max_size_kb=int(get_setting("avatarmaxsize") or 60),
+        max_dimension=int(get_setting("avatarmaxdimension") or 50),
+        max_size_kb=max(1, int(get_setting("avatarmaxsize") or 20000) // 1024),
+        allow_upload=get_setting("avatarallowupload") != "0",
+        allow_website=get_setting("avatarallowwebsite") != "0",
     )
 
 
@@ -254,6 +257,8 @@ def _apply_avatar_choice(choice: int, storage, selected_url: str) -> tuple[str, 
 
     # custom avatar: uploaded file first, then remote URL
     if storage is not None and storage.filename:
+        if get_setting("avatarallowupload") == "0":
+            return "后台已关闭上传自定义头像，只能选择头像库里现成的头像。", False
         ext = Path(storage.filename).suffix.lower()
         if ext not in AVATAR_EXTS:
             return "自定义头像只支持 gif / jpg / png / bmp / webp 图片。", False
@@ -264,8 +269,8 @@ def _apply_avatar_choice(choice: int, storage, selected_url: str) -> tuple[str, 
         rel_path, error = _store_uploaded_avatar(
             storage,
             user.id,
-            int(get_setting("avatarmaxdimension") or 100),
-            int(get_setting("avatarmaxsize") or 1024),
+            int(get_setting("avatarmaxdimension") or 50),
+            int(get_setting("avatarmaxsize") or 20000),
         )
         if error:
             return error, False
@@ -275,6 +280,8 @@ def _apply_avatar_choice(choice: int, storage, selected_url: str) -> tuple[str, 
         return "自定义头像已上传。", True
 
     if selected_url:
+        if get_setting("avatarallowwebsite") == "0":
+            return "后台已关闭「使用网址作为头像」。", False
         if not selected_url.lower().startswith(("http://", "https://")):
             return "自定义头像网址必须以 http:// 或 https:// 开头。", False
         required = int(get_setting("avatarcustomposts") or 0)
