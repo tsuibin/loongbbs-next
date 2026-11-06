@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 更新资料{% endblock %}
+{% block content %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	<a href="{{ url_for('auth.usercp') }}">{{ nav_user.username }} 的用户控制面板</a> &gt;
+	编辑个人资料</b></font></td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<br>
+{% include "auth/_cpnav.html" %}
+<br>
+
+<form action="{{ url_for('auth.edit_profile_post') }}" method="post">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#606096" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>编辑个人资料 - {{ nav_user.username }}</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>注册信息: 必填项</b></font>
+	<font face="verdana,arial,helvetica" size="1" color="#EEEEFF">所有项目都必须填写。</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" width="35%"><font face="verdana, arial, helvetica" size="2"><b>邮箱地址:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="email" value="{{ nav_user.email }}" size="30" maxlength="150"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>确认邮箱地址:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="emailconfirm" value="{{ nav_user.email }}" size="30" maxlength="150"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>可选信息</b></font>
+	<font face="verdana,arial,helvetica" size="1" color="#EEEEFF">这些信息会被其他会员看到。</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>主页:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="homepage" value="{{ nav_user.homepage }}" size="30" maxlength="200"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>ICQ 号码:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="icq" value="{{ nav_user.icq }}" size="30" maxlength="30"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>AOL 即时通讯账号:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="aim" value="{{ nav_user.aim }}" size="30" maxlength="30"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>Yahoo 即时通讯账号:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="yahoo" value="{{ nav_user.yahoo }}" size="30" maxlength="30"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" valign="top"><font face="verdana, arial, helvetica" size="2"><b>个人签名:</b></font><br>
+	<font face="verdana,arial,helvetica" size="1">可选的签名，会显示在你每个帖子的底部。
+	<p>HTML 代码是 OFF<br>
+	vB 代码是 <b>ON</b><br>
+	[IMG] 代码是 ON<br>
+	表情符号是 ON</p></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><textarea name="signature" rows="6" cols="40">{{ nav_user.signature }}</textarea></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>生日:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="birthday" value="{{ nav_user.birthday }}" size="12" maxlength="10">&nbsp;<font face="verdana,arial,helvetica" size="1">格式 YYYY-MM-DD，可留空</font></font></td>
+</tr>
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>附加信息</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>来自:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="location" value="{{ nav_user.location }}" size="30" maxlength="100"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>兴趣:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="interests" value="{{ nav_user.interests }}" size="40" maxlength="200"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>职业:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="occupation" value="{{ nav_user.occupation }}" size="30" maxlength="100"></font></td>
+</tr>
+</table>
+</td></tr></table>
+
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td align="center"><font face="verdana, arial, helvetica" size="2">
+	<input type="submit" class="bginput" name="Submit" value="提交修改">
+	<input type="reset" class="bginput" name="Reset" value="重填">
+	</font></td>
+</tr>
+</table>
+
+</form>
+{% endblock %}

@@ -436,6 +436,66 @@ def edit_options_post():
     return redirect(url_for("auth.usercp"))
 
 
+# ---- member.php?action=editprofile -----------------------------------------
+
+
+@bp.get("/usercp/profile")
+@login_required
+def edit_profile():
+    """对应 vB 的 member.php?action=editprofile。"""
+    return render_template(
+        "auth/editprofile.html",
+        cpnav_current="profile",
+        forums=_forum_jump_list(),
+    )
+
+
+@bp.post("/usercp/profile")
+@login_required
+def edit_profile_post():
+    form = request.form
+    user = current_user
+
+    email = (form.get("email") or "").strip()
+    email_confirm = (form.get("emailconfirm") or "").strip()
+    ok = True
+    if not email or "@" not in email:
+        flash("邮箱地址格式不正确。")
+        ok = False
+    elif email != email_confirm:
+        flash("两次输入的邮箱地址不一致。")
+        ok = False
+    else:
+        taken = db.session.scalar(
+            select(User).where(User.email == email, User.id != user.id)
+        )
+        if taken is not None:
+            flash("这个邮箱地址已经被其他会员使用。")
+            ok = False
+
+    if not ok:
+        return render_template(
+            "auth/editprofile.html",
+            cpnav_current="profile",
+            forums=_forum_jump_list(),
+        )
+
+    user.email = email
+    user.homepage = (form.get("homepage") or "").strip()[:255]
+    user.icq = (form.get("icq") or "").strip()[:30]
+    user.aim = (form.get("aim") or "").strip()[:30]
+    user.yahoo = (form.get("yahoo") or "").strip()[:30]
+    user.signature = (form.get("signature") or "").strip()
+    user.location = (form.get("location") or "").strip()[:100]
+    user.interests = (form.get("interests") or "").strip()[:200]
+    user.occupation = (form.get("occupation") or "").strip()[:100]
+    user.birthday = (form.get("birthday") or "").strip()[:10]
+
+    db.session.commit()
+    flash("个人资料已更新。")
+    return redirect(url_for("auth.profile", username=user.username))
+
+
 # ---- member.php?action=editpassword ----------------------------------------
 
 

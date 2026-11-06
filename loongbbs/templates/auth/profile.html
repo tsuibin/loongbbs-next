@@ -34,28 +34,28 @@
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>联系 {{ profile_user.username }}:</b></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">
-		{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}">点这里给 {{ profile_user.username }} 发悄悄话</a>{% else %}&nbsp;{% endif %}
+		{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}">点这里给 {{ profile_user.username }} 发悄悄话</a>{% elif nav_user %}<a href="{{ url_for('auth.edit_profile') }}">编辑我的个人资料</a>{% else %}&nbsp;{% endif %}
 	</font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>主页:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{% if profile_user.homepage %}<a href="{{ profile_user.homepage }}" target="_blank">{{ profile_user.homepage }}</a>{% else %}&nbsp;{% endif %}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>ICQ 号码:</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.icq if profile_user.icq else '&nbsp;'|safe }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>AOL 即时通讯账号:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.aim if profile_user.aim else '&nbsp;'|safe }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>Yahoo 即时通讯账号:</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.yahoo if profile_user.yahoo else '&nbsp;'|safe }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>生日</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">N/A</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.birthday if profile_user.birthday else 'N/A' }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>个人签名</b></font></td>
@@ -63,15 +63,15 @@
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>来自</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.location if profile_user.location else '&nbsp;'|safe }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>兴趣</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.interests if profile_user.interests else '&nbsp;'|safe }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>职业</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.occupation if profile_user.occupation else '&nbsp;'|safe }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#8080A6" align="center" colspan="2"><font face="verdana,arial,helvetica" size="1">
