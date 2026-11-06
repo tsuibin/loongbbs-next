@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - Search Results{% endblock %}
+{% block content %}
+{% set sortparam = 'replies' if sortby == 'replycount' else sortby %}
+{% set orderparam = 'ascending' if sortorder == 'asc' else 'descending' %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td colspan="2"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}"><font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; <a href="{{ url_for('search.search') }}">Search</a> &gt; Search Results</b></font></td>
+</tr>
+<tr>
+	<td><font face="verdana,arial,helvetica" size="1">Displaying Topics {{ limitlower }} to {{ limitupper }} of {{ total }}</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
+</tr>
+</table>
+<!-- /display and pagenav -->
+
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr align="center">
+	<td bgcolor="#8080A6" colspan="3" align="left"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Thread{% else %}主题{% endif %}</b></font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Thread Starter{% else %}主题作者{% endif %}</b></font></td>
+	<td bgcolor="#8080A6" align="left" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Forum{% else %}版块{% endif %}</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Replies{% else %}回复数{% endif %}</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Views{% else %}查看数{% endif %}</b></font></td>
+	<td bgcolor="#8080A6" align="left" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Last Post{% else %}最后发表{% endif %}</b></font></td>
+</tr>
+{% for item in results %}{% set t = item.thread %}
+<tr align="center">
+	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/newfolder.gif') if t.last_post_at and t.last_post_at > (nav_user.last_visit if nav_user and nav_user.last_visit else t.last_post_at) else url_for('static', filename='images/folder.gif') }}" border="0" alt=""></td>
+	<td bgcolor="#DFDFDF"></td>
+	<td bgcolor="#F1F1F1" align="left"><font face="verdana, arial, helvetica" size="2">{% if t.last_post %}<a href="{{ url_for('forums.thread', thread_id=t.id) }}#post{{ t.last_post.id }}"><img src="{{ url_for('static', filename='images/firstnew.gif') }}" border="0" alt="{% if ui_lang == 'en' %}Go to first new post{% else %}前往第一篇新帖{% endif %}"></a> {% endif %}<a href="{{ url_for('forums.thread', thread_id=t.id) }}">{{ t.title }}</a></font></td>
+	<td bgcolor="#DFDFDF" nowrap><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=t.author.username) }}">{{ t.author.username }}</a></font></td>
+	<td bgcolor="#F1F1F1" align="left"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('forums.forum', forum_id=t.forum_id) }}">{{ t.forum.name }}</a></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ t.reply_count }}</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ t.views }}</font></td>
+	<td bgcolor="#DFDFDF" align="right">
+		<table cellpadding="0" cellspacing="0" border="0" id="ltlink"><tr align="right">
+			<td nowrap><font face="verdana,arial,helvetica" size="1">{{ t.last_post_at|datetimefmt }}<br>
+			by {% if t.last_post %}<a href="{{ url_for('auth.profile', username=t.last_post.author.username) }}"><b>{{ t.last_post.author.username }}</b></a>{% else %}<b>{{ t.author.username }}</b>{% endif %}</font></td>
+			<td nowrap>&nbsp;{% if t.last_post %}<a href="{{ url_for('forums.thread', thread_id=t.id) }}#post{{ t.last_post.id }}"><img src="{{ url_for('static', filename='images/lastpost.gif') }}" border="0" alt="{% if ui_lang == 'en' %}Go to last post{% else %}前往最后一帖{% endif %}"></a>{% endif %}</td>
+		</tr></table>
+	</td>
+</tr>
+{% else %}
+<tr><td bgcolor="#F1F1F1" colspan="7" align="center"><font face="verdana,arial,helvetica" size="1">Sorry - no matches. Please try some different terms.</font></td></tr>
+{% endfor %}
+</table>
+</td></tr></table>
+
+<br>
+
+<!-- timezone, display and pagenav -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td><font face="verdana,arial,helvetica" size="1">Displaying Topics {{ limitlower }} to {{ limitupper }} of {{ total }}</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
+</tr>
+<tr>
+	<td><font face="verdana,arial,helvetica" size="1"><b>All times are GMT. The time now is {{ now_gmt() }}.</b></font></td>
+	<td align="right">
+	<select onchange="if(this.value) location.href=this.value;">
+		<option value="">{% if ui_lang == 'en' %}Please select one:{% else %}请选择一项：{% endif %}</option>
+		<option value="">--------------------</option>
+		<option value="{{ url_for('pm.inbox') }}">{% if ui_lang == 'en' %}Private Messages{% else %}私信{% endif %}</option>
+		<option value="{{ url_for('auth.usercp') }}">{% if ui_lang == 'en' %}User Control Panel{% else %}用户控制面板{% endif %}</option>
+		<option value="{{ url_for('online.whos_online') }}">{% if ui_lang == 'en' %}Who's Online{% else %}在线用户{% endif %}</option>
+		<option value="{{ url_for('search.search') }}">{% if ui_lang == 'en' %}Search Forums{% else %}搜索版块{% endif %}</option>
+		<option value="{{ url_for('forums.index') }}">{% if ui_lang == 'en' %}Forums Home{% else %}论坛首页{% endif %}</option>
+		<option value="">--------------------</option>
+		{% for c in categories %}<option value="-1"> {{ c.name }}</option>
+		{% for f in c.forums %}<option value="{{ url_for('forums.forum', forum_id=f.id) }}">-- {{ f.name }}</option>{% endfor %}{% endfor %}
+	</select></td></tr>
+</table>
+<!-- /timezone, display and pagenav -->
+
+<p align="center"><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.mark_all_read') }}">{% if ui_lang == 'en' %}Mark All Forums Read{% else %}将所有版块标记为已读{% endif %}</a></font></p>
+{% endblock %}

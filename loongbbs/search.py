@@ -5,17 +5,29 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, render_template, request, session
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from .extensions import db
 from .i18n import translate
-from .models import Forum, Post, Thread, User
+from .models import Category, Forum, Post, Thread, User, utcnow
 from .settings import get_setting
 from .utils import clamp_page, page_args, render_body
 
 bp = Blueprint("search", __name__)
 
-SORT_FIELDS = ("lastpost", "dateline", "replycount", "views")
+SORT_FIELDS = ("lastpost", "dateline", "replycount", "views", "title", "poster", "forum")
+
+# 参考站 sortby 的六个值 → 本站内部排序键（另兼容本站旧参数值）
+SORT_ALIASES = {
+    "title": "title",
+    "replies": "replycount",
+    "views": "views",
+    "lastpost": "lastpost",
+    "poster": "poster",
+    "forum": "forum",
+    "dateline": "dateline",
+    "replycount": "replycount",
+}
 
 # 与 vB 一致：只在 words 之间用空白，操作符不参与匹配
 SEARCH_OPERATORS = {"and", "or", "not"}
@@ -80,16 +92,25 @@ def search():
     if get_setting("enablesearches") != "1":
         return _error("抱歉！管理员关闭了搜索功能。")
 
-    query = (request.args.get("q") or "").strip()
-    submitted = "q" in request.args
-    page = clamp_page(request.args.get("page"))
-    forum_id = request.args.get("forum", type=int)
-    selected_forum = db.session.get(Forum, forum_id) if forum_id else None
+    args = request.args
+    query = (args.get("query") or args.get("q") or "").strip()
+    searchuser = (args.get("searchuser") or args.get("author") or "").strip()
+    # 参考站 exactname: yes=精确匹配用户名，no=部分匹配
+    exactname = (args.get("exactname") or "yes").lower() != "no"
+    titleonly = (args.get("titleonly") or "").lower() == "yes"
+    showposts = (args.get("showposts") or "") == "1"
+    submitted = any(k in args for k in ("query", "q", "searchuser", "author", "action"))
+    page = clamp_page(args.get("page"))
     per_page = _setting_int("searchperpage", 25, low=1)
+
+    # 版块：参考站 forumchoice=-1 是「搜索所有开放版块」
+    forum_raw = (args.get("forumchoice") or args.get("forum") or "").strip()
+    forum_id = int(forum_raw) if forum_raw.isdigit() and int(forum_raw) > 0 else None
+    selected_forum = db.session.get(Forum, forum_id) if forum_id else None
 
     # 组 10 searchfloodtime：两次搜索之间的最小间隔（按会话记录上次搜索时间）
     flood = _setting_int("searchfloodtime", 0, low=0, high=3600)
-    if flood > 0 and (query or (request.args.get("author") or "").strip()):
+    if flood > 0 and (query or searchuser):
         last = session.get("search_last_at")
         try:
             last_value = float(last) if last is not None else None
@@ -105,37 +126,65 @@ def search():
         if problem:
             return _error(problem)
 
-    # 高级选项：对应 vB search.php 的 searchuser / startdate / enddate / sortby / sortorder / searchposts
-    author = (request.args.get("author") or "").strip()
-    startdate_raw = (request.args.get("startdate") or "").strip()
-    enddate_raw = (request.args.get("enddate") or "").strip()
-    sortby = (request.args.get("sortby") or "lastpost").lower()
-    if sortby not in SORT_FIELDS:
-        sortby = "lastpost"
-    sortorder = (request.args.get("sortorder") or "desc").lower()
-    if sortorder not in {"asc", "desc"}:
-        sortorder = "desc"
-    searchin = (request.args.get("searchin") or "both").lower()
+    # 日期：参考站 searchdate 是「几天前」的档位（-1 不限），beforeafter 决定边界
+    sd_raw = (args.get("startdate") or "").strip()
+    ed_raw = (args.get("enddate") or "").strip()
+    try:
+        searchdate = int(args.get("searchdate") or -1)
+    except (TypeError, ValueError):
+        searchdate = -1
+    if searchdate < 0:
+        searchdate = -1
+    beforeafter = (args.get("beforeafter") or "after").lower()
+    if beforeafter not in {"after", "before"}:
+        beforeafter = "after"
+
+    # 排序：参考站 sortby=title/replies/views/lastpost/poster/forum
+    sortby = (args.get("sortby") or "lastpost").lower()
+    sortby = SORT_ALIASES.get(sortby, "lastpost")
+    sortorder_raw = (args.get("sortorder") or "descending").lower()
+    sortorder = "asc" if sortorder_raw in {"ascending", "asc"} else "desc"
+    searchin = (args.get("searchin") or "both").lower()
+    if titleonly:
+        searchin = "title"
     if searchin not in {"title", "body", "both"}:
         searchin = "both"
 
-    startdate = _parse_date(startdate_raw)
-    enddate = _parse_date(enddate_raw)
+    startdate = _parse_date(sd_raw)
+    enddate = _parse_date(ed_raw)
     end_exclusive = enddate + timedelta(days=1) if enddate else None
+    if searchdate > 0 and not sd_raw and not ed_raw:
+        edge = _naive(utcnow()) - timedelta(days=searchdate)
+        if beforeafter == "before":
+            end_exclusive = edge
+        else:
+            startdate = edge
 
-    author_user = None
+    author_ids: list[int] = []
     author_missing = False
-    if author:
-        author_user = db.session.scalar(select(User).where(User.username == author))
-        if author_user is None:
-            author_missing = True
+    if searchuser:
+        if exactname:
+            found = db.session.scalar(select(User).where(func.lower(User.username) == searchuser.lower()))
+            if found is None:
+                author_missing = True
+            else:
+                author_ids = [found.id]
+        else:
+            matches = db.session.execute(
+                select(User).where(User.username.ilike(f"%{searchuser}%"))
+            ).scalars().all()
+            author_ids = [user.id for user in matches]
+            if not author_ids:
+                author_missing = True
 
     results: list[dict] = []
     total = 0
-    if submitted and not query and not author and not author_missing:
-        return _error("请给出要搜索的词，或一个有效的用户名。")
-    # 原版 search.php：没有关键词但给了有效用户名时，也按用户搜
-    if (query or author_user is not None) and not author_missing:
+    if searchuser and author_missing:
+        return _error(f"没有找到会员「{searchuser}」。")
+    if not query and not author_ids:
+        if submitted:
+            return _error("请给出要搜索的词，或一个有效的用户名。")
+    if (query or author_ids) and not author_missing:
         # 组 10 allowwildcards：打开时 * 当通配符，关闭时按普通字符处理
         allow_wild = get_setting("allowwildcards") == "1"
         term = query.replace("*", "%") if allow_wild else query
@@ -151,9 +200,9 @@ def search():
         if selected_forum is not None:
             title_query = title_query.where(Thread.forum_id == selected_forum.id)
             post_query = post_query.where(Thread.forum_id == selected_forum.id)
-        if author_user is not None:
-            title_query = title_query.where(Thread.author_id == author_user.id)
-            post_query = post_query.where(Post.author_id == author_user.id)
+        if author_ids:
+            title_query = title_query.where(Thread.author_id.in_(author_ids))
+            post_query = post_query.where(Post.author_id.in_(author_ids))
         if startdate is not None:
             title_query = title_query.where(Thread.last_post_at >= startdate)
             post_query = post_query.where(Post.created_at >= startdate)
@@ -208,30 +257,69 @@ def search():
                 return thread_obj.reply_count
             if sortby == "views":
                 return thread_obj.views
+            if sortby == "title":
+                return (thread_obj.title or "").lower()
+            if sortby == "poster":
+                return (thread_obj.author.username if thread_obj.author else "").lower()
+            if sortby == "forum":
+                return (thread_obj.forum.name if thread_obj.forum else "").lower()
             if sortby == "dateline":
                 return _naive(thread_obj.created_at) or datetime.min
             return _naive(thread_obj.last_post_at) or datetime.min
 
-        results.sort(key=sort_key, reverse=(sortorder == "desc"))
-
+        if sortby in {"title", "poster", "forum"}:
+            results.sort(key=sort_key, reverse=(sortorder == "desc"))
+        else:
+            results.sort(key=lambda item: sort_key(item) or datetime.min, reverse=(sortorder == "desc"))
         total = len(results)
-        results = results[(page - 1) * per_page : page * per_page]
+        first = (page - 1) * per_page
+        results = results[first : first + per_page]
         session["search_last_at"] = time.time()
+        limitlower = first + 1 if total else 0
+        limitupper = first + len(results)
+    else:
+        limitlower = limitupper = 0
 
+    if query or author_ids:
+        categories = (
+            db.session.execute(select(Category).order_by(Category.position)).scalars().all()
+        )
+        return render_template(
+            "search_results.html",
+            query=query,
+            results=results,
+            total=total,
+            page=page,
+            pages=max(1, (total + per_page - 1) // per_page),
+            page_args=page_args,
+            selected_forum=selected_forum,
+            author=searchuser,
+            sortby=sortby,
+            sortorder=sortorder,
+            searchin=searchin,
+            showposts=showposts,
+            limitlower=limitlower,
+            limitupper=limitupper,
+            categories=categories,
+            forumchoice=forum_id,
+            searchdate=searchdate,
+            beforeafter=beforeafter,
+            exactname=exactname,
+            titleonly=titleonly,
+        )
+
+    categories = db.session.execute(select(Category).order_by(Category.position)).scalars().all()
     return render_template(
         "search.html",
         query=query,
-        results=results,
-        total=total,
-        page=page,
-        pages=max(1, (total + per_page - 1) // per_page),
-        page_args=page_args,
-        selected_forum=selected_forum,
-        author=author,
-        author_missing=author_missing,
-        startdate=startdate_raw,
-        enddate=enddate_raw,
+        searchuser=searchuser,
+        select_forum=selected_forum,
+        exactname=exactname,
+        categories=categories,
+        forumchoice=forum_id,
+        searchdate=searchdate,
+        beforeafter=beforeafter,
         sortby=sortby,
         sortorder=sortorder,
-        searchin=searchin,
+        titleonly=titleonly,
     )

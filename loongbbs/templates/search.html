@@ -1,95 +1,123 @@
 {% extends "base.html" %}
-{% block title %}{{ settings.site_name }} - 搜索{% endblock %}
+{% block title %}{{ settings.site_name }} Search Page{% endblock %}
 {% block content %}
+<!-- breadcrumb -->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
-	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; {% if selected_forum %}<a href="{{ url_for('forums.forum', forum_id=selected_forum.id) }}">{{ selected_forum.name }}</a> &gt; {% endif %}搜索</b></font></td>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}"><font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a>{% if select_forum %} &gt; <a href="{{ url_for('forums.forum', forum_id=select_forum.id) }}">{{ select_forum.name }}</a>{% endif %} &gt; Search</b></font></td>
 </tr>
 </table>
+<!-- /breadcrumb -->
 
 <br>
 
-<form method="get" action="{{ url_for('search.search') }}">
+<form action="{{ url_for('search.search') }}" method="get">
+
 <table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-	<td bgcolor="#8080A6" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>搜索论坛</b></font></td>
-</tr>
-<tr bgcolor="#DFDFDF">
-	<td bgcolor="#DFDFDF" width="30%"><font face="verdana, arial, helvetica" size="2"><b>关键词:</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="q" size="40" value="{{ query }}">{% if selected_forum %}<input type="hidden" name="forum" value="{{ selected_forum.id }}">{% endif %}<input type="submit" class="bginput" value="搜索!"></font></td>
+	<td bgcolor="#606096" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>
+	{{ settings.site_name }} Search Engine
+	</b></font></td>
 </tr>
 <tr>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>范围:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">{% if selected_forum %}版块：<b>{{ selected_forum.name }}</b>（只在这个版块内搜索）{% else %}全部版块{% endif %}</font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Search By Keyword{% else %}按关键词搜索{% endif %}</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Search By User Name{% else %}按用户名搜索{% endif %}</b></font></td>
 </tr>
-<tr>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>搜索位置:</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
-	<select name="searchin">
-		<option value="both"{% if searchin == 'both' %} selected{% endif %}>标题和正文</option>
-		<option value="title"{% if searchin == 'title' %} selected{% endif %}>仅标题</option>
-		<option value="body"{% if searchin == 'body' %} selected{% endif %}>仅正文</option>
-	</select></font></td>
-</tr>
-<tr>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>作者:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1"><input type="text" class="bginput" name="author" size="20" value="{{ author }}"> <font size="1">（留空 = 不限作者；填用户名 = 只看此人的主题/帖子）</font>{% if author_missing %}<br><b>{% if ui_lang == 'en' %}No member named &quot;{{ author }}&quot; was found.{% else %}没有找到会员「{{ author }}」。{% endif %}</b>{% endif %}</font></td>
-</tr>
-<tr>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>日期起止:</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
-	{% if ui_lang == 'en' %}From{% else %}从{% endif %} <input type="text" class="bginput" name="startdate" size="12" value="{{ startdate }}" placeholder="YYYY-MM-DD">
-	{% if ui_lang == 'en' %}To{% else %}到{% endif %} <input type="text" class="bginput" name="enddate" size="12" value="{{ enddate }}" placeholder="YYYY-MM-DD">
-	（可只填一端）</font></td>
-</tr>
-<tr>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>排序:</b></font></td>
+<tr valign="top">
 	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
-	<select name="sortby">
-		<option value="lastpost"{% if sortby == 'lastpost' %} selected{% endif %}>最后发表时间</option>
-		<option value="dateline"{% if sortby == 'dateline' %} selected{% endif %}>主题发表时间</option>
-		<option value="replycount"{% if sortby == 'replycount' %} selected{% endif %}>回复数</option>
-		<option value="views"{% if sortby == 'views' %} selected{% endif %}>查看数</option>
-	</select>
-	<select name="sortorder">
-		<option value="desc"{% if sortorder == 'desc' %} selected{% endif %}>降序</option>
-		<option value="asc"{% if sortorder == 'asc' %} selected{% endif %}>升序</option>
-	</select></font></td>
+	<br><input type="text" class="bginput" name="query" size="35" value="{{ query }}">
+	<br><br>
+	<b>{% if ui_lang == 'en' %}Basic query:{% else %}基本查询：{% endif %}</b>
+	{% if ui_lang == 'en' %}separate your search terms with spaces.{% else %}用空格分隔搜索词。{% endif %}<br>
+	<br>
+	<b>{% if ui_lang == 'en' %}Advanced query:{% else %}高级查询：{% endif %}</b>
+	{% if ui_lang == 'en' %}Join words with AND, OR and NOT to control your search in more detail.{% else %}用 AND、OR、NOT 组合关键词以精确搜索。{% endif %}<br>
+	{% if ui_lang == 'en' %}Add asterisks (*) to use wild cards in your search
+	(<i>*bullet*</i> matches <i>vBulletin</i> etc.){% else %}在搜索中使用星号（*）作为通配符（<i>*bullet*</i> matches <i>vBulletin</i> etc.){% endif %}
+	</font></td>
+	<td bgcolor="#F1F1F1"><p><font face="verdana,arial,helvetica" size="1">
+	<br><input type="text" class="bginput" name="searchuser" size="25" maxlength="25" value="{{ searchuser }}">
+	<br><br>
+	<input type="radio" name="exactname" value="yes"{% if exactname %} checked{% endif %}> {% if ui_lang == 'en' %}Match exact name{% else %}精确匹配{% endif %}<br>
+	<input type="radio" name="exactname" value="no"{% if not exactname %} checked{% endif %}> {% if ui_lang == 'en' %}Match partial name{% else %}部分匹配{% endif %}
+	</font></p></td>
 </tr>
 </table>
 </td></tr></table>
-</form>
 
 <br>
 
-{% if query or author %}
 <table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
-<tr bgcolor="#8080A6" align="center">
-	<td bgcolor="#8080A6" align="left" width="44%" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>主题</b></font></td>
-	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>版块</b></font></td>
-	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>命中位置</b></font></td>
-	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>最后发表</b></font></td>
-</tr>
-{% for item in results %}
-<tr align="center">
-	<td bgcolor="#F1F1F1" align="left"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('forums.thread', thread_id=item.thread.id) }}{{ '#post' ~ item.post.id if item.post else '' }}">{{ item.thread.title }}</a></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ item.thread.forum.name }}</font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">{{ item.matched_in }}</font></td>
-	<td bgcolor="#DFDFDF" nowrap><font face="verdana,arial,helvetica" size="1">{{ item.thread.last_post_at|ago }}</font></td>
+<tr>
+	<td bgcolor="#606096" colspan="3"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>
+	{% if ui_lang == 'en' %}Search Options{% else %}搜索选项{% endif %}
+	</b></font></td>
 </tr>
 <tr>
-	<td bgcolor="#DFDFDF" colspan="4"><font face="verdana,arial,helvetica" size="1">{{ item.snippet|safe }}</font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Search Forum...{% else %}搜索版块…{% endif %}</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Search For Posts From...{% else %}搜索帖子范围…{% endif %}</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{% if ui_lang == 'en' %}Sort Results By...{% else %}排序结果…{% endif %}</b></font></td>
 </tr>
-{% else %}
-<tr><td bgcolor="#F1F1F1" colspan="4" align="center"><font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}No matches were found for &quot;{{ query or author }}&quot;.{% else %}没有找到匹配「{{ query or author }}」的内容。{% endif %}</font></td></tr>
-{% endfor %}
+<tr valign="top">
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
+	<br><select name="forumchoice">
+		<option value="-1">{% if ui_lang == 'en' %}Search All Open Forums{% else %}搜索所有开放版块{% endif %}</option>
+		{% for c in categories %}<option value="-1"> {{ c.name }}</option>
+		{% for f in c.forums %}<option value="{{ f.id }}"{% if forumchoice == f.id %} selected{% endif %}>-- {{ f.name }}</option>{% endfor %}{% endfor %}
+	</select><br><br>
+	<table cellpadding="0" cellspacing="0" border="0"><tr>
+		<td><font face="verdana,arial,helvetica" size="1">
+		<input type="radio" name="titleonly" value=""{% if not titleonly %} checked{% endif %}> {% if ui_lang == 'en' %}Search entire posts{% else %}搜索整篇帖子{% endif %}&nbsp;<br>
+		<input type="radio" name="titleonly" value="yes"{% if titleonly %} checked{% endif %}> {% if ui_lang == 'en' %}Search titles only{% else %}仅搜索标题{% endif %}&nbsp;
+		</font></td>
+		<td><font face="verdana,arial,helvetica" size="1">
+		<input type="radio" value="1" name="showposts"> {% if ui_lang == 'en' %}Show results as  posts{% else %}以帖子形式显示结果{% endif %}&nbsp;<br>
+		<input type="radio" value="" name="showposts" checked> {% if ui_lang == 'en' %}Show results as threads{% else %}以主题形式显示结果{% endif %}&nbsp;
+		</font></td>
+	</tr></table>
+	</font></td>
+	<td bgcolor="#F1F1F1"><p><font face="verdana,arial,helvetica" size="1">
+	<br><select name="searchdate">
+		<option value="-1">{% if ui_lang == 'en' %}any date{% else %}任意日期{% endif %}</option>
+		<option value="1">yesterday</option>
+		<option value="5">{% if ui_lang == 'en' %}a week ago{% else %}1 周前{% endif %}</option>
+		<option value="10">{% if ui_lang == 'en' %}2 weeks ago{% else %}2 周前{% endif %}</option>
+		<option value="30">{% if ui_lang == 'en' %}a month ago{% else %}1 个月前{% endif %}</option>
+		<option value="90">{% if ui_lang == 'en' %}3 months ago{% else %}3 个月前{% endif %}</option>
+		<option value="180">{% if ui_lang == 'en' %}6 months ago{% else %}6 个月前{% endif %}</option>
+		<option value="365">{% if ui_lang == 'en' %}a year ago{% else %}1 年前{% endif %}</option>
+	</select><br><br>
+	<input type="radio" name="beforeafter" value="after"{% if beforeafter == 'after' %} checked{% endif %}> {% if ui_lang == 'en' %}and newer{% else %}及更新{% endif %}<br>
+	<input type="radio" name="beforeafter" value="before"{% if beforeafter == 'before' %} checked{% endif %}> {% if ui_lang == 'en' %}and older{% else %}及更早{% endif %}</font></p></td>
+	<td bgcolor="#F1F1F1"><p><font face="verdana,arial,helvetica" size="1">
+	<br><select name="sortby">
+		<option value="title">title</option>
+		<option value="replies"{% if sortby == 'replycount' %} selected{% endif %}>{% if ui_lang == 'en' %}number of replies{% else %}回复数{% endif %}</option>
+		<option value="views"{% if sortby == 'views' %} selected{% endif %}>{% if ui_lang == 'en' %}number of views{% else %}查看数{% endif %}</option>
+		<option value="lastpost"{% if sortby == 'lastpost' %} selected{% endif %}>{% if ui_lang == 'en' %}last posting date{% else %}最后发表日期{% endif %}</option>
+		<option value="poster">poster</option>
+		<option value="forum">forum</option>
+	</select><br><br>
+	<input type="radio" name="sortorder" value="ascending"{% if sortorder == 'asc' %} checked{% endif %}> {% if ui_lang == 'en' %}in ascending order{% else %}升序{% endif %}<br>
+	<input type="radio" name="sortorder" value="descending"{% if sortorder == 'desc' %} checked{% endif %}> {% if ui_lang == 'en' %}in descending order{% else %}降序{% endif %}
+	</font></p></td>
+</tr>
 </table>
 </td></tr></table>
+
 <br>
-<font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}{{ total }} results, page {{ page }} of {{ pages }}.{% else %}共 {{ total }} 条结果，第 {{ page }} 页 / 共 {{ pages }} 页。{% endif %}
-{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', q=query or None, page=p, forum=selected_forum.id if selected_forum else None, author=author or None, startdate=startdate or None, enddate=enddate or None, sortby=sortby, sortorder=sortorder, searchin=searchin) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font>
-{% endif %}
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td align="center"><font face="verdana, arial, helvetica" size="2">
+	<input type="hidden" name="action" value="simplesearch">
+	<input type="submit" class="bginput" name="Submit" value="{% if ui_lang == 'en' %}Perform Search{% else %}执行搜索{% endif %}" accesskey="s">
+	<input type="reset" class="bginput" name="Reset" value="{% if ui_lang == 'en' %}Reset Fields{% else %}重置{% endif %}">
+	</font></td>
+</tr>
+</table>
+
+</form>
 {% endblock %}
