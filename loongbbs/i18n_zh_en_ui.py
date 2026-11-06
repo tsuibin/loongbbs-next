@@ -357,6 +357,7 @@ MAP = {
     "有人回复时发邮件通知你，仅注册用户可用。":
         "Send you an email notification when someone replies; registered users only.",
     "显示签名:": "Show Signature:",
+    "本贴禁用表情": "Disable Smilies in This Post",
     "附件:": "Attachments:",
     "每帖最多 5 个文件，图片会直接显示在帖子里。":
         "Up to 5 files per post; images are shown inline in the thread.",

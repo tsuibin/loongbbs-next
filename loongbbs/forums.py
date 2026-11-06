@@ -809,6 +809,11 @@ def _icon_id() -> int:
     return value if 1 <= value <= 14 else 0
 
 
+def _allowsmilie() -> int:
+    """vB 的 post.allowsmilie：发帖表单勾了 disablesmilies 就落 0。"""
+    return 0 if request.form.get("disablesmilies") == "yes" else 1
+
+
 @bp.post("/f/<int:forum_id>/new")
 @login_required
 def new_thread(forum_id: int):
@@ -823,6 +828,7 @@ def new_thread(forum_id: int):
 
     title = (request.form.get("title") or "").strip()
     body = request.form.get("body") or ""
+    allow_smilies = _allowsmilie()
     if request.form.get("preview"):
         # 对应 vB newthread.php 的 preview 分支：只渲染 newpost_postpreview，不落库
         return render_template(
@@ -831,7 +837,7 @@ def new_thread(forum_id: int):
             mode="new",
             thread=None,
             post=None,
-            preview={"title": title, "body": render_body(body)},
+            preview={"title": title, "body": render_body(body, smilies=allow_smilies)},
         )
     if not title:
         flash("标题不能为空。", "error")
@@ -1099,6 +1105,7 @@ def reply(thread_id: int):
 
     body = (request.form.get("body") or "").strip()
     title = (request.form.get("title") or "").strip() or f"Re: {thread_obj.title}"
+    allow_smilies = _allowsmilie()
     if request.form.get("preview"):
         return render_template(
             "post_form.html",
@@ -1106,7 +1113,7 @@ def reply(thread_id: int):
             mode="reply",
             thread=thread_obj,
             post=None,
-            preview={"title": title, "body": render_body(body)},
+            preview={"title": title, "body": render_body(body, smilies=allow_smilies)},
         )
     if not body:
         flash("回复内容不能为空。", "error")
@@ -1131,6 +1138,7 @@ def reply(thread_id: int):
         body=body,
         iconid=_icon_id(),
         ipaddress=_log_ip(),
+        allowsmilie=allow_smilies,
     )
     db.session.add(post)
     db.session.flush()
@@ -1233,6 +1241,7 @@ def edit_post(post_id: int):
         return redirect(url_for("forums.thread", thread_id=post.thread_id))
 
     body = (request.form.get("body") or "").strip()
+    allow_smilies = _allowsmilie()
     if request.form.get("preview"):
         return render_template(
             "post_form.html",
@@ -1242,7 +1251,7 @@ def edit_post(post_id: int):
             post=post,
             preview={
                 "title": (request.form.get("title") or "").strip() or post.title,
-                "body": render_body(body),
+                "body": render_body(body, smilies=allow_smilies),
             },
         )
     if not body:
@@ -1254,6 +1263,7 @@ def edit_post(post_id: int):
 
     post.body = censor_text(body)
     post.iconid = _icon_id()
+    post.allowsmilie = allow_smilies
     title = (request.form.get("title") or "").strip()
     if title:
         post.title = _stop_shouting(censor_text(title))[:200]

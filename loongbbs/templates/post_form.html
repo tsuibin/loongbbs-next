@@ -176,6 +176,7 @@ function checklength(theform) {
 	<td bgcolor="#F1F1F1" valign="top"><font face="verdana, arial, helvetica" size="2"><b>选项:</b></font></td>
 	<td bgcolor="#F1F1F1" valign="top"><font face="verdana,arial,helvetica" size="1">
 		<input type="checkbox" name="parseurl" value="yes" checked> <b>自动解析链接:</b> 自动在网址前后加上 [url] 与 [/url]。<br>
+		<input type="checkbox" name="disablesmilies" value="yes"{% if (post and not post.allowsmilie) or request.form.get('disablesmilies') == 'yes' %} checked{% endif %}> <b>本贴禁用表情</b><br>
 		<input type="checkbox" name="email" value="yes"> <b>邮件通知:</b> 有人回复时发邮件通知你，仅注册用户可用。<br>
 		<input type="checkbox" name="signature" value="yes" checked> <b>显示签名:</b> 附带你的个人签名，仅注册用户可用。
 	</font></td>

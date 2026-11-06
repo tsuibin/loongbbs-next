@@ -117,7 +117,7 @@
 
 	<td bgcolor="{{ bg }}" width="100%" valign="top">
 	<font face="verdana,arial,helvetica" size="1">{% if post.iconid %}<img src="{{ url_for('static', filename='images/icons/icon' ~ post.iconid ~ '.gif') }}" border="0" align="middle" alt="图标 {{ post.iconid }}" title="图标 {{ post.iconid }}">{% else %}<img src="{{ url_for('static', filename='images/posticon.gif') }}" border="0" alt="">{% endif %} <b>{{ post.title or thread.title }}</b></font>
-	<p><font face="verdana, arial, helvetica" size="2">{{ post.body|body|safe }}</font></p>
+	<p><font face="verdana, arial, helvetica" size="2">{{ post.body|body(smilies=post.allowsmilie)|safe }}</font></p>
 	{% if post.attachments %}
 	{% for attachment in post.attachments %}
 		{% if attachment.is_image %}

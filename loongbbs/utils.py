@@ -409,7 +409,7 @@ def _apply_bbcode_table(text: str) -> str:
     return text
 
 
-def render_body(text: str, prefix: str = "") -> str:
+def render_body(text: str, prefix: str = "", smilies: bool = True) -> str:
     """Escape everything, then re-enable a small BBCode subset.
 
     Raw HTML is never allowed, so a post can not inject markup; the only tags
@@ -418,6 +418,8 @@ def render_body(text: str, prefix: str = "") -> str:
     解析范围受后台「发帖代码权限」组控制（vB 的 allowbbcode / allowhtml /
     allowbbimagecode / allowsmilies / allowdynimg / maximages）；传 prefix="priv"
     时改读「私信选项」组的 privallowbbcode / privallowbbimagecode / privallowsmilies。
+    smilies=False 对应帖子自己的 allowsmilie=0（发帖时勾了 Disable Smilies），
+    只关这条帖子的表情替换，不影响全局开关。
     """
     if not text:
         return ""
@@ -425,7 +427,7 @@ def render_body(text: str, prefix: str = "") -> str:
     options = _posting_options()
     allow_bbcode = _flag(options, f"{prefix}allowbbcode")
     allow_img = _flag(options, f"{prefix}allowbbimagecode", "0")
-    allow_smilies = _flag(options, f"{prefix}allowsmilies")
+    allow_smilies = _flag(options, f"{prefix}allowsmilies") and bool(smilies)
     allow_dynimg = _flag(options, "allowdynimg", "0")
     try:
         max_images = int(str(options.get("maximages", "10") or "10").strip())

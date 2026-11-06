@@ -304,6 +304,8 @@ class Post(db.Model):
     is_deleted = db.Column(db.Boolean, nullable=False, default=False)
     # vB 的 iconid：发帖时选的帖子图标 1-14，0 = 不使用图标
     iconid = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    # vB 的 post.allowsmilie：1 = 解析表情，0 = 本帖勾了「Disable Smilies」
+    allowsmilie = db.Column(db.Integer, nullable=False, default=1, server_default="1")
 
     thread = db.relationship("Thread", back_populates="posts")
     author = db.relationship("User", back_populates="posts", foreign_keys=[author_id])
