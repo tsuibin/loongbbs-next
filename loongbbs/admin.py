@@ -62,7 +62,7 @@ NAV_GROUPS = [
     ]},
     {"title": "Threads & Posts", "links": [
         {"label": "Mass Prune", "endpoint": "admin.threads_prune"},
-        {"label": "Mass Move", "endpoint": "admin.threads_page"},
+        {"label": "Mass Move", "endpoint": "admin.threads_move"},
         {"label": "Unsubscribe Thread", "module": "Unsubscribe Thread"},
         {"label": "Strip Poll", "module": "Strip Poll"},
         {"label": "Who Voted?", "module": "Who Voted?"},
@@ -599,6 +599,176 @@ def _forum_label(forum_id: int) -> str:
         return "all forums"
     forum_obj = db.session.get(Forum, forum_id)
     return f'the "{forum_obj.name}" forum' if forum_obj else "all forums"
+
+
+@bp.route("/threads/move", methods=["GET", "POST"])
+def threads_move():
+    """Threads & Posts → Mass Move（原版 thread.php 的 move / movedate / moveuser 系列）。"""
+    forums = db.session.execute(
+        select(Forum).order_by(Forum.position, Forum.id)
+    ).scalars().all()
+    categories = (
+        db.session.execute(select(Category).order_by(Category.position, Category.id))
+        .scalars()
+        .all()
+    )
+    step = (request.form.get("step") or "").strip()
+
+    if request.method == "GET" or not step:
+        return render_template(
+            "admin/thread_move.html", mode="form", forums=forums, categories=categories
+        )
+
+    days = request.form.get("daysmove", type=int) or 0
+    forum_id = request.form.get("forumid", type=int) or -1
+    dest_id = request.form.get("destforumid", type=int) or -1
+    username = (request.form.get("username") or "").strip()
+
+    def _scope(stmt):
+        return stmt.where(Thread.forum_id == forum_id) if forum_id > 0 else stmt
+
+    def _dest_forum():
+        return db.session.get(Forum, dest_id) if dest_id > 0 else None
+
+    def _form_page():
+        return render_template(
+            "admin/thread_move.html", mode="form", forums=forums, categories=categories
+        )
+
+    def _do_move(ids, forum_obj, message):
+        moved = 0
+        for tid in ids:
+            thread_obj = db.session.get(Thread, tid)
+            if thread_obj is not None:
+                thread_obj.forum_id = forum_obj.id
+                moved += 1
+        db.session.commit()
+        flash(
+            f"{message} {moved} thread(s) moved. It is recommended that you update counters now.",
+            "success",
+        )
+
+    if step == "by_date":
+        if days <= 0:
+            flash("Please enter an age of post to move", "error")
+            return _form_page()
+        if _dest_forum() is None:
+            flash("Please choose a destination forum.", "error")
+            return _form_page()
+        return render_template(
+            "admin/thread_move.html",
+            mode="confirm_date",
+            forums=forums,
+            categories=categories,
+            days=days,
+            forum_id=forum_id,
+            dest_id=dest_id,
+            forum_label=_forum_label(forum_id),
+        )
+
+    if step == "date_select":
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        rows = db.session.execute(
+            _scope(select(Thread).where(Thread.last_post_at <= cutoff)).order_by(
+                Thread.last_post_at.desc()
+            )
+        ).scalars().all()
+        return render_template(
+            "admin/thread_move.html",
+            mode="select_date",
+            forums=forums,
+            categories=categories,
+            rows=rows,
+            days=days,
+            forum_id=forum_id,
+            dest_id=dest_id,
+        )
+
+    if step == "date_all":
+        forum_obj = _dest_forum()
+        if forum_obj is None:
+            flash("Please choose a destination forum.", "error")
+            return redirect(url_for("admin.threads_move"))
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        ids = db.session.scalars(
+            _scope(select(Thread.id).where(Thread.last_post_at <= cutoff))
+        ).all()
+        _do_move(list(ids), forum_obj, "Posts moved successfully!")
+        return redirect(url_for("admin.threads_move"))
+
+    if step == "date_do":
+        forum_obj = _dest_forum()
+        if forum_obj is None:
+            flash("Please choose a destination forum.", "error")
+            return redirect(url_for("admin.threads_move"))
+        _do_move(_checked_ids(request.form, "move_"), forum_obj, "Posts moved successfully!")
+        return redirect(url_for("admin.threads_move"))
+
+    if step == "by_user":
+        if not username:
+            flash("Please enter a username to search for", "error")
+            return _form_page()
+        if _dest_forum() is None:
+            flash("Please choose a destination forum.", "error")
+            return _form_page()
+        users = db.session.execute(
+            select(User).where(User.username.ilike(f"%{username}%")).order_by(User.username)
+        ).scalars().all()
+        return render_template(
+            "admin/thread_move.html",
+            mode="confirm_user",
+            forums=forums,
+            categories=categories,
+            users=users,
+            username=username,
+            forum_id=forum_id,
+            dest_id=dest_id,
+            forum_label=_forum_label(forum_id),
+        )
+
+    if step == "user_all":
+        forum_obj = _dest_forum()
+        if forum_obj is None:
+            flash("Please choose a destination forum.", "error")
+            return redirect(url_for("admin.threads_move"))
+        user_obj = db.session.get(User, request.form.get("userid", type=int))
+        if user_obj is None:
+            flash("No such user found.", "error")
+            return redirect(url_for("admin.threads_move"))
+        ids = db.session.scalars(_scope(select(Thread.id).where(Thread.author_id == user_obj.id))).all()
+        _do_move(list(ids), forum_obj, "Threads moved successfully!")
+        return redirect(url_for("admin.threads_move"))
+
+    if step == "user_select":
+        user_obj = db.session.get(User, request.form.get("userid", type=int))
+        if user_obj is None:
+            flash("No such user found.", "error")
+            return redirect(url_for("admin.threads_move"))
+        rows = db.session.execute(
+            _scope(select(Thread).where(Thread.author_id == user_obj.id)).order_by(
+                Thread.last_post_at.desc()
+            )
+        ).scalars().all()
+        return render_template(
+            "admin/thread_move.html",
+            mode="select_user",
+            forums=forums,
+            categories=categories,
+            user_obj=user_obj,
+            rows=rows,
+            forum_id=forum_id,
+            dest_id=dest_id,
+        )
+
+    if step == "user_do":
+        forum_obj = _dest_forum()
+        if forum_obj is None:
+            flash("Please choose a destination forum.", "error")
+            return redirect(url_for("admin.threads_move"))
+        _do_move(_checked_ids(request.form, "movethread_"), forum_obj, "Threads moved successfully!")
+        return redirect(url_for("admin.threads_move"))
+
+    return redirect(url_for("admin.threads_move"))
 
 
 @bp.route("/threads/prune", methods=["GET", "POST"])

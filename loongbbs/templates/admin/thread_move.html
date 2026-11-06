@@ -1,0 +1,191 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Mass Move{% else %}批量移动主题{% endif %}{% endblock %}
+{% block content %}
+
+{% macro forum_select(name, current, allow_all=True) %}
+<select name="{{ name }}">
+{% if allow_all %}
+	<option value="-1"{% if not current or current < 1 %} selected{% endif %}>----- all -----</option>
+{% endif %}
+{% for cat in categories %}
+	<option value="-1"{% if not allow_all and loop.first and (not current or current < 1) %} selected{% endif %}>--{{ cat.name }}--</option>
+{% for forum in cat.forums %}
+	<option value="{{ forum.id }}"{% if current == forum.id %} selected{% endif %}>----{{ forum.name }}--</option>
+{% endfor %}
+{% endfor %}
+</select>
+{% endmacro %}
+
+{% if mode == 'form' %}
+<p><b>Threads &amp; Posts &rsaquo; Mass Move</b></p>
+<p>Note: This will only move the threads -- it will not copy them or leave a redirect!</p>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Move by date</span></b></font></td></tr>
+<tr class="firstalt" valign="top">
+	<td width="50%"><p>Move threads with last post older than x days:</p></td>
+	<td><p><input type="text" name="daysmove" size="35" value="0"></p></td>
+</tr>
+<tr class="secondalt" valign="top"><td><p>Source Forum:</p></td><td><p>{{ forum_select('forumid', none) }}</p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Destination Forum:</p></td><td><p>{{ forum_select('destforumid', none, False) }}</p></td></tr>
+<tr class="secondalt" valign="top"><td>&nbsp;</td><td><p>Note: this will not move posts from sub forums!</p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="by_date">
+	<input type="submit" value="Move">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<br>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Move by username</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="50%"><p>Username</p></td><td><p><input type="text" name="username" size="35"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Source Forum:</p></td><td><p>{{ forum_select('forumid', none) }}</p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Destination Forum:</p></td><td><p>{{ forum_select('destforumid', none, False) }}</p></td></tr>
+<tr class="secondalt" valign="top"><td>&nbsp;</td><td><p>Note: this will not move posts from sub forums!</p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="by_user">
+	<input type="submit" value="Submit">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'confirm_date' %}
+<p>You are about to move all threads from the {{ forum_label }} forum older than {{ days }} day(s).</p>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Move All Threads Automatically</span></b></font></td></tr>
+<tr class="firstalt"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="date_all">
+	<input type="hidden" name="daysmove" value="{{ days }}">
+	<input type="hidden" name="forumid" value="{{ forum_id }}">
+	<input type="hidden" name="destforumid" value="{{ dest_id }}">
+	<input type="submit" value="Click Here to Move All Threads Automatically">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Move Threads Selectively</span></b></font></td></tr>
+<tr class="firstalt"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="date_select">
+	<input type="hidden" name="daysmove" value="{{ days }}">
+	<input type="hidden" name="forumid" value="{{ forum_id }}">
+	<input type="hidden" name="destforumid" value="{{ dest_id }}">
+	<input type="submit" value="Click Here to Move Threads Selectively">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'select_date' %}
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Move Threads Selectively</span></b></font></td></tr>
+<tr class="tblhead">
+	<td><font size="1"><b><span class="tblhead">Thread Title</span></b></font></td>
+	<td width="120"><font size="1"><b><span class="tblhead">Move?</span></b></font></td>
+</tr>
+{% for row in rows %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td><a href="{{ url_for('forums.thread', thread_id=row.id) }}" target="_blank"><i>{{ row.title }}</i></a></td>
+	<td nowrap>Yes<input type="radio" name="move_{{ row.id }}" value="1" checked> No <input type="radio" name="move_{{ row.id }}" value="0"></td>
+</tr>
+{% else %}
+<tr class="firstalt"><td colspan="2">{% if ui_lang == 'en' %}No threads matched your conditions.{% else %}没有符合条件的主题。{% endif %}</td></tr>
+{% endfor %}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="date_do">
+	<input type="hidden" name="destforumid" value="{{ dest_id }}">
+	<input type="submit" value="Submit - only click here if you are ABSOLUTELY certain">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'confirm_user' %}
+<p>You are about to move all posts and threads from {{ forum_label }} by one of these users. Please select one:</p>
+{% for user in users %}
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Move All of "{{ user.username }}'s" Posts Automatically</span></b></font></td></tr>
+<tr class="firstalt"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="user_all">
+	<input type="hidden" name="userid" value="{{ user.id }}">
+	<input type="hidden" name="forumid" value="{{ forum_id }}">
+	<input type="hidden" name="destforumid" value="{{ dest_id }}">
+	<input type="submit" value="Click Here to Move All of &quot;{{ user.username }}'s&quot; Posts Automatically">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Move "{{ user.username }}'s" Posts Selectively</span></b></font></td></tr>
+<tr class="firstalt"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="user_select">
+	<input type="hidden" name="userid" value="{{ user.id }}">
+	<input type="hidden" name="forumid" value="{{ forum_id }}">
+	<input type="hidden" name="destforumid" value="{{ dest_id }}">
+	<input type="submit" value="Click Here to Move &quot;{{ user.username }}'s&quot; Posts Selectively">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+<hr>
+{% else %}
+<p>{% if ui_lang == 'en' %}No usernames matched "{{ username }}".{% else %}没有用户名匹配「{{ username }}」。{% endif %}</p>
+{% endfor %}
+
+{% elif mode == 'select_user' %}
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead">
+	<td><font size="1"><b><span class="tblhead">Thread Title</span></b></font></td>
+	<td width="120"><font size="1"><b><span class="tblhead">Move?</span></b></font></td>
+</tr>
+{% for row in rows %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td><a href="{{ url_for('forums.thread', thread_id=row.id) }}" target="_blank">{{ row.title }}</a></td>
+	<td nowrap>Yes<input type="radio" name="movethread_{{ row.id }}" value="1" checked> No <input type="radio" name="movethread_{{ row.id }}" value="0"></td>
+</tr>
+{% else %}
+<tr class="firstalt"><td colspan="2">{% if ui_lang == 'en' %}This user has no threads.{% else %}该用户没有发过主题。{% endif %}</td></tr>
+{% endfor %}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="user_do">
+	<input type="hidden" name="destforumid" value="{{ dest_id }}">
+	<input type="submit" value="Submit - only click here if you are ABSOLUTELY certain">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

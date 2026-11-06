@@ -28,7 +28,7 @@
 <tr class="secondalt" valign="top"><td><p>Forum:</p></td><td><p>{{ forum_select('forumid', none) }}</p></td></tr>
 <tr class="firstalt" valign="top"><td><p>Include sub forums</p></td>
 	<td><p>Yes<input type="radio" name="subforums" value="1" checked> No <input type="radio" name="subforums" value="0"></p></td></tr>
-<tr class="tblhead"><td colspan="2" align="center">
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
 	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 	<input type="hidden" name="step" value="by_date">
 	<input type="submit" value="Prune">
@@ -48,7 +48,7 @@
 <tr class="secondalt" valign="top"><td><p>Forum:</p></td><td><p>{{ forum_select('forumid', none) }}</p></td></tr>
 <tr class="firstalt" valign="top"><td><p>Include sub forums</p></td>
 	<td><p>Yes<input type="radio" name="subforums" value="1" checked> No <input type="radio" name="subforums" value="0"></p></td></tr>
-<tr class="tblhead"><td colspan="2" align="center">
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
 	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 	<input type="hidden" name="step" value="by_user">
 	<input type="submit" value="Prune">
@@ -107,7 +107,7 @@
 {% else %}
 <tr class="firstalt"><td colspan="2">{% if ui_lang == 'en' %}No threads matched your conditions.{% else %}没有符合条件的主题。{% endif %}</td></tr>
 {% endfor %}
-<tr class="tblhead"><td colspan="2" align="center">
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
 	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 	<input type="hidden" name="step" value="date_do">
 	<input type="submit" value="Submit - only click here if you are ABSOLUTELY certain">
@@ -181,7 +181,7 @@
 {% else %}
 <tr class="firstalt"><td colspan="2">{% if ui_lang == 'en' %}This user has no posts.{% else %}该用户没有发过帖子。{% endif %}</td></tr>
 {% endfor %}
-<tr class="tblhead"><td colspan="2" align="center">
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
 	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 	<input type="hidden" name="step" value="user_do">
 	<input type="hidden" name="userid" value="{{ user_obj.id }}">
