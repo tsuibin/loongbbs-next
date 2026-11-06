@@ -86,6 +86,11 @@
 	{% if nav_user %}其中包含你自己。{% else %}登录后可以在这里看到自己的名字。{% endif %}</font></td>
 </tr>
 {% endif %}
+{% if birthdays %}
+<tr>
+	<td bgcolor="#F1F1F1" colspan="6"><font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}Today's Birthdays: {% else %}今日生日: {% endif %}{% for bday in birthdays %}<a href="{{ url_for('auth.profile', username=bday.username) }}">{{ bday.username }}</a>{% if bday.age %} ({{ bday.age }}){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</font></td>
+</tr>
+{% endif %}
 </table>
 </td></tr></table>
 <!-- /main -->

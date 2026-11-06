@@ -44,6 +44,7 @@ MAP = {
     "无新帖": "No New Posts",
     "已关闭的版块": "Closed Forums",
     "当前在线用户": "Currently Active Users",
+    "今日生日:": "Today's Birthdays:",
     "其中包含你自己。": "This includes you.",
     "登录后可以在这里看到自己的名字。": "Log in and you will see your name here.",
     "不想用 Cookie？": "Don't want to use cookies?",

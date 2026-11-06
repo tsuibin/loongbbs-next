@@ -462,6 +462,46 @@ def _postmaxchars() -> int:
         return 0
 
 
+def _todays_birthdays():
+    """首页「今日生日」：对应 vB index.php 的 $loadbirthdays 与 getbirthdays()。
+
+    原版为了兼容 12 小时时区差，同时取「现在 - (12+时区) 小时」与
+    「现在 + (12-时区) 小时」两个日期的 MM-DD 去匹配 user.birthday 的末 5 位，
+    命中就按 calendar_showbirthdays 输出 `用户名 (年龄)`，多个用逗号连接。
+    年龄只在 birthday 有真实年份（不是 0000）且年份小于今年时才显示。
+    """
+    if get_setting("showbirthdays", "1") == "0":
+        return []
+    try:
+        offset = int(float(get_setting("timeoffset") or 0))
+    except (TypeError, ValueError):
+        offset = 0
+
+    now = datetime.now(timezone.utc)
+    day_keys = {
+        (now + timedelta(hours=-12 - offset)).strftime("%m-%d"),
+        (now + timedelta(hours=12 - offset)).strftime("%m-%d"),
+    }
+
+    users = db.session.execute(
+        select(User).where(User.birthday.isnot(None), User.birthday != "")
+    ).scalars().all()
+
+    rows = []
+    for user in users:
+        birthday = (user.birthday or "").strip()
+        if len(birthday) < 10 or birthday[5:10] not in day_keys:
+            continue
+        age = None
+        year_text = birthday[:4]
+        if year_text.isdigit():
+            year = int(year_text)
+            if year and now.year > year:
+                age = now.year - year
+        rows.append({"username": user.username, "age": age})
+    return rows
+
+
 @bp.get("/")
 def index():
     categories = db.session.execute(
@@ -526,6 +566,9 @@ def index():
             .order_by(User.username)
         ).scalars().all()
 
+    # 首页「今日生日」块（原版 index.php 的 $loadbirthdays + forumhome_birthdaybit）
+    birthdays = _todays_birthdays()
+
     # 组 19 checknewpm：登录后首页提示「你有 N 条未读悄悄话」（原版 forumhome_pmloggedin）
     unread_pm = 0
     if current_user.is_authenticated and get_setting("checknewpm", "1") != "0":
@@ -547,6 +590,7 @@ def index():
         highlight_admin=highlight_admin,
         home_depth=home_depth,
         online_users=online_users,
+        birthdays=birthdays,
         unread_pm=unread_pm,
     )
 
