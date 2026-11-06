@@ -496,6 +496,82 @@ def edit_profile_post():
     return redirect(url_for("auth.profile", username=user.username))
 
 
+# ---- member.php?action=lostpw ----------------------------------------------
+
+RESET_MAX_AGE = 3600  # 令牌有效期（秒）
+
+
+def _reset_serializer():
+    from itsdangerous import URLSafeTimedSerializer
+
+    return URLSafeTimedSerializer(current_app.secret_key, salt="loongbbs-lostpw")
+
+
+def _read_reset_token(token: str):
+    try:
+        data = _reset_serializer().loads(token, max_age=RESET_MAX_AGE)
+    except Exception:  # 过期、被篡改、格式不对
+        return None
+    return data.get("uid") if isinstance(data, dict) else None
+
+
+def _render_lostpw(step: str, **kwargs):
+    return render_template("auth/lostpw.html", step=step, **kwargs)
+
+
+@bp.get("/lostpw")
+def lostpw():
+    """对应 vB 的 member.php?action=lostpw（忘记密码）。"""
+    return _render_lostpw("form", reset_link=None)
+
+
+@bp.post("/lostpw")
+def lostpw_post():
+    email = (request.form.get("email") or "").strip()
+    user = None
+    if email:
+        user = db.session.scalar(
+            select(User).where(func.lower(User.email) == email.lower())
+        )
+    if user is None:
+        flash("没有找到使用这个邮箱地址的会员，请检查后重试。")
+        return _render_lostpw("form", reset_link=None, email=email)
+    token = _reset_serializer().dumps({"uid": user.id})
+    reset_link = url_for("auth.lostpw_reset", token=token, _external=True)
+    return _render_lostpw("sent", reset_link=reset_link, email=email, username=user.username)
+
+
+@bp.get("/lostpw/reset/<token>")
+def lostpw_reset(token: str):
+    if _read_reset_token(token) is None:
+        return _render_lostpw("invalid", reset_link=None)
+    return _render_lostpw("reset", reset_link=None, token=token)
+
+
+@bp.post("/lostpw/reset/<token>")
+def lostpw_reset_post(token: str):
+    uid = _read_reset_token(token)
+    if uid is None:
+        return _render_lostpw("invalid", reset_link=None)
+    user = db.session.get(User, uid)
+    if user is None:
+        return _render_lostpw("invalid", reset_link=None)
+
+    new = request.form.get("newpassword") or ""
+    confirm = request.form.get("newpasswordconfirm") or ""
+    if len(new) < 6:
+        flash("新密码至少需要 6 个字符。")
+        return _render_lostpw("reset", reset_link=None, token=token)
+    if new != confirm:
+        flash("两次输入的新密码不一致。")
+        return _render_lostpw("reset", reset_link=None, token=token)
+
+    user.set_password(new)
+    db.session.commit()
+    flash("密码已重设，请用新密码登录。")
+    return redirect(url_for("auth.login"))
+
+
 # ---- member.php?action=editpassword ----------------------------------------
 
 

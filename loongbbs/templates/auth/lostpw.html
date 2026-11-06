@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 找回密码{% endblock %}
+{% block content %}
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" alt="" border="0" align="absmiddle">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 找回密码</b></font></td>
+</tr>
+</table>
+
+<br>
+
+{% if step == 'form' %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<form method="post" action="{{ url_for('auth.lostpw_post') }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<tr>
+	<td bgcolor="#606096" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>找回密码</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2"><font face="verdana, arial, helvetica" size="2">
+	请填写你注册时使用的邮箱地址。系统会给你一个重设密码的链接。<br>
+	<font size="1">（本演示环境没有配置 SMTP 邮件服务，重设链接会直接显示在页面上。正式部署时改为发邮件即可。）</font>
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" width="35%"><font face="verdana, arial, helvetica" size="2"><b>邮箱地址:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="email" value="{{ email or '' }}" size="30" maxlength="150"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2" align="center"><font face="verdana, arial, helvetica" size="2">
+	<input type="submit" class="bginput" value="发送重设链接">
+	</font></td>
+</tr>
+</form>
+</table>
+</td></tr></table>
+
+{% elif step == 'sent' %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#606096"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>重设密码链接</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
+	会员 <b>{{ username }}</b>（{{ email }}）的密码重设链接如下，1 小时内有效：<br><br>
+	<b><a href="{{ reset_link }}">{{ reset_link }}</a></b><br><br>
+	<font size="1">本演示环境没有配置 SMTP，链接直接显示在这里。打开它即可设置新密码。</font>
+	</font></td>
+</tr>
+</table>
+</td></tr></table>
+
+{% elif step == 'reset' %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<form method="post" action="{{ url_for('auth.lostpw_reset_post', token=token) }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<tr>
+	<td bgcolor="#606096" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>设置新密码</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" width="35%"><font face="verdana, arial, helvetica" size="2"><b>新密码:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="password" class="bginput" name="newpassword" size="25" maxlength="50"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>确认新密码:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="password" class="bginput" name="newpasswordconfirm" size="25" maxlength="50"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" colspan="2" align="center"><font face="verdana, arial, helvetica" size="2">
+	<input type="submit" class="bginput" value="保存新密码">
+	</font></td>
+</tr>
+</form>
+</table>
+</td></tr></table>
+
+{% else %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
+	这个重设链接无效或已经过期（有效期 1 小时）。请<a href="{{ url_for('auth.lostpw') }}">重新申请</a>一个。
+	</font></td>
+</tr>
+</table>
+</td></tr></table>
+{% endif %}
+
+{% endblock %}

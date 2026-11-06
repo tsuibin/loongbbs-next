@@ -43,6 +43,7 @@
 <tr>
 	<td bgcolor="#DFDFDF" colspan="2" align="center"><font face="verdana,arial,helvetica" size="1">
 	{% if settings.allow_registration == '1' %}还没有账号？<a href="{{ url_for('auth.register_form') }}">免费注册</a>{% else %}本站暂未开放注册。{% endif %}
+	&nbsp;|&nbsp;<a href="{{ url_for('auth.lostpw') }}">忘记密码了？</a>
 	</font></td>
 </tr>
 </table>
