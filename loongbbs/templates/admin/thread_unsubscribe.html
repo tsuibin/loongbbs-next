@@ -1,0 +1,77 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Unsubscribe Threads{% else %}取消主题订阅{% endif %}{% endblock %}
+{% block content %}
+
+{% macro forum_select(name, current) %}
+<select name="{{ name }}">
+	<option value="-1"{% if not current or current < 1 %} selected{% endif %}>----- all -----</option>
+{% for cat in categories %}
+	<option value="-1" disabled>--{{ cat.name }}--</option>
+{% for forum in cat.forums %}
+	<option value="{{ forum.id }}"{% if current == forum.id %} selected{% endif %}>----{{ forum.name }}--</option>
+{% endfor %}
+{% endfor %}
+</select>
+{% endmacro %}
+
+{% if mode == 'form' %}
+<p><b>Threads &amp; Posts &rsaquo; Unsubscribe Thread</b></p>
+<p>This system allows you to remove all user subscriptions from the thread(s) you specify.</p>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Unsubscribe users from specific threads</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="50%">
+	<p>Enter the threadid(s) of the threads from which you want to unsubscribe users.<br>
+	<font size="1">(separate ids with spaces - eg: 1 2 6 9)</font></p>
+</td><td>
+	<p><textarea name="ids" rows="4" cols="40"></textarea></p>
+</td></tr>
+<tr class="tblhead" id="submitrow"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="specific">
+	<input type="submit" value="Unsubscribe Threads">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<br>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Mass unsubscribe users from threads</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="50%"><p>Threads older than days:</p></td><td><p><input type="text" name="daysprune" size="35" value="30"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Threads from forum:</p></td><td><p>{{ forum_select('forumid', none) }}</p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="mass">
+	<input type="submit" value="Unsubscribe Threads">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'confirm' %}
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Confirm Unsubscribe Threads</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Are you <b>sure</b> you want to unsubscribe all users from the {{ total }} thread(s) matching your search pattern?</p></td></tr>
+<tr class="tblhead" id="submitrow"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="do">
+	<input type="hidden" name="threadids" value="{{ ids_text }}">
+	<input type="submit" value="Yes, unsubscribe now">
+	<input type="button" value="Oops... no!" onclick="history.back(1)">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

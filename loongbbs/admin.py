@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import re
 
 from flask import (
     Blueprint,
@@ -63,7 +64,7 @@ NAV_GROUPS = [
     {"title": "Threads & Posts", "links": [
         {"label": "Mass Prune", "endpoint": "admin.threads_prune"},
         {"label": "Mass Move", "endpoint": "admin.threads_move"},
-        {"label": "Unsubscribe Thread", "module": "Unsubscribe Thread"},
+        {"label": "Unsubscribe Thread", "endpoint": "admin.threads_unsubscribe"},
         {"label": "Strip Poll", "module": "Strip Poll"},
         {"label": "Who Voted?", "module": "Who Voted?"},
     ]},
@@ -769,6 +770,87 @@ def threads_move():
         return redirect(url_for("admin.threads_move"))
 
     return redirect(url_for("admin.threads_move"))
+
+
+@bp.route("/threads/unsubscribe", methods=["GET", "POST"])
+def threads_unsubscribe():
+    """Threads & Posts → Unsubscribe Thread（原版 thread.php 的 unsubscribe 系列）。"""
+    forums = db.session.execute(
+        select(Forum).order_by(Forum.position, Forum.id)
+    ).scalars().all()
+    categories = (
+        db.session.execute(select(Category).order_by(Category.position, Category.id))
+        .scalars()
+        .all()
+    )
+    step = (request.form.get("step") or "").strip()
+
+    def _page():
+        return render_template(
+            "admin/thread_unsubscribe.html", mode="form", forums=forums, categories=categories
+        )
+
+    if request.method == "GET" or not step:
+        return _page()
+
+    if step == "specific":
+        ids_text = (request.form.get("ids") or "").strip()
+        if not ids_text:
+            flash("No threads specified!", "error")
+            return _page()
+        thread_ids = [int(x) for x in re.split(r"\s+", ids_text) if x.isdigit()]
+        if not thread_ids:
+            flash("No threads specified!", "error")
+            return _page()
+        return _confirm_page(thread_ids)
+
+    if step == "mass":
+        days = request.form.get("daysprune", type=int) or 0
+        forum_id = request.form.get("forumid", type=int) or -1
+        stmt = select(Thread.id)
+        if forum_id > 0:
+            stmt = stmt.where(Thread.forum_id == forum_id)
+        if days > 0:
+            stmt = stmt.where(
+                Thread.last_post_at <= datetime.now(timezone.utc) - timedelta(days=days)
+            )
+        thread_ids = list(db.session.scalars(stmt).all())
+        if not thread_ids:
+            flash("No threads matched your query!", "error")
+            return _page()
+        return _confirm_page(thread_ids)
+
+    if step == "do":
+        ids = [int(x) for x in re.split(r"[,\s]+", request.form.get("threadids") or "") if x.isdigit()]
+        if not ids:
+            flash("No threads specified!", "error")
+            return _page()
+        removed = db.session.execute(
+            delete(ThreadSubscription).where(ThreadSubscription.thread_id.in_(ids))
+        ).rowcount
+        db.session.commit()
+        flash(f"Threads unsubscribed ({removed} subscription record(s) deleted)", "success")
+        return redirect(url_for("admin.threads_unsubscribe"))
+
+    return _page()
+
+
+def _confirm_page(thread_ids):
+    """confirmunsubscribe：先数一下这些主题里到底有多少条订阅，再让人确认。"""
+    total = db.session.scalar(
+        select(func.count(ThreadSubscription.id)).where(
+            ThreadSubscription.thread_id.in_(thread_ids)
+        )
+    ) or 0
+    if total <= 0:
+        flash("No thread subscriptions matched your conditions", "error")
+        return redirect(url_for("admin.threads_unsubscribe"))
+    return render_template(
+        "admin/thread_unsubscribe.html",
+        mode="confirm",
+        ids_text=",".join(str(i) for i in thread_ids),
+        total=total,
+    )
 
 
 @bp.route("/threads/prune", methods=["GET", "POST"])
