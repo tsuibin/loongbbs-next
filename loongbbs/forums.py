@@ -447,6 +447,16 @@ def new_thread_form(forum_id: int):
     return render_template("post_form.html", forum=forum_obj, mode="new", thread=None, post=None)
 
 
+def _icon_id() -> int:
+    """发帖时选的帖子图标（vB 的 iconid，0 = 不使用）。"""
+    raw = request.form.get("iconid")
+    try:
+        value = int(raw or 0)
+    except (TypeError, ValueError):
+        return 0
+    return value if 1 <= value <= 14 else 0
+
+
 @bp.post("/f/<int:forum_id>/new")
 @login_required
 def new_thread(forum_id: int):
@@ -484,7 +494,13 @@ def new_thread(forum_id: int):
     db.session.add(thread_obj)
     db.session.flush()
 
-    post = Post(thread_id=thread_obj.id, author_id=current_user.id, title=title, body=body)
+    post = Post(
+        thread_id=thread_obj.id,
+        author_id=current_user.id,
+        title=title,
+        body=body,
+        iconid=_icon_id(),
+    )
     db.session.add(post)
     db.session.flush()
 
@@ -610,7 +626,11 @@ def reply(thread_id: int):
         title = title[:200]
 
     post = Post(
-        thread_id=thread_obj.id, author_id=current_user.id, title=title, body=body
+        thread_id=thread_obj.id,
+        author_id=current_user.id,
+        title=title,
+        body=body,
+        iconid=_icon_id(),
     )
     db.session.add(post)
     db.session.flush()
@@ -671,6 +691,7 @@ def edit_post(post_id: int):
         return redirect(url_for("forums.edit_post_form", post_id=post_id))
 
     post.body = body
+    post.iconid = _icon_id()
     title = (request.form.get("title") or "").strip()
     if title:
         post.title = title[:200]

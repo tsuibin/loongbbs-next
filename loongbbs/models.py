@@ -219,6 +219,8 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, index=True)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
     is_deleted = db.Column(db.Boolean, nullable=False, default=False)
+    # vB 的 iconid：发帖时选的帖子图标 1-14，0 = 不使用图标
+    iconid = db.Column(db.Integer, nullable=False, default=0, server_default="0")
 
     thread = db.relationship("Thread", back_populates="posts")
     author = db.relationship("User", back_populates="posts")

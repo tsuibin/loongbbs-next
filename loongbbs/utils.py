@@ -114,6 +114,15 @@ def time_ago(value: datetime | None) -> str:
 
 _URL_OK = re.compile(r"^(https?://|mailto:)", re.I)
 _CODE_BLOCK = re.compile(r"\[code\](.*?)\[/code\]", re.I | re.S)
+_PHP_BLOCK = re.compile(r"\[php\](.*?)\[/php\]", re.I | re.S)
+# [size=3] [font=arial] [color=red] 的属性值：只允许字母、数字、空格、# 和 _
+_TAG_VALUE_OK = re.compile(r"^[A-Za-z0-9#_\s\-]{1,40}$")
+
+
+def _attr_value(raw: str, default: str) -> str:
+    """属性值白名单校验，非法值直接回落，避免把用户文本塞进标签属性。"""
+    value = (raw or "").strip()
+    return value if _TAG_VALUE_OK.match(value) else default
 
 
 def _url_tagged(match: re.Match) -> str:
@@ -131,6 +140,59 @@ def _url_plain(match: re.Match) -> str:
         return url
     return (
         f'<a href="{url}" rel="noopener noreferrer nofollow" target="_blank">{url}</a>'
+    )
+
+
+def _img_tag(match: re.Match) -> str:
+    url = match.group(1).strip()
+    if not _URL_OK.match(url):
+        return url
+    return f'<img src="{url}" border="0" alt="">'
+
+
+def _size_tag(match: re.Match) -> str:
+    size = (match.group(1) or "").strip()
+    if not size.isdigit() or not 1 <= int(size) <= 7:
+        return match.group(2)
+    return f'<font size="{int(size)}">{match.group(2)}</font>'
+
+
+def _font_tag(match: re.Match) -> str:
+    face = _attr_value(match.group(1), "arial")
+    return f'<font face="{face}">{match.group(2)}</font>'
+
+
+def _color_tag(match: re.Match) -> str:
+    color = _attr_value(match.group(1), "black")
+    return f'<font color="{color}">{match.group(2)}</font>'
+
+
+def _list_tag(match: re.Match) -> str:
+    inner = match.group(1)
+    items = [item.strip() for item in inner.split("[*]")]
+    items = [item for item in items if item]
+    return "<ul>" + "".join(f"<li>{item}</li>" for item in items) + "</ul>"
+
+
+# vB 2.3.11 安装时自带的 11 个表情：代码、含义、images/smilies 下的文件名
+SMILIES = (
+    (":)", "微笑", "smile.gif"),
+    (":D", "大笑", "biggrin.gif"),
+    (":(", "皱眉", "frown.gif"),
+    (":o", "尴尬", "redface.gif"),
+    (":p", "吐舌", "tongue.gif"),
+    (";)", "眨眼", "wink.gif"),
+    (":cool:", "酷", "cool.gif"),
+    (":rolleyes:", "翻白眼", "rolleyes.gif"),
+    (":mad:", "生气", "mad.gif"),
+    (":confused:", "困惑", "confused.gif"),
+    (":eek:", "惊讶", "eek.gif"),
+)
+
+
+def smilie_img(filename: str, title: str) -> str:
+    return (
+        f'<img src="/static/images/smilies/{filename}" border="0" alt="{title}" title="{title}">'
     )
 
 
@@ -153,13 +215,38 @@ def render_body(text: str) -> str:
         return f"\x00code{len(code_blocks) - 1}\x00"
 
     escaped = _CODE_BLOCK.sub(stash, escaped)
+    escaped = _PHP_BLOCK.sub(stash, escaped)
 
     escaped = re.sub(r"\[url=([^\]\s]+)\](.*?)\[/url\]", _url_tagged, escaped, flags=re.I | re.S)
     escaped = re.sub(r"\[url\](.*?)\[/url\]", _url_plain, escaped, flags=re.I | re.S)
+    escaped = re.sub(
+        r"\[email\](.*?)\[/email\]",
+        r"<a href='mailto:\1'>\1</a>",
+        escaped,
+        flags=re.I | re.S,
+    )
+    escaped = re.sub(
+        r"\[img\](.*?)\[/img\]",
+        _img_tag,
+        escaped,
+        flags=re.I | re.S,
+    )
     for tag in ("b", "i", "u", "s"):
         escaped = re.sub(
             rf"\[{tag}\](.*?)\[/{tag}\]", rf"<{tag}>\1</{tag}>", escaped, flags=re.I | re.S
         )
+    # [size=3] / [font=arial] / [color=red] 与 vB 一样落到 <font> 上
+    escaped = re.sub(
+        r"\[size=(.+?)\](.*?)\[/size\]", _size_tag, escaped, flags=re.I | re.S
+    )
+    escaped = re.sub(
+        r"\[font=(.+?)\](.*?)\[/font\]", _font_tag, escaped, flags=re.I | re.S
+    )
+    escaped = re.sub(
+        r"\[color=(.+?)\](.*?)\[/color\]", _color_tag, escaped, flags=re.I | re.S
+    )
+    # [list][*]项目[/list]：vB 的有序/无序列表
+    escaped = re.sub(r"\[list\](.*?)\[/list\]", _list_tag, escaped, flags=re.I | re.S)
     escaped = re.sub(
         r"\[quote\](.*?)\[/quote\]",
         r"<blockquote class='quote'>\1</blockquote>",
@@ -167,6 +254,10 @@ def render_body(text: str) -> str:
         flags=re.I | re.S,
     )
     escaped = escaped.replace("\n", "<br>")
+
+    # 表情：和 vB 一样在解析完 BBCode 后按代码替换（[code] 块已被暂存，不会被替换）
+    for code, title, filename in SMILIES:
+        escaped = escaped.replace(code, smilie_img(filename, title))
 
     for index, body in enumerate(code_blocks):
         escaped = escaped.replace(f"\x00code{index}\x00", f"<pre class='codeblock'>{body}</pre>")

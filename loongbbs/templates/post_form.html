@@ -2,6 +2,13 @@
 {% block title %}{{ settings.site_name }} - {% if mode == 'edit' %}编辑帖子{% elif mode == 'reply' %}回复主题{% else %}发表新主题{% endif %}{% endblock %}
 
 {% block content %}
+<script language="Javascript" src="{{ url_for('static', filename='js/vbcode.js') }}"></script>
+<script language="Javascript" src="{{ url_for('static', filename='js/vbcode_language.js') }}"></script>
+<style>
+#codebuttons input { font-family: verdana, arial, helvetica; font-size: 11px; }
+#codebuttons select { font-family: verdana, arial, helvetica; font-size: 11px; }
+.smilieTable { border-width: 2px; border-style: outset; }
+</style>
 <!-- breadcrumb -->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
@@ -65,13 +72,77 @@
 {% endif %}
 
 <tr>
+	<td bgcolor="#DFDFDF" valign="top" nowrap><font face="verdana, arial, helvetica" size="2"><b>消息图标:</b></font><br>
+	<font face="verdana,arial,helvetica" size="1"><input type="radio" name="iconid" value="0"{% if not request.form.get('iconid') or request.form.get('iconid') == '0' %} checked{% endif %}>&nbsp;&nbsp;不使用图标</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
+	{% for i in range(1, 15) %}<input type="radio" name="iconid" value="{{ i }}"{% if request.form.get('iconid') == i|string %} checked{% endif %}>&nbsp;<img src="{{ url_for('static', filename='images/icons/icon' ~ i ~ '.gif') }}" height="15" width="15" align="middle" alt="图标 {{ i }}">&nbsp;&nbsp;&nbsp;&nbsp;{% endfor %}
+	</font></td>
+</tr>
+
+<tr id="codebuttons">
+	<td bgcolor="#DFDFDF" valign="top"><font face="verdana, arial, helvetica" size="2"><b>vB 代码</b></font>
+	<font face="verdana,arial,helvetica" size="1">
+	[<a href="javascript:void(0);" onclick="alert('[b]粗体[/b]\\n[i]斜体[/i]\\n[u]下划线[/u]\\n[url]网址[/url]\\n[email]邮箱[/email]\\n[img]图片地址[/img]\\n[code]代码[/code]\\n[php]PHP 代码[/php]\\n[quote]引用[/quote]\\n[size=3]字号[/size]\\n[font=arial]字体[/font]\\n[color=red]颜色[/color]\\n[list][*]列表[/list]\\n\\n表情代码见右侧 Smilies 面板。');">帮助</a>]<br>
+	<input type="radio" name="mode" value="0" checked> 普通模式
+	<br>
+	<input type="radio" name="mode" value="1"> 增强模式
+	</font></td>
+	<td bgcolor="#DFDFDF">
+	<table cellpadding="0" cellspacing="0" border="0"><tr>
+		<td nowrap><font face="verdana,arial,helvetica" size="1">
+		<input type="button" class="bginput" value=" B " onclick="vbcode(this.form,'B','')" title="粗体">
+		<input type="button" class="bginput" value=" I " onclick="vbcode(this.form,'I','')" title="斜体">
+		<input type="button" class="bginput" value=" U " onclick="vbcode(this.form,'U','')" title="下划线">
+		&nbsp;
+		<select id="sizeselect" onchange="fontformat(this.form,this.options[this.selectedIndex].value,'SIZE')">
+		<option value="0">字号</option><option value="1">小</option><option value="3">大</option><option value="4">特大</option></select>
+		<select id="fontselect" onchange="fontformat(this.form,this.options[this.selectedIndex].value,'FONT')">
+		<option value="0">字体</option><option value="arial">Arial</option><option value="times new roman">Times</option><option value="courier new">Courier</option><option value="century gothic">Century</option></select>
+		<select id="colorselect" onchange="fontformat(this.form,this.options[this.selectedIndex].value,'COLOR')">
+		<option value="0">颜色</option>
+		<option value="skyblue" style="color:skyblue">天蓝</option><option value="royalblue" style="color:royalblue">宝蓝</option><option value="blue" style="color:blue">蓝</option><option value="darkblue" style="color:darkblue">深蓝</option><option value="orange" style="color:orange">橙</option><option value="orangered" style="color:orangered">橙红</option><option value="crimson" style="color:crimson">绯红</option><option value="red" style="color:red">红</option><option value="firebrick" style="color:firebrick">砖红</option><option value="darkred" style="color:darkred">深红</option><option value="green" style="color:green">绿</option><option value="limegreen" style="color:limegreen">亮绿</option><option value="seagreen" style="color:seagreen">海绿</option><option value="deeppink" style="color:deeppink">深粉</option><option value="tomato" style="color:tomato">番茄</option><option value="coral" style="color:coral">珊瑚</option><option value="purple" style="color:purple">紫</option><option value="indigo" style="color:indigo">靛</option><option value="burlywood" style="color:burlywood">木色</option><option value="sandybrown" style="color:sandybrown">沙棕</option><option value="sienna" style="color:sienna">赭</option><option value="chocolate" style="color:chocolate">巧克力</option><option value="teal" style="color:teal">青</option><option value="silver" style="color:silver">银</option>
+		</select>
+		<br>
+		<input type="button" class="bginput" value="http://" title="插入链接" onclick="namedlink(this.form,'URL')">
+		<input type="button" class="bginput" value=" @ " title="插入邮箱" onclick="namedlink(this.form,'EMAIL')">
+		<input type="button" class="bginput" value="IMG" title="插入图片" onclick="vbcode(this.form,'IMG','http://')">
+		&nbsp;
+		<input type="button" class="bginput" value=" # " title="代码块" onclick="vbcode(this.form,'CODE','')">
+		<input type="button" class="bginput" value="PHP" title="PHP 代码块" onclick="vbcode(this.form,'PHP','')">
+		<input type="button" class="bginput" value="List" title="列表" onclick="dolist(this.form)">
+		<input type="button" class="bginput" value="Quote" title="引用" onclick="vbcode(this.form,'QUOTE','')"><br>
+		<input type="text" class="bginput" name="status" style="font-size:7pt" size="50" value="用这些按钮插入 vB 代码">
+		</font></td>
+		<td>&nbsp;</td>
+		<td><font face="verdana,arial,helvetica" size="1">
+		<input type="button" class="bginput" value=" x " title="关闭当前标签" style="color:red; font-weight:bold" onclick="closetag(this.form)">
+		关闭当前标签<br>
+		<input type="button" class="bginput" value=" x " title="关闭全部标签" style="color:red; font-weight:bold" onclick="closeall(this.form)">
+		关闭全部标签
+		</font></td>
+	</tr></table>
+	</td>
+</tr>
+
+<tr>
 	<td bgcolor="#DFDFDF" valign="top" nowrap><font face="verdana, arial, helvetica" size="2"><b>消息:</b></font>
 		<p><font face="verdana,arial,helvetica" size="1">
 		请先阅读下面的版块规则，<br>
 		了解你可以在帖子里使用<br>
 		哪些代码。
 		</font></p>
-	</td>
+		<table cellpadding="3" cellspacing="1" border="0" bgcolor="#F1F1F1" class="smilieTable" align="center">
+		<tr>
+			<td colspan="3" align="center" bgcolor="#DFDFDF" style="border-width:1px; border-style:inset"><font face="verdana,arial,helvetica" size="1"><b>表情</b></font></td>
+		</tr>
+		{% for code, title, filename in [(':)','微笑','smile.gif'), (':D','大笑','biggrin.gif'), (':(','皱眉','frown.gif'), (':o','尴尬','redface.gif'), (':p','吐舌','tongue.gif'), (';)','眨眼','wink.gif'), (':cool:','酷','cool.gif'), (':rolleyes:','翻白眼','rolleyes.gif'), (':mad:','生气','mad.gif'), (':confused:','困惑','confused.gif'), (':eek:','惊讶','eek.gif')] %}
+		<tr align="center">
+			<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">{{ code }}</font></td>
+			<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">{{ title }}</font></td>
+			<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/smilies/' ~ filename) }}" border="0" alt="{{ title }}"></td>
+		</tr>
+		{% endfor %}
+		</table></td>
 	<td bgcolor="#DFDFDF">
 		<textarea name="body" rows="20" cols="70" wrap="virtual">{{ request.form.get('body') or (post.body if post else '') }}</textarea><br>
 		<font face="verdana,arial,helvetica" size="1"><a href="#" onclick="return false;">[检查消息长度]</a>　支持 [b] [i] [u] [url] [code] [quote]</font>
