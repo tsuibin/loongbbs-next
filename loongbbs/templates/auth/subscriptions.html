@@ -6,7 +6,7 @@
 <tr>
 	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
 	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
-	<a href="{{ url_for('auth.usercp') }}">用户控制面板：{{ nav_user.username }}</a> &gt; 订阅的主题</b></font></td>
+	<a href="{{ url_for('auth.usercp') }}">{% if ui_lang == 'en' %}User Control Panel For {{ nav_user.username }}{% else %}用户控制面板：{{ nav_user.username }}{% endif %}</a> &gt; 订阅的主题</b></font></td>
 	<td align="right">
 	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>
 	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
@@ -30,7 +30,7 @@
 <table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-	<td bgcolor="#606096"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>订阅的主题（共 {{ rows|length }} 个）</b></font></td>
+	<td bgcolor="#606096"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>{% if ui_lang == 'en' %}Subscribed Threads ({{ rows|length }} total){% else %}订阅的主题（共 {{ rows|length }} 个）{% endif %}</b></font></td>
 </tr>
 <tr>
 	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>主题</b></font></td>

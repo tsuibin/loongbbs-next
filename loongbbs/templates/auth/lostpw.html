@@ -47,7 +47,7 @@
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
-	会员 <b>{{ username }}</b>（{{ email }}）的密码重设链接如下，1 小时内有效：<br><br>
+		{% if ui_lang == 'en' %}Here is the password reset link for member <b>{{ username }}</b> ({{ email }}). It is valid for one hour:<br><br>{% else %}会员 <b>{{ username }}</b>（{{ email }}）的密码重设链接如下，1 小时内有效：<br><br>{% endif %}
 	<b><a href="{{ reset_link }}">{{ reset_link }}</a></b><br><br>
 	<font size="1">本演示环境没有配置 SMTP，链接直接显示在这里。打开它即可设置新密码。</font>
 	</font></td>

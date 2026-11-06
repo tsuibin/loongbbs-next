@@ -19,7 +19,7 @@
 <!-- first unread and next/prev -->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-	<td><font face="verdana,arial,helvetica" size="1">第 {{ page }} 页，共 {{ pages }} 页{% if pages > 1 %} ( {% for p in range(1, pages + 1) %}<a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}&nbsp;</font></td>
+	<td><font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}Page {{ page }} of {{ pages }}{% else %}第 {{ page }} 页，共 {{ pages }} 页{% endif %}{% if pages > 1 %} ( {% for p in range(1, pages + 1) %}<a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}&nbsp;</font></td>
 	<td align="right"><font face="verdana,arial,helvetica" size="1">
 	<img src="{{ url_for('static', filename='images/prev.gif') }}" alt="" border="0">
 	{% if prev_thread %}<a href="{{ url_for('forums.thread', thread_id=prev_thread.id) }}">上一个主题</a>{% else %}上一个主题{% endif %}
@@ -48,14 +48,14 @@
   {% endfor %}
 <tr>
 	<td bgcolor="#8080A6" align="right" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>合计:</b></font></td>
-	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>{{ poll_total }} 票</b></font></td>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>{% if ui_lang == 'en' %}{{ poll_total }} votes{% else %}{{ poll_total }} 票{% endif %}</b></font></td>
 	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>100%</b></font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1" colspan="4"><font face="verdana,arial,helvetica" size="1">
 	{% if poll.is_closed %}这个投票已关闭。
 	{% elif poll_my_vote %}你已经投过票了。
-	{% else %}<a href="{{ url_for('auth.login') }}">登录</a>后才能投票。{% endif %}
+	{% else %}{% if ui_lang == 'en' %}<a href="{{ url_for('auth.login') }}">Log in</a> to vote.{% else %}<a href="{{ url_for('auth.login') }}">登录</a>后才能投票。{% endif %}{% endif %}
 	</font></td>
 </tr>
 {% else %}
@@ -138,7 +138,7 @@
 	{% endfor %}
 	{% endif %}
 	{% if settings.get('allowsignatures', '1') != '0' and (not nav_user or nav_user.showsignatures) %}<p><font face="verdana,arial,helvetica" size="1">{% if post.author.signature %}{{ post.author.signature }}{% endif %}</font></p>{% endif %}
-	<p><font face="verdana,arial,helvetica" size="1">{% if post.updated_at %}（本帖最后由 {{ (post.edit_user or post.author).username }} 于 {{ post.updated_at|datetimefmt }} 修改过）{% endif %}</font></p>
+	<p><font face="verdana,arial,helvetica" size="1">{% if post.updated_at %}{% if ui_lang == 'en' %}(This post was last modified by {{ (post.edit_user or post.author).username }} on {{ post.updated_at|datetimefmt }}){% else %}（本帖最后由 {{ (post.edit_user or post.author).username }} 于 {{ post.updated_at|datetimefmt }} 修改过）{% endif %}{% endif %}</font></p>
 	<p align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}<a href="{{ url_for('forums.report_form', post_id=post.id) }}">向版主举报本帖</a>{% else %}<a href="{{ url_for('auth.login_form') }}">向版主举报本帖</a>{% endif %}{% if post.ipaddress and settings.get('logip', '1') != '0' %} | IP: {% if settings.get('logip', '1') == '2' %}{{ post.ipaddress }}{% elif nav_user and nav_user.is_admin %}<a href="{{ url_for('forums.post_ip', post_id=post.id) }}">Logged</a>{% else %}Logged{% endif %}{% endif %}</font></p>
 	{% if nav_user and nav_user.is_admin %}
 	<form id="delpost{{ post.id }}" method="post" action="{{ url_for('forums.delete_post', post_id=post.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"></form>
@@ -240,7 +240,7 @@
 	{% else %}
 	<form action="{{ url_for('forums.rate_thread', thread_id=thread.id) }}" method="post"><tr><td>
 	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-	<b>评价本主题:</b>{% set r_avg, r_cnt = thread.rating_stats %}{% if r_cnt %}<font face="verdana,arial,helvetica" size="1"> 当前 {{ '%.2f'|format(r_avg) }} 分（{{ r_cnt }} 票）</font>{% endif %}<br>
+	<b>评价本主题:</b>{% set r_avg, r_cnt = thread.rating_stats %}{% if r_cnt %}<font face="verdana,arial,helvetica" size="1"> {% if ui_lang == 'en' %}currently {{ '%.2f'|format(r_avg) }} out of 5 ({{ r_cnt }} votes){% else %}当前 {{ '%.2f'|format(r_avg) }} 分（{{ r_cnt }} 票）{% endif %}</font>{% endif %}<br>
 	<select name="vote">
 		<option value="-1" selected>选择评分…</option>
 		<option value="5">5 .. 最好</option>
@@ -320,7 +320,7 @@
 <!-- first unread and next/prev -->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-	<td><font face="verdana,arial,helvetica" size="1">{% if pages > 1 %}{% for p in page_links %}{% if p is none %}...{% elif p == page %}<b>{{ p }}</b>{% else %}<a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %} &nbsp;{% endif %}第 {{ page }} 页，共 {{ pages }} 页&nbsp;</font></td>
+	<td><font face="verdana,arial,helvetica" size="1">{% if pages > 1 %}{% for p in page_links %}{% if p is none %}...{% elif p == page %}<b>{{ p }}</b>{% else %}<a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %} &nbsp;{% endif %}{% if ui_lang == 'en' %}Page {{ page }} of {{ pages }}{% else %}第 {{ page }} 页，共 {{ pages }} 页{% endif %}&nbsp;</font></td>
 	<td align="right"><font face="verdana,arial,helvetica" size="1">
 	<img src="{{ url_for('static', filename='images/prev.gif') }}" alt="" border="0">
 	{% if prev_thread %}<a href="{{ url_for('forums.thread', thread_id=prev_thread.id) }}">上一个主题</a>{% else %}上一个主题{% endif %}

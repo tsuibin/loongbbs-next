@@ -19,7 +19,7 @@
 <tr bgcolor="#DFDFDF">
 	<td bgcolor="#DFDFDF" width="35%"><font face="verdana, arial, helvetica" size="2"><b>用户名:</b></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="username" value="{{ username or '' }}" size="40"></font><br>
-	<font face="verdana,arial,helvetica" size="1">{% if min_user %}{{ min_user }}–{{ max_user }} 位，{% endif %}允许中文、字母、数字和下划线</font></td>
+	<font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}{% if min_user %}Between {{ min_user }} and {{ max_user }} characters, {% endif %}allows Chinese characters, letters, numbers and underscores{% else %}{% if min_user %}{{ min_user }}–{{ max_user }} 位，{% endif %}允许中文、字母、数字和下划线{% endif %}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>邮箱地址:</b></font></td>

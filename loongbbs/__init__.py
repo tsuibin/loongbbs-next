@@ -72,6 +72,36 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     app.before_request(csrf_protect)
 
+    @app.before_request
+    def _apply_language_switch():
+        """对照参考站 global.php:4 / admin/lang.php:vb_lang_switch()。
+
+        `?lang=zh|en` 只负责写 bblanguage cookie（一年、全站路径）然后 302 回
+        去掉 lang 参数的同一地址；非法取值原样忽略。
+        """
+        from flask import redirect, request
+
+        from .i18n import COOKIE_MAX_AGE, COOKIE_NAME, SUPPORTED_LANGUAGES
+
+        lang = (request.args.get("lang") or "").strip().lower()
+        if not lang or lang not in SUPPORTED_LANGUAGES:
+            return None
+        if request.path.startswith("/admin"):
+            return None
+        query = dict(request.args.to_dict(flat=True))
+        query.pop("lang", None)
+        from urllib.parse import urlencode
+
+        clean = f"{request.path}?{urlencode(query)}" if query else request.path
+        response = redirect(clean or "/", code=302)
+        response.set_cookie(
+            COOKIE_NAME,
+            lang,
+            max_age=COOKIE_MAX_AGE,
+            path="/",
+        )
+        return response
+
     from .attachments import attachment_css, thumb_limits
     from .utils import (
         avatar_src,
@@ -300,8 +330,33 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     app.before_request(record_activity)
 
+    @app.after_request
+    def _translate_ui(response):
+        """语言层：en 时把输出里的中文文本节点换成英文（原版 vblang_template）。
+
+        注册在 _http_header_options 之后，所以先翻译再压缩、再套模板名注释。
+        """
+        from .i18n import current_language, translate_html
+
+        if current_language() != "en":
+            return response
+        if request.path.startswith("/static"):
+            return response
+        # 后台管理界面固定中文：原版 admin 的 lang_zh 只翻设置项描述，
+        # 本站后台是按 31 组 Options 中文复刻的，不参与前台语言切换。
+        if request.path.startswith("/admin"):
+            return response
+        if (response.mimetype or "") != "text/html":
+            return response
+        html = response.get_data(as_text=True)
+        if not html:
+            return response
+        response.set_data(translate_html(html))
+        return response
+
     @app.context_processor
     def inject_globals():
+        from .i18n import current_language, language_url, translate
         from .settings import get_settings
         from .utils import csrf_token
 
@@ -313,6 +368,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             "thumb_limits": thumb_limits(),
             "server_time": format_datetime(datetime.now(timezone.utc)),
             "generation_time": "%.4f" % (time.perf_counter() - g.get("_t0", time.perf_counter())),
+            "ui_lang": current_language(),
+            "lang_url": language_url,
+            "t": translate,
         }
 
     @app.errorhandler(403)

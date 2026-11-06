@@ -145,6 +145,9 @@ def human_size(num: int) -> str:
 
 
 def time_ago(value: datetime | None) -> str:
+    from .i18n import current_language
+
+    english = current_language() == "en"
     if value is None:
         return "—"
     if value.tzinfo is None:
@@ -152,13 +155,22 @@ def time_ago(value: datetime | None) -> str:
     delta = datetime.now(timezone.utc) - value
     seconds = int(delta.total_seconds())
     if seconds < 60:
-        return "刚刚"
+        return "Just now" if english else "刚刚"
     if seconds < 3600:
-        return f"{seconds // 60} 分钟前"
+        minutes = seconds // 60
+        if english:
+            return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+        return f"{minutes} 分钟前"
     if seconds < 86400:
-        return f"{seconds // 3600} 小时前"
+        hours = seconds // 3600
+        if english:
+            return f"{hours} hour{'s' if hours != 1 else ''} ago"
+        return f"{hours} 小时前"
     if seconds < 86400 * 30:
-        return f"{seconds // 86400} 天前"
+        days = seconds // 86400
+        if english:
+            return f"{days} day{'s' if days != 1 else ''} ago"
+        return f"{days} 天前"
     return format_dt(value, "%Y-%m-%d")
 
 

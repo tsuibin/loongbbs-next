@@ -9,8 +9,8 @@
 	<td bgcolor="#8080A6" colspan="2">
 		<table width="100%" border="0" cellpadding="0" cellspacing="0">
 		<tr id="cat">
-			<td align="left"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>{{ profile_user.username }} 的资料</b></font></td>
-			<td align="right"><a href="{{ url_for('search.search', q=profile_user.username) }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF" class="thtcolor">搜索这个用户发表的全部帖子。</font></a></td>
+			<td align="left"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>{% if ui_lang == 'en' %}{{ profile_user.username }}'s Profile{% else %}{{ profile_user.username }} 的资料{% endif %}</b></font></td>
+			<td align="right"><a href="{{ url_for('search.search', q=profile_user.username) }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF" class="thtcolor">{% if ui_lang == 'en' %}Find all posts by this user.{% else %}搜索这个用户发表的全部帖子。{% endif %}</font></a></td>
 		</tr>
 		</table>
 	</td>
@@ -21,20 +21,20 @@
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>状态:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.usertitle_text }}{% if profile_user.is_banned %} · 已封禁{% endif %}&nbsp;<img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" align="middle"></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.usertitle_text }}{% if profile_user.is_banned %} · {% if ui_lang == 'en' %}Banned{% else %}已封禁{% endif %}{% endif %}&nbsp;<img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" align="middle"></font></td>
 </tr>
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>帖子总数:</b></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.post_count }}</font></td>
 </tr>
 <tr>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>最后发表:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>{% if ui_lang == 'en' %}Last Post:{% else %}最后发表:{% endif %}</b></font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{% set lp = posts|first %}{% if lp %}{{ lp.created_at|datefmt }} {{ lp.created_at|timefmt }}<br><a href="{{ url_for('forums.thread', thread_id=lp.thread_id) }}#post{{ lp.id }}">{{ lp.thread.title }}</a>{% else %}从未{% endif %}</font></td>
 </tr>
 <tr>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>联系 {{ profile_user.username }}:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>{% if ui_lang == 'en' %}Contact {{ profile_user.username }}:{% else %}联系 {{ profile_user.username }}:{% endif %}</b></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">
-		{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}">点这里给 {{ profile_user.username }} 发悄悄话</a>{% elif nav_user %}<a href="{{ url_for('auth.edit_profile') }}">编辑我的个人资料</a>{% else %}&nbsp;{% endif %}
+		{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}">{% if ui_lang == 'en' %}Click here to send a private message to {{ profile_user.username }}{% else %}点这里{% if ui_lang == 'en' %}Send a private message to {{ profile_user.username }}{% else %}给 {{ profile_user.username }} 发悄悄话{% endif %}{% endif %}</a>{% elif nav_user %}<a href="{{ url_for('auth.edit_profile') }}">{% if ui_lang == 'en' %}Edit my profile{% else %}编辑我的个人资料{% endif %}</a>{% else %}&nbsp;{% endif %}
 	</font></td>
 </tr>
 <tr>
@@ -75,9 +75,9 @@
 </tr>
 <tr>
 	<td bgcolor="#8080A6" align="center" colspan="2"><font face="verdana,arial,helvetica" size="1">
-	<a href="{{ url_for('search.search', q=profile_user.username) }}"><font color="#EEEEFF">查看 {{ profile_user.username }} 发表的全部帖子</font></a>
+	<a href="{{ url_for('search.search', q=profile_user.username) }}"><font color="#EEEEFF">{% if ui_lang == 'en' %}View all posts by {{ profile_user.username }}{% else %}查看 {{ profile_user.username }} 发表的全部帖子{% endif %}</font></a>
 	&nbsp; &nbsp;
-	{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}"><font color="#EEEEFF">给 {{ profile_user.username }} 发悄悄话</font></a>{% endif %}
+	{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}"><font color="#EEEEFF">{% if ui_lang == 'en' %}Send a private message to {{ profile_user.username }}{% else %}给 {{ profile_user.username }} 发悄悄话{% endif %}</font></a>{% endif %}
 	</font></td>
 </tr>
 </table>

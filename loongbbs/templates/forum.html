@@ -58,14 +58,14 @@
 </tr>
 {% else %}
 <tr>
-	<td bgcolor="#F1F1F1" colspan="8" align="center"><font face="verdana,arial,helvetica" size="1">这个版块还没有主题{% if nav_user and not forum.is_closed %}，<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发表第一个主题</a>{% endif %}。</font></td>
+	<td bgcolor="#F1F1F1" colspan="8" align="center"><font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}There have been no threads in this forum{% if nav_user and not forum.is_closed %}, <a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">post the first thread</a>{% endif %}.{% else %}这个版块还没有主题{% if nav_user and not forum.is_closed %}，<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发表第一个主题</a>{% endif %}。{% endif %}</font></td>
 </tr>
 {% endfor %}
 
 <tr id="cat">
 	<td bgcolor="#8080A6" width="100%" colspan="8" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">
 	<nobr>
-	<b>显示第 {{ (page - 1) * per_page + 1 }} 至 {{ [page * per_page, total]|min }} 条，共 {{ total }} 个主题，排序方式为 </b>
+	<b>{% if ui_lang == 'en' %}Showing threads {{ (page - 1) * per_page + 1 }} to {{ [page * per_page, total]|min }} of {{ total }}, sorted by {% else %}显示第 {{ (page - 1) * per_page + 1 }} 至 {{ [page * per_page, total]|min }} 条，共 {{ total }} 个主题，排序方式为 {% endif %}</b>
 	<select name="sortfield">
 		<option value="title"{% if sortfield == 'title' %} selected{% endif %}>主题标题</option>
 		<option value="lastpost"{% if sortfield == 'lastpost' %} selected{% endif %}>最后发表时间</option>
@@ -74,12 +74,12 @@
 		<option value="postusername"{% if sortfield == 'postusername' %} selected{% endif %}>主题发起人</option>
 	</select>
 	</nobr><nobr>
-	<b>，顺序为</b>
+	<b>{% if ui_lang == 'en' %}, in {% else %}，顺序为{% endif %}</b>
 	<select name="sortorder">
 		<option value="asc"{% if sortorder == 'asc' %} selected{% endif %}>升序</option>
 		<option value="desc"{% if sortorder == 'desc' %} selected{% endif %}>降序</option>
 	</select>
-	<b>，时间范围为</b>
+	<b>{% if ui_lang == 'en' %}, from the {% else %}，时间范围为{% endif %}</b>
 	<select name="daysprune">
 {% for d in [1, 2, 5, 10, 20, 30, 45, 60, 75, 100, 365, 1000] %}
 		<option value="{{ d }}"{% if daysprune == d %} selected{% endif %}>{% if d == 1 %}最近一天{% elif d == 365 %}最近一年{% elif d == 1000 %}从最开始{% else %}最近 {{ d }} 天{% endif %}</option>
@@ -152,12 +152,12 @@
 <tr><td colspan="8" align="center"><font face="verdana,arial,helvetica" size="1">All times are GMT. The time now is {{ now_gmt() }}.</font></td></tr>
 <tr><td rowspan="2" width="50%">&nbsp;</td>
 	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/newfolder.gif') }}" border="0" alt="New Posts"> <b>有新帖</b> &nbsp;&nbsp;</font></td>
-	<td nowrap><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/newhotfolder.gif') }}" border="0" alt="Hot Thread"> <b>回复超过 {{ settings.get('hotnumberposts', '15') }} 或查看超过 {{ settings.get('hotnumberviews', '150') }}</b> )&nbsp;&nbsp;</font></td>
+	<td nowrap><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/newhotfolder.gif') }}" border="0" alt="Hot Thread"> <b>{% if ui_lang == 'en' %}More than {{ settings.get('hotnumberposts', '15') }} replies or {{ settings.get('hotnumberviews', '150') }} views{% else %}回复超过 {{ settings.get('hotnumberposts', '15') }} 或查看超过 {{ settings.get('hotnumberviews', '150') }}{% endif %}</b> )&nbsp;&nbsp;</font></td>
 	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/lockfolder.gif') }}" border="0" alt="Closed Thread"> <b>已关闭的主题</b></font></td>
 </tr>
 <tr>
 	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/folder.gif') }}" border="0" alt="No New Posts"> <b>无新帖</b> &nbsp;&nbsp;</font></td>
-	<td nowrap colspan="2"><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/hotfolder.gif') }}" border="0" alt="Hot Thread"> <b>回复超过 {{ settings.get('hotnumberposts', '15') }} 或查看超过 {{ settings.get('hotnumberviews', '150') }}</b> )&nbsp;&nbsp;</font></td>
+	<td nowrap colspan="2"><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/hotfolder.gif') }}" border="0" alt="Hot Thread"> <b>{% if ui_lang == 'en' %}More than {{ settings.get('hotnumberposts', '15') }} replies or {{ settings.get('hotnumberviews', '150') }} views{% else %}回复超过 {{ settings.get('hotnumberposts', '15') }} 或查看超过 {{ settings.get('hotnumberviews', '150') }}{% endif %}</b> )&nbsp;&nbsp;</font></td>
 <td rowspan="2" width="50%">&nbsp;</td></tr>
 </table>
 <!-- /icon key -->

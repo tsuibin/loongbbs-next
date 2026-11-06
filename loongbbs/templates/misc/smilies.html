@@ -39,9 +39,9 @@
 
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr><td><font face="verdana, arial, helvetica" size="2">
-<p>如果某篇帖子里不想让代码变成表情（例如贴程序代码时不想让 <b>;)</b> 变成眨眼），
-可以在发帖的选项里选择不在本帖使用表情。</p>
-<p><b>vB 代码说明</b>见 <a href="{{ url_for('misc.bbcode') }}">这里</a>。</p>
+<p>{% if ui_lang == 'en' %}If you want to disable smilies in a post that you make, you can select the 'Disable Smilies' option when posting. This is particularly useful if you are posting program code and you do not want <b>;)</b> converted to a smilie face!{% else %}如果某篇帖子里不想让代码变成表情（例如贴程序代码时不想让 <b>;)</b> 变成眨眼），
+可以在发帖的选项里选择不在本帖使用表情。{% endif %}</p>
+<p><b>{% if ui_lang == 'en' %}vB Codes Explained{% else %}vB 代码说明{% endif %}</b>{% if ui_lang == 'en' %} - see {% else %}见 {% endif %}<a href="{{ url_for('misc.bbcode') }}">{% if ui_lang == 'en' %}here{% else %}这里{% endif %}</a>.</p>
 </font></td></tr>
 </table>
 </td></tr>

@@ -14,17 +14,17 @@
 var postmaxchars = 0;
 function validate(theform) {
 	if (theform.body.value == "" || theform.title.value == "") {
-		alert("请填写主题和消息内容。");
+		alert({% if ui_lang == 'en' %}"You must enter a subject and a message."{% else %}"请填写主题和消息内容。"{% endif %});
 		return false; }
 	if (postmaxchars != 0 && theform.body.value.length > postmaxchars) {
-		alert("你写的内容太长了。\n\n请把消息缩减到 " + postmaxchars + " 个字符。\n当前长度：" + theform.body.value.length + " 个字符。");
+		alert({% if ui_lang == 'en' %}"Your message is too long.\n\nPlease shorten it to " + postmaxchars + " characters.\nCurrent length: " + theform.body.value.length + " characters."{% else %}"你写的内容太长了。\n\n请把消息缩减到 " + postmaxchars + " 个字符。\n当前长度：" + theform.body.value.length + " 个字符。"{% endif %});
 		return false; }
 	return true;
 }
 function checklength(theform) {
 	var message = "";
-	if (postmaxchars != 0) { message = "\n最多允许 " + postmaxchars + " 个字符。"; }
-	alert("你的消息共 " + theform.body.value.length + " 个字符。" + message);
+	if (postmaxchars != 0) { message = {% if ui_lang == 'en' %}"\nA maximum of " + postmaxchars + " characters is allowed."{% else %}"\n最多允许 " + postmaxchars + " 个字符。"{% endif %}; }
+	alert({% if ui_lang == 'en' %}"Your message contains " + theform.body.value.length + " characters."{% else %}"你的消息共 " + theform.body.value.length + " 个字符。"{% endif %} + message);
 }
 //-->
 </script>
@@ -195,7 +195,7 @@ function checklength(theform) {
 		<div id="pollfields" style="display:none">
 		问题: <input type="text" class="bginput" size="50" name="pollquestion" maxlength="200"><br>
 		{% set maxpoll = (settings.get('maxpolloptions', '10')|int) or 10 %}
-		选项（至少填两个，最多 {{ maxpoll }} 个）:<br>
+		{% if ui_lang == 'en' %}Options (at least two, at most {{ maxpoll }}):<br>{% else %}选项（至少填两个，最多 {{ maxpoll }} 个）:<br>{% endif %}
 		{% for i in range(1, maxpoll + 1) %}<input type="text" class="bginput" size="40" name="polloption{{ i }}" maxlength="200"><br>{% endfor %}
 		</div>
 	</font></td>

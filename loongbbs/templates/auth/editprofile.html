@@ -6,7 +6,7 @@
 <tr>
 	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
 	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
-	<a href="{{ url_for('auth.usercp') }}">{{ nav_user.username }} 的用户控制面板</a> &gt;
+	<a href="{{ url_for('auth.usercp') }}">{% if ui_lang == 'en' %}User Control Panel For {{ nav_user.username }}{% else %}{{ nav_user.username }} 的用户控制面板{% endif %}</a> &gt;
 	编辑个人资料</b></font></td>
 </tr>
 </table>
@@ -22,7 +22,7 @@
 <table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-	<td bgcolor="#606096" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>编辑个人资料 - {{ nav_user.username }}</b></font></td>
+	<td bgcolor="#606096" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>{% if ui_lang == 'en' %}Edit Profile - {{ nav_user.username }}{% else %}编辑个人资料 - {{ nav_user.username }}{% endif %}</b></font></td>
 </tr>
 <tr>
 	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>注册信息: 必填项</b></font>
@@ -68,7 +68,7 @@
 {% if ct_allowed %}
 <tr>
 	<td bgcolor="#F1F1F1" valign="top"><font face="verdana, arial, helvetica" size="2"><b>自定义头衔:</b></font><br>
-	<font face="verdana,arial,helvetica" size="1">显示在你的帖子中用户名下方的头衔。最多可输入 {{ ct_max_chars }} 个字符。<br>
+	<font face="verdana,arial,helvetica" size="1">显示在你的帖子中用户名下方的头衔。{% if ui_lang == 'en' %}Up to {{ ct_max_chars }} characters.{% else %}最多可输入 {{ ct_max_chars }} 个字符。{% endif %}<br>
 	若想恢复用户组默认头衔，请勾选「恢复默认」。不允许 HTML。</font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
 	当前头衔: <b>{{ nav_user.usertitle_text }}</b><br><br>

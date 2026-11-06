@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, request, session
 from sqlalchemy import or_, select
 
 from .extensions import db
+from .i18n import translate
 from .models import Forum, Post, Thread, User
 from .settings import get_setting
 from .utils import clamp_page, page_args, render_body
@@ -174,7 +175,7 @@ def search():
                         "thread": thread_obj,
                         "post": None,
                         "snippet": render_body(thread_obj.title),
-                        "matched_in": "标题",
+                        "matched_in": translate("标题"),
                     }
                 )
 
@@ -196,7 +197,7 @@ def search():
                         "thread": post.thread,
                         "post": post,
                         "snippet": render_body(snippet),
-                        "matched_in": "正文",
+                        "matched_in": translate("正文"),
                     }
                 )
 

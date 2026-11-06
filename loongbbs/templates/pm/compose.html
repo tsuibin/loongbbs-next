@@ -4,7 +4,7 @@
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
 	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
-	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话 &gt; 写新悄悄话</b></font></td>
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; {% if ui_lang == 'en' %}Private Messages &gt; Send New Private Message{% else %}悄悄话 &gt; 写新悄悄话{% endif %}</b></font></td>
 	<td valign="bottom" align="right" nowrap><font face="verdana,arial,helvetica" size="1">
 	<a href="{{ url_for('pm.inbox') }}">收件箱</a> · <a href="{{ url_for('pm.sent') }}">已发送</a></font></td>
 </tr>

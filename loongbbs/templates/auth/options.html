@@ -7,7 +7,7 @@
 <tr>
 	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
 	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
-	<a href="{{ url_for('auth.usercp') }}">用户控制面板：{{ nav_user.username }}</a> &gt;
+	<a href="{{ url_for('auth.usercp') }}">{% if ui_lang == 'en' %}User Control Panel For {{ nav_user.username }}{% else %}用户控制面板：{{ nav_user.username }}{% endif %}</a> &gt;
 	编辑选项</b></font></td>
 	<td align="right">
 	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ settings.site_name }} - 用户控制面板：{{ nav_user.username }}{% endblock %}
+{% block title %}{{ settings.site_name }} - {% if ui_lang == 'en' %}User Control Panel For {{ nav_user.username }}{% else %}用户控制面板：{{ nav_user.username }}{% endif %}{% endblock %}
 
 {% block content %}
 <!-- breadcrumb -->
@@ -7,7 +7,7 @@
 <tr>
 	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
 	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
-	用户控制面板：{{ nav_user.username }}</b></font></td>
+	{% if ui_lang == 'en' %}User Control Panel For {{ nav_user.username }}{% else %}用户控制面板：{{ nav_user.username }}{% endif %}</b></font></td>
 	<td align="right">
 	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>
 	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
@@ -78,7 +78,7 @@
 	</tr>
 	<tr>
 		<td bgcolor="#FFFFFF"><font face="verdana, arial, helvetica" size="2">
-		{% if unread %}<b>你有 {{ unread }} 条未读私信。</b>{% if latest_pm %}<br><a href="{{ url_for('pm.read', message_id=latest_pm.id) }}">{{ latest_pm.subject }}</a>{% endif %}{% else %}自上次访问以来没有新私信。{% endif %}
+		{% if unread %}<b>{% if ui_lang == 'en' %}You have {{ unread }} unread private message{% if unread != 1 %}s{% endif %}.{% else %}你有 {{ unread }} 条未读私信。{% endif %}</b>{% if latest_pm %}<br><a href="{{ url_for('pm.read', message_id=latest_pm.id) }}">{{ latest_pm.subject }}</a>{% endif %}{% else %}自上次访问以来没有新私信。{% endif %}
 		</font></td>
 	</tr>
 	</table>
