@@ -206,10 +206,17 @@ def unsubscribe_thread(thread_id: int):
     return redirect(url_for("forums.thread", thread_id=thread_obj.id))
 
 
+def _email_disabled():
+    """组 11 enableemail=0：原版 sendtofriend.php / report.php 都会先给这个错误页。"""
+    return render_template("email_disabled.html")
+
+
 @bp.get("/post/<int:post_id>/report")
 @login_required
 def report_form(post_id: int):
     """对应 vB report.php：举报某一条帖子。"""
+    if get_setting("enableemail") != "1":
+        return _email_disabled()
     post_obj = db.session.get(Post, post_id)
     if post_obj is None:
         abort(404)
@@ -219,6 +226,8 @@ def report_form(post_id: int):
 @bp.post("/post/<int:post_id>/report")
 @login_required
 def report_post(post_id: int):
+    if get_setting("enableemail") != "1":
+        return _email_disabled()
     post_obj = db.session.get(Post, post_id)
     if post_obj is None:
         abort(404)
@@ -242,6 +251,8 @@ def report_post(post_id: int):
 @bp.get("/sendtofriend")
 def sendtofriend_form():
     """对应 vB sendtofriend.php：把这个主题推荐给朋友。"""
+    if get_setting("enableemail") != "1":
+        return _email_disabled()
     thread_obj = db.session.get(Thread, request.args.get("thread_id", type=int) or 0)
     if thread_obj is None:
         abort(404)
@@ -255,6 +266,8 @@ def sendtofriend_form():
 
 @bp.post("/sendtofriend")
 def sendtofriend_send():
+    if get_setting("enableemail") != "1":
+        return _email_disabled()
     thread_obj = db.session.get(Thread, request.form.get("thread_id", type=int) or 0)
     if thread_obj is None:
         abort(404)
