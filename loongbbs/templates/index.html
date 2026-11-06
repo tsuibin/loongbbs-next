@@ -7,9 +7,13 @@
   <td>
     <img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="{{ settings.site_name }}">
     <span class="normalfont bold">{{ settings.site_name }}</span>
+    <span class="smallfont">&nbsp;&nbsp;{{ settings.site_tagline }}</span>
   </td>
-  <td align="right">
-    <span class="smallfont"><b><a href="{{ url_for('search.search', q='') }}">查看今日新帖</a></b></span>
+  <td align="right" nowrap>
+    <span class="smallfont">
+      {% if nav_user %}欢迎回来，<b><a href="{{ url_for('auth.profile', username=nav_user.username) }}">{{ nav_user.username }}</a></b>{% else %}你尚未登录{% endif %}<br>
+      <a href="{{ url_for('search.search') }}">查看今日新帖</a>
+    </span>
   </td>
 </tr>
 </table>
@@ -19,11 +23,10 @@
   <td colspan="2">
     <span class="normalfont bold">欢迎来到 {{ settings.site_name }}。</span><br>
     <span class="smallfont">
-      如果你是第一次访问，可以先看看
-      <a href="{{ url_for('auth.register_form') if settings.allow_registration == '1' else url_for('auth.login_form') }}"><b>注册</b></a>
-      说明；发帖前请先
-      <a href="{{ url_for('auth.login_form') }}"><b>登录</b></a>。
-      选择下列版块开始浏览。
+      如果你是第一次访问，请先看看
+      <a href="{{ url_for('auth.register_form') if settings.allow_registration == '1' else url_for('auth.login_form') }}"><b>注册</b></a> 说明；
+      发帖前需要 <a href="{{ url_for('auth.login_form') }}"><b>登录</b></a>。
+      选择下面的版块开始浏览。
     </span>
     <hr>
   </td>
@@ -31,13 +34,13 @@
 <tr valign="bottom">
   <td class="statsblock">
     会员: {{ stats.users }}，主题: {{ stats.threads }}，帖子: {{ stats.posts }}<br>
-    {% if stats.last_thread %}
-      最新主题来自 <a href="{{ url_for('forums.thread', thread_id=stats.last_thread.id) }}">{{ stats.last_thread.title }}</a>
+    {% if stats.newest_user %}
+      欢迎最新会员 <a href="{{ url_for('auth.profile', username=stats.newest_user.username) }}">{{ stats.newest_user.username }}</a>
     {% endif %}
   </td>
   <td align="right" class="statsblock">
     现在时间 {{ server_time }}<br>
-    {% if nav_user %}你已登录：{{ nav_user.username }}{% else %}你尚未登录或未注册{% endif %}
+    {% if nav_user %}你上次登录：{{ nav_user.last_seen|dt('%m-%d-%Y %I:%M %p') }}{% else %}所有时间均为北京时间（GMT+8）{% endif %}
   </td>
 </tr>
 </table>
@@ -95,6 +98,33 @@
 {% else %}
 <tr><td class="alt1" colspan="6" align="center" class="smallfont">还没有版块，先登录后台添加。</td></tr>
 {% endfor %}
+</table>
+
+<!-- 当前在线 -->
+<table class="tborder" cellpadding="4" cellspacing="1">
+<tr><td class="tcat" align="left">当前在线用户: {{ stats.online }}</td></tr>
+<tr>
+  <td class="alt1" align="left">
+    <span class="smallfont">
+      最近 15 分钟内有 {{ stats.online }} 位会员活跃{% if nav_user %}，其中包含你自己{% endif %}。
+    </span>
+  </td>
+</tr>
+</table>
+
+<br>
+
+<!-- 图标图例 -->
+<table width="100%" cellpadding="2" cellspacing="0">
+<tr>
+  <td align="center" class="smallfont">
+    <img src="{{ url_for('static', filename='images/on.gif') }}" alt=""> 有新帖
+    &nbsp;&nbsp;
+    <img src="{{ url_for('static', filename='images/off.gif') }}" alt=""> 无新帖
+    &nbsp;&nbsp;
+    <img src="{{ url_for('static', filename='images/offlock.gif') }}" alt=""> 已关闭版块
+  </td>
+</tr>
 </table>
 
 <br>

@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import os
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, render_template
+from flask import Flask, g, render_template
+from flask_login import current_user
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -60,6 +63,22 @@ def create_app(test_config: dict | None = None) -> Flask:
         dt=format_dt, ago=time_ago, size=human_size, body=render_body
     )
 
+    @app.before_request
+    def _mark_request_start():
+        g._t0 = time.perf_counter()
+
+    @app.before_request
+    def _touch_last_seen():
+        if current_user.is_authenticated:
+            from .models import utcnow
+
+            seen = current_user.last_seen
+            if seen is not None and seen.tzinfo is None:
+                seen = seen.replace(tzinfo=timezone.utc)
+            if seen is None or (utcnow() - seen).total_seconds() > 300:
+                current_user.last_seen = utcnow()
+                db.session.commit()
+
     @app.context_processor
     def inject_globals():
         from .settings import get_settings
@@ -71,7 +90,10 @@ def create_app(test_config: dict | None = None) -> Flask:
             "nav_user": current_user_or_none(),
             "attachment_css": attachment_css,
             "thumb_limits": thumb_limits(),
-            "server_time": format_dt(__import__("datetime").datetime.now(__import__("datetime").timezone.utc), "%m-%d-%Y %I:%M %p"),
+            "server_time": format_dt(
+                datetime.now(timezone.utc), "%m-%d-%Y %I:%M %p"
+            ),
+            "generation_time": "%.4f" % (time.perf_counter() - g.get("_t0", time.perf_counter())),
         }
 
     @app.errorhandler(403)

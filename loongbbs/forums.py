@@ -15,6 +15,8 @@ from sqlalchemy import func, or_, select
 
 from .attachments import save_uploads
 from .extensions import db
+from datetime import timedelta
+
 from .models import Category, Forum, Post, Thread, User, utcnow
 from .settings import get_setting
 from .utils import clamp_page, format_dt, page_args, render_body, time_ago
@@ -44,6 +46,12 @@ def index():
         "last_thread": db.session.scalar(
             select(Thread).order_by(Thread.last_post_at.desc()).limit(1)
         ),
+        "newest_user": db.session.scalar(select(User).order_by(User.id.desc()).limit(1)),
+        "online": db.session.scalar(
+            select(func.count(User.id)).where(
+                User.last_seen >= utcnow() - timedelta(minutes=15)
+            )
+        ) or 0,
     }
     return render_template("index.html", categories=categories, stats=stats)
 

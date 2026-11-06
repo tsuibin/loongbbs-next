@@ -31,13 +31,18 @@ img { border: 0; }
 
 /* ------------------------------------------------------------- 顶部 */
 .topbar { width: 100%; border-collapse: collapse; }
-.topbar td { background: #606096 url(images/menu_background.gif) repeat; vertical-align: bottom; }
-.topbar .logo-cell { padding: 4px 8px; vertical-align: top; }
+.topbar td {
+  background: #606096 url(images/menu_background.gif) repeat;
+  vertical-align: bottom;
+  height: 88px;
+}
+.topbar .logo-cell { padding: 8px 10px 0; vertical-align: top; }
 .logo {
   display: inline-block;
-  line-height: 1.15;
-  padding-top: 2px;
-  font-size: 22px;
+  line-height: 1.1;
+  padding-top: 0;
+  font-size: 36px;
+  font-style: italic;
   font-weight: bold;
   color: #FFF788;
   letter-spacing: 1px;
