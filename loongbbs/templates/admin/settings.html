@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}站点设置 · 后台{% endblock %}
+{% block content %}
+<nav class="crumbs">后台 / <strong>站点设置</strong></nav>
+
+<section class="card">
+  <form method="post" action="{{ url_for('admin.settings_page') }}" class="stack-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    {% for key, meta in editable.items() %}
+      {% set label = meta[0] %}
+      {% set kind = meta[1] %}
+      <div class="field">
+        <span>{{ label }} <code class="muted small">{{ key }}</code></span>
+        {% if kind == 'bool' %}
+          <label class="checkbox">
+            <input type="checkbox" name="{{ key }}" value="1" {% if values[key] == '1' %}checked{% endif %}>
+            开启
+          </label>
+        {% elif kind == 'number' %}
+          <input type="number" name="{{ key }}" value="{{ values[key] }}" min="0">
+        {% else %}
+          <input type="text" name="{{ key }}" value="{{ values[key] }}">
+        {% endif %}
+      </div>
+    {% endfor %}
+    <button class="button" type="submit">保存设置</button>
+  </form>
+  <p class="muted small">提示：缩略图最大宽/高设为 0 表示不限制。</p>
+</section>
+{% endblock %}

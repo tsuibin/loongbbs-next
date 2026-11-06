@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ message.subject }} · 私信{% endblock %}
+{% block content %}
+<section class="card">
+  <header class="card-head split">
+    <h2>{{ message.subject }}</h2>
+    <div class="head-actions">
+      <a class="button" href="{{ url_for('pm.compose_form', reply=message.id) if message.recipient_id == nav_user.id else url_for('pm.compose_form', to=message.recipient.username) }}">回复</a>
+      <a class="link-button" href="{{ url_for('pm.inbox') }}">返回收件箱</a>
+    </div>
+  </header>
+  <p class="muted small">
+    {{ message.sender.username }} → {{ message.recipient.username }} · {{ message.created_at|dt }}
+  </p>
+  <div class="post-body">{{ body|safe }}</div>
+</section>
+{% endblock %}

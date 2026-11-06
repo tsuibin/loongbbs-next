@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑帖子' if mode == 'edit' else '发新主题' }} · {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<nav class="crumbs">
+  <a href="{{ url_for('forums.index') }}">版块</a> /
+  <a href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a> /
+  <strong>{{ '编辑帖子' if mode == 'edit' else '发新主题' }}</strong>
+</nav>
+
+<section class="card">
+  {% if mode == 'new' %}
+    <form method="post" action="{{ url_for('forums.new_thread', forum_id=forum.id) }}" enctype="multipart/form-data" class="post-form">
+  {% else %}
+    <form method="post" action="{{ url_for('forums.edit_post', post_id=post.id) }}" enctype="multipart/form-data" class="post-form">
+  {% endif %}
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+    {% if mode == 'new' %}
+      <label class="field">
+        <span>标题</span>
+        <input type="text" name="title" maxlength="200" required value="{{ request.form.get('title', '') }}">
+      </label>
+    {% endif %}
+
+    <label class="field">
+      <span>正文</span>
+      <textarea name="body" rows="14" required>{{ post.body if post else request.form.get('body', '') }}</textarea>
+    </label>
+
+    <label class="field">
+      <span>附件（可多选，最多 5 个）</span>
+      <input type="file" name="files" multiple>
+    </label>
+
+    <div class="form-row">
+      <button class="button" type="submit">{{ '保存修改' if mode == 'edit' else '发布主题' }}</button>
+      <a class="link-button" href="{{ url_for('forums.thread', thread_id=thread.id) if thread else url_for('forums.forum', forum_id=forum.id) }}">取消</a>
+    </div>
+  </form>
+
+  {% if post and post.attachments %}
+    <div class="attachments">
+      {% for attachment in post.attachments %}
+        <div class="attachment-file">
+          <a href="{{ url_for('attachments.download', attachment_id=attachment.id) }}">{{ attachment.filename }}</a>
+          <span class="muted small">{{ attachment.size|size }}</span>
+          <form method="post" action="{{ url_for('attachments.delete', attachment_id=attachment.id) }}" class="inline-form">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="link-button danger" type="submit">删除</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

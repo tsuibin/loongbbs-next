@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <h1>{{ settings.site_name }}</h1>
+    <p class="muted">{{ settings.site_tagline }}</p>
+  </div>
+  <div class="hero-stats">
+    <div><strong>{{ stats.threads }}</strong><span>主题</span></div>
+    <div><strong>{{ stats.posts }}</strong><span>帖子</span></div>
+    <div><strong>{{ stats.users }}</strong><span>会员</span></div>
+  </div>
+</section>
+
+{% for category in categories %}
+  <section class="card">
+    <header class="card-head">
+      <h2>{{ category.name }}</h2>
+    </header>
+    <div class="forum-list">
+      {% for forum in category.forums %}
+        <a class="forum-row" href="{{ url_for('forums.forum', forum_id=forum.id) }}">
+          <div class="forum-main">
+            <span class="forum-name">{{ forum.name }}{% if forum.is_closed %}<span class="badge">已关闭</span>{% endif %}</span>
+            <span class="forum-desc">{{ forum.description }}</span>
+          </div>
+          <div class="forum-meta">
+            <span>{{ forum.thread_count }} 主题 / {{ forum.post_count }} 帖</span>
+            {% set last = forum.last_post %}
+            {% if last %}
+              <span class="muted">最后：{{ last.thread.title }} · {{ last.created_at|ago }}</span>
+            {% else %}
+              <span class="muted">还没有帖子</span>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+{% else %}
+  <p class="empty">还没有版块，先到后台添加。</p>
+{% endfor %}
+
+{% if stats.last_thread %}
+  <p class="latest-hint">最新讨论：<a href="{{ url_for('forums.thread', thread_id=stats.last_thread.id) }}">{{ stats.last_thread.title }}</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}写私信 · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <header class="card-head"><h2>写私信</h2></header>
+  <form method="post" action="{{ url_for('pm.compose') }}" class="stack-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="field"><span>收件人</span>
+      <input type="text" name="to" value="{{ to }}" required>
+    </label>
+    <label class="field"><span>主题</span>
+      <input type="text" name="subject" value="{{ subject }}" required maxlength="200">
+    </label>
+    <label class="field"><span>正文</span>
+      <textarea name="body" rows="10" required>{{ body }}</textarea>
+    </label>
+    <button class="button" type="submit">发送</button>
+  </form>
+</section>
+{% endblock %}

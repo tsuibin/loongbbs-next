@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.title }} · {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<nav class="crumbs">
+  <a href="{{ url_for('forums.index') }}">版块</a> /
+  <a href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a> /
+  <strong>{{ thread.title }}</strong>
+</nav>
+
+<section class="card thread-head">
+  <div>
+    <h2>{{ thread.title }}
+      {% if thread.is_sticky %}<span class="badge badge-sticky">置顶</span>{% endif %}
+      {% if thread.is_closed %}<span class="badge">已关闭</span>{% endif %}
+    </h2>
+    <p class="muted">
+      {{ thread.author.username }} 发布于 {{ thread.created_at|dt }} ·
+      {{ thread.reply_count }} 帖 · {{ thread.views }} 次浏览
+    </p>
+  </div>
+  {% if nav_user and nav_user.is_admin %}
+    <div class="thread-actions">
+      <form method="post" action="{{ url_for('forums.toggle_sticky', thread_id=thread.id) }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button class="link-button" type="submit">{{ '取消置顶' if thread.is_sticky else '置顶' }}</button>
+      </form>
+      <form method="post" action="{{ url_for('forums.toggle_closed', thread_id=thread.id) }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button class="link-button" type="submit">{{ '重新开放' if thread.is_closed else '关闭主题' }}</button>
+      </form>
+    </div>
+  {% endif %}
+</section>
+
+{% for post in posts %}
+  <article class="card post" id="p{{ post.id }}">
+    <aside class="post-side">
+      <a class="avatar" href="{{ url_for('auth.profile', username=post.author.username) }}">{{ post.author.username[0]|upper }}</a>
+      <strong><a href="{{ url_for('auth.profile', username=post.author.username) }}">{{ post.author.username }}</a></strong>
+      <span class="muted small">{{ post.author.post_count }} 帖</span>
+      <span class="muted small">加入于 {{ post.author.joined_at|dt('%Y-%m-%d') }}</span>
+      {% if post.author.is_admin %}<span class="badge">管理员</span>{% endif %}
+    </aside>
+    <div class="post-main">
+      <header class="post-head">
+        <span class="muted">{{ post.created_at|dt }}{% if post.updated_at %} · 已编辑 {{ post.updated_at|dt }}{% endif %}</span>
+        <span class="muted small">#{{ loop.index + (page - 1) * settings.posts_per_page|int }}</span>
+      </header>
+      <div class="post-body">{{ post.body|body|safe }}</div>
+
+      {% if post.attachments %}
+        <div class="attachments">
+          {% for attachment in post.attachments %}
+            {% if attachment.is_image %}
+              <a class="{{ 'attachment-thumb' if thumb_limits else 'attachment-full' }}" href="{{ url_for('attachments.download', attachment_id=attachment.id, inline=1) }}" target="_blank" rel="noopener">
+                <img class="attachment-image" src="{{ url_for('attachments.download', attachment_id=attachment.id, inline=1) }}"
+                     alt="{{ attachment.filename }}" loading="lazy">
+              </a>
+              <div class="attachment-name">{{ attachment.filename }} · {{ attachment.size|size }}</div>
+            {% else %}
+              <div class="attachment-file">
+                <a href="{{ url_for('attachments.download', attachment_id=attachment.id) }}">{{ attachment.filename }}</a>
+                <span class="muted small">{{ attachment.size|size }}</span>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if post.author.signature and post.author.signature != '' %}
+        <footer class="signature">{{ post.author.signature }}</footer>
+      {% endif %}
+    </div>
+  </article>
+{% endfor %}
+
+{% if pages > 1 %}
+  <nav class="pager">
+    {% for p in range(1, pages + 1) %}
+      <a class="{% if p == page %}active{% endif %}" href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>
+    {% endfor %}
+  </nav>
+{% endif %}
+
+{% if nav_user and not thread.is_closed %}
+  <section class="card">
+    <header class="card-head"><h2>回复</h2></header>
+    <form method="post" action="{{ url_for('forums.reply', thread_id=thread.id) }}" enctype="multipart/form-data" class="post-form">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <textarea name="body" rows="7" required placeholder="支持 BBCode：[b]加粗[/b] [code]代码[/code]"></textarea>
+      <div class="form-row">
+        <label class="file-label">附件
+          <input type="file" name="files" multiple>
+        </label>
+        <button class="button" type="submit">发布回复</button>
+      </div>
+    </form>
+  </section>
+{% elif not nav_user %}
+  <p class="cta-hint"><a href="{{ url_for('auth.login_form') }}">登录</a> 后可以回复。</p>
+{% endif %}
+{% endblock %}

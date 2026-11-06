@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}后台 · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<nav class="crumbs">后台 / <strong>概览</strong></nav>
+
+<section class="admin-grid">
+  <div class="card stat-card"><strong>{{ stats.users }}</strong><span>会员</span></div>
+  <div class="card stat-card"><strong>{{ stats.threads }}</strong><span>主题</span></div>
+  <div class="card stat-card"><strong>{{ stats.posts }}</strong><span>帖子</span></div>
+  <div class="card stat-card"><strong>{{ stats.attachments }}</strong><span>附件（{{ human_size(stats.attachment_bytes) }}）</span></div>
+  <div class="card stat-card"><strong>{{ stats.messages }}</strong><span>私信</span></div>
+</section>
+
+<section class="card">
+  <header class="card-head split">
+    <h2>管理入口</h2>
+  </header>
+  <ul class="simple-list">
+    <li><a href="{{ url_for('admin.settings_page') }}">站点设置</a><span class="muted small">站名、每页数量、注册开关、附件缩略图</span></li>
+    <li><a href="{{ url_for('admin.forums_page') }}">版块管理</a><span class="muted small">分类与版块的增删、开关</span></li>
+    <li><a href="{{ url_for('admin.users_page') }}">用户管理</a><span class="muted small">封禁、管理员权限</span></li>
+  </ul>
+</section>
+
+<section class="card">
+  <header class="card-head"><h2>最近注册</h2></header>
+  <ul class="simple-list">
+    {% for user in recent_users %}
+      <li><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a>
+        <span class="muted small">{{ user.joined_at|dt('%Y-%m-%d %H:%M') }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

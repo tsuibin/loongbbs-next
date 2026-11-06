@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}注册 · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <header class="card-head"><h2>注册</h2></header>
+  <form method="post" action="{{ url_for('auth.register') }}" class="stack-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="field"><span>用户名</span>
+      <input type="text" name="username" value="{{ username or '' }}" required autofocus>
+      <small class="muted">3–20 位，允许中文、字母、数字和下划线</small>
+    </label>
+    <label class="field"><span>邮箱</span>
+      <input type="email" name="email" value="{{ email or '' }}" required>
+    </label>
+    <label class="field"><span>密码</span>
+      <input type="password" name="password" required minlength="8">
+    </label>
+    <label class="field"><span>确认密码</span>
+      <input type="password" name="password2" required minlength="8">
+    </label>
+    <button class="button" type="submit">创建账号</button>
+  </form>
+  <p class="muted small">已有账号？<a href="{{ url_for('auth.login_form') }}">去登录</a></p>
+</section>
+{% endblock %}

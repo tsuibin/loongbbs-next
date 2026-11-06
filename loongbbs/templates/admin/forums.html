@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}版块管理 · 后台{% endblock %}
+{% block content %}
+<nav class="crumbs">后台 / <strong>版块管理</strong></nav>
+
+<section class="card">
+  <header class="card-head"><h2>现有分类与版块</h2></header>
+  {% for category in categories %}
+    <h3 class="group-title">{{ category.name }} <code class="muted small">#{{ category.id }}</code></h3>
+    <table class="thread-table">
+      <thead><tr><th>版块</th><th>说明</th><th>主题</th><th>状态</th><th></th></tr></thead>
+      <tbody>
+      {% for forum in category.forums %}
+        <tr>
+          <td><a href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a></td>
+          <td class="muted">{{ forum.description }}</td>
+          <td class="num">{{ forum.thread_count }}</td>
+          <td>{% if forum.is_closed %}<span class="badge">已关闭</span>{% else %}<span class="muted">开放</span>{% endif %}</td>
+          <td class="row-actions">
+            <form method="post" action="{{ url_for('admin.toggle_forum', forum_id=forum.id) }}" class="inline-form">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <button class="link-button" type="submit">{{ '开放' if forum.is_closed else '关闭' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.delete_forum', forum_id=forum.id) }}" class="inline-form">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <button class="link-button danger" type="submit">删除</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">还没有分类。</p>
+  {% endfor %}
+</section>
+
+<section class="card">
+  <header class="card-head"><h2>新增</h2></header>
+  <div class="two-col">
+    <form method="post" class="stack-form">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="add_category">
+      <label class="field"><span>新分类名称</span><input type="text" name="name" required></label>
+      <button class="button ghost" type="submit">添加分类</button>
+    </form>
+
+    <form method="post" class="stack-form">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="add_forum">
+      <label class="field"><span>所属分类</span>
+        <select name="category_id">
+          {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="field"><span>版块名称</span><input type="text" name="name" required></label>
+      <label class="field"><span>说明</span><input type="text" name="description"></label>
+      <button class="button ghost" type="submit">添加版块</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

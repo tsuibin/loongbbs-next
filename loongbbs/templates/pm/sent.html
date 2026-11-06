@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}已发送 · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="card">
+  <header class="card-head split">
+    <h2>已发送</h2>
+    <div class="head-actions">
+      <a class="link-button" href="{{ url_for('pm.inbox') }}">收件箱</a>
+      <a class="button" href="{{ url_for('pm.compose_form') }}">写私信</a>
+    </div>
+  </header>
+  {% if rows %}
+    <table class="thread-table">
+      <thead><tr><th>主题</th><th>收件人</th><th>时间</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><a href="{{ url_for('pm.read', message_id=row.id) }}">{{ row.subject }}</a></td>
+          <td>{{ row.recipient.username }}</td>
+          <td class="muted">{{ row.created_at|ago }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">还没有发过私信。</p>
+  {% endif %}
+</section>
+{% endblock %}

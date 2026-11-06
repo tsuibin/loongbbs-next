@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ settings.site_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>{{ attachment_css() }}</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="{{ url_for('forums.index') }}">
+      <span class="brand-mark">龙</span>
+      <span class="brand-text">
+        <strong>{{ settings.site_name }}</strong>
+        <small>{{ settings.site_tagline }}</small>
+      </span>
+    </a>
+    <nav class="site-nav">
+      <a href="{{ url_for('forums.index') }}">版块</a>
+      <a href="{{ url_for('search.search') }}">搜索</a>
+      {% if nav_user %}
+        <a href="{{ url_for('pm.inbox') }}">私信</a>
+        {% if nav_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}">后台</a>{% endif %}
+        <a href="{{ url_for('auth.profile', username=nav_user.username) }}">{{ nav_user.username }}</a>
+        <form method="post" action="{{ url_for('auth.logout') }}" class="inline-form">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <button type="submit" class="link-button">退出</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('auth.login_form') }}">登录</a>
+        {% if settings.allow_registration == '1' %}<a class="nav-cta" href="{{ url_for('auth.register_form') }}">注册</a>{% endif %}
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-stack">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>{{ settings.site_name }} · Flask + SQLAlchemy</span>
+    <span class="dot">·</span>
+    <a href="{{ url_for('search.search') }}">搜索</a>
+    <span class="dot">·</span>
+    <span>目标：对齐 vBulletin 2.3.11 功能</span>
+  </div>
+</footer>
+</body>
+</html>
