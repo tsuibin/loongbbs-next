@@ -1,3 +1,6 @@
+// patched: 本项目的消息框字段名是 body（vB 原版是 message），统一走 vbmsg() 取元素
+function vbmsg(theform) { return theform.message || theform.body; }
+
 // *******************************************************
 
 tags = new Array();
@@ -56,13 +59,13 @@ function closetag(theform) {
 		stat('enhanced_only');
 	else
 		if (tags[0]) {
-			theform.message.value += "[/"+ arraypop(tags) +"]";
+			vbmsg(theform).value += "[/"+ arraypop(tags) +"]";
 			}
 		else {
 			stat('no_tags');
 			}
 	//theform.closecurrent.checked=false;
-	theform.message.focus();
+	vbmsg(theform).focus();
 }
 
 function closeall(theform) {
@@ -72,16 +75,16 @@ function closeall(theform) {
 	else {
 		if (tags[0]) {
 			while (tags[0]) {
-				theform.message.value += "[/"+ arraypop(tags) +"]";
+				vbmsg(theform).value += "[/"+ arraypop(tags) +"]";
 				}
-			theform.message.value += " ";
+			vbmsg(theform).value += " ";
 			}
 		else {
 			stat('no_tags');
 			}
 		}
 	//theform.closealltags.checked=false;
-	theform.message.focus();
+	vbmsg(theform).focus();
 }
 
 // *******************************************************
@@ -91,7 +94,7 @@ function vbcode(theform,vbcode,prompttext) {
 	if ((normalmode(theform)) || (vbcode=="IMG")) {
 		inserttext = prompt(tag_prompt+"\n["+vbcode+"]xxx[/"+vbcode+"]",prompttext);
 		if ((inserttext != null) && (inserttext != ""))
-			theform.message.value += "["+vbcode+"]"+inserttext+"[/"+vbcode+"] ";
+			vbmsg(theform).value += "["+vbcode+"]"+inserttext+"[/"+vbcode+"] ";
 		}
 	else {
 		donotinsert = false;
@@ -102,11 +105,11 @@ function vbcode(theform,vbcode,prompttext) {
 		if (donotinsert)
 			stat("already_open");
 		else {
-			theform.message.value += "["+vbcode+"]";
+			vbmsg(theform).value += "["+vbcode+"]";
 			arraypush(tags,vbcode);
 			}
 		}
-	theform.message.focus();
+	vbmsg(theform).focus();
 }
 
 // *******************************************************
@@ -117,17 +120,17 @@ function fontformat(theform,thevalue,thetype) {
 		if (thevalue != 0) {
 			inserttext = prompt(font_formatter_prompt+" "+thetype,"");
 			if ((inserttext != null) && (inserttext != ""))
-				theform.message.value += "["+thetype+"="+thevalue+"]"+inserttext+"[/"+thetype+"] ";
+				vbmsg(theform).value += "["+thetype+"="+thevalue+"]"+inserttext+"[/"+thetype+"] ";
 			}
 		}
 	else {
-		theform.message.value += "["+thetype+"="+thevalue+"]";
+		vbmsg(theform).value += "["+thetype+"="+thevalue+"]";
 		arraypush(tags,thetype);
 		}
 	theform.sizeselect.selectedIndex = 0;
 	theform.fontselect.selectedIndex = 0;
 	theform.colorselect.selectedIndex = 0;
-	theform.message.focus();
+	vbmsg(theform).focus();
 }
 
 // *******************************************************
@@ -147,11 +150,11 @@ function namedlink(theform,thetype) {
 	linkurl = prompt(prompt_text,prompt_contents);
 	if ((linkurl != null) && (linkurl != "")) {
 		if ((linktext != null) && (linktext != ""))
-			theform.message.value += "["+thetype+"="+linkurl+"]"+linktext+"[/"+thetype+"] ";
+			vbmsg(theform).value += "["+thetype+"="+linkurl+"]"+linktext+"[/"+thetype+"] ";
 		else
-			theform.message.value += "["+thetype+"]"+linkurl+"[/"+thetype+"] ";
+			vbmsg(theform).value += "["+thetype+"]"+linkurl+"[/"+thetype+"] ";
 		}
-	theform.message.focus();
+	vbmsg(theform).focus();
 }
 
 // *******************************************************
@@ -173,16 +176,16 @@ function dolist(theform) {
 		if ((listentry != "") && (listentry != null))
 			thelist = thelist+"[*]"+listentry+"\n";
 		}
-	theform.message.value += thelist+listend;
-	theform.message.focus();
+	vbmsg(theform).value += thelist+listend;
+	vbmsg(theform).focus();
 }
 
 // *******************************************************
 
 function smilie(thesmilie) {
 // inserts smilie text
-	document.vbform.message.value += thesmilie+" ";
-	document.vbform.message.focus();
+	vbmsg(document.vbform).value += thesmilie+" ";
+	vbmsg(document.vbform).focus();
 }
 
 function opensmiliewindow(x,y,sessionhash) {

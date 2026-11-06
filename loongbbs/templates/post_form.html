@@ -9,6 +9,25 @@
 #codebuttons select { font-family: verdana, arial, helvetica; font-size: 11px; }
 .smilieTable { border-width: 2px; border-style: outset; }
 </style>
+<script language="javascript">
+<!--
+var postmaxchars = 0;
+function validate(theform) {
+	if (theform.body.value == "" || theform.title.value == "") {
+		alert("请填写主题和消息内容。");
+		return false; }
+	if (postmaxchars != 0 && theform.body.value.length > postmaxchars) {
+		alert("你写的内容太长了。\n\n请把消息缩减到 " + postmaxchars + " 个字符。\n当前长度：" + theform.body.value.length + " 个字符。");
+		return false; }
+	return true;
+}
+function checklength(theform) {
+	var message = "";
+	if (postmaxchars != 0) { message = "\n最多允许 " + postmaxchars + " 个字符。"; }
+	alert("你的消息共 " + theform.body.value.length + " 个字符。" + message);
+}
+//-->
+</script>
 <!-- breadcrumb -->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
@@ -38,11 +57,11 @@
 {% endif %}
 
 {% if mode == 'new' %}
-<form method="post" action="{{ url_for('forums.new_thread', forum_id=forum.id) }}" enctype="multipart/form-data" name="vbform">
+<form method="post" action="{{ url_for('forums.new_thread', forum_id=forum.id) }}" enctype="multipart/form-data" name="vbform" onSubmit="return validate(this)">
 {% elif mode == 'reply' %}
-<form method="post" action="{{ url_for('forums.reply', thread_id=thread.id) }}" enctype="multipart/form-data" name="vbform">
+<form method="post" action="{{ url_for('forums.reply', thread_id=thread.id) }}" enctype="multipart/form-data" name="vbform" onSubmit="return validate(this)">
 {% else %}
-<form method="post" action="{{ url_for('forums.edit_post', post_id=post.id) }}" enctype="multipart/form-data" name="vbform">
+<form method="post" action="{{ url_for('forums.edit_post', post_id=post.id) }}" enctype="multipart/form-data" name="vbform" onSubmit="return validate(this)">
 {% endif %}
 <table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
@@ -145,7 +164,7 @@
 		</table></td>
 	<td bgcolor="#DFDFDF">
 		<textarea name="body" rows="20" cols="70" wrap="virtual">{{ request.form.get('body') or (post.body if post else '') }}</textarea><br>
-		<font face="verdana,arial,helvetica" size="1"><a href="#" onclick="return false;">[检查消息长度]</a>　支持 [b] [i] [u] [url] [code] [quote]</font>
+		<font face="verdana,arial,helvetica" size="1"><a href="javascript:checklength(document.vbform);">[检查消息长度]</a>　支持 [b] [i] [u] [size] [font] [color] [url] [email] [img] [code] [php] [quote] [list]</font>
 	</td>
 </tr>
 <tr>
