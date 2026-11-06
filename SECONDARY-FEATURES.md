@@ -47,7 +47,7 @@
 
 ## 六、处理顺序（本轮任务列表）
 
-P0：
+P0（已全部完成，下表的提交号对应各次单独提交）：
 1. 主题评分 `threadrate`（落库 + 版块页评分列 + 主题页聚合显示）
 2. 订阅主题 + UCP 订阅列表
 3. 用邮件推荐 `sendtofriend`
@@ -60,3 +60,18 @@ P1（后续）：
 8. 管理选项：移动/复制、合并、拆分主题
 9. 悄悄话跟踪（已读回执）与下载全部消息
 10. 发帖页字数检查
+
+## 七、P0 完成情况
+
+| # | 功能 | 对应原版 | 入口 | 提交 |
+|---|------|----------|------|------|
+| 1 | 主题评分 | `threadrate.php` / `threadrate` 模板 | 主题页「评价本主题」下拉 + 版块页评分列 | a2400ad |
+| 2 | 订阅主题 | `subscription.php?do=addsubscription` / `viewsubscription` | 主题页「订阅这个主题」+ UCP「订阅的主题」+ `/usercp/subscriptions` | 8f09cf4 |
+| 3 | 邮件推荐 | `sendtofriend.php` | 主题页「用邮件推荐这个页面」 | 4055ce1 |
+| 4 | 举报帖子 | `report.php` / 后台 Reported Posts | 每帖「向版主举报本帖」+ `/admin/reports` | 3863ad6 |
+| 5 | 版块排序 | `forumdisplay.php` 的 sortfield / sortorder / daysprune | 版块页排序下拉 + 表头排序箭头 | c51cbbf |
+| 6 | 搜索高级选项 | `search.php` 的 author / startdate / enddate / sortby / searchin | 搜索页四行高级选项 | db2d1f1 |
+
+新增表：`thread_ratings`、`thread_subscriptions`、`email_log`、`post_reports`，
+分别由 `upgrade_thread_ratings.py`、`upgrade_subscriptions.py`、`upgrade_email_log.py`、
+`upgrade_post_reports.py` 建表。
