@@ -1,0 +1,137 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Email Users{% else %}群发邮件{% endif %}{% endblock %}
+{% block content %}
+
+{% macro yesno(name, default_yes=True, extra="") %}
+<p><input type="radio" name="{{ name }}" value="1" id="{{ name }}1" {% if default_yes %}checked{% endif %}> <label for="{{ name }}1">Yes</label>
+<input type="radio" name="{{ name }}" value="0" id="{{ name }}0" {% if not default_yes %}checked{% endif %}> <label for="{{ name }}0">No</label>{{ extra }}</p>
+{% endmacro %}
+
+{% macro group_select(name, value='-1') %}
+<select name="{{ name }}">
+	<option value="-1" {% if value == '-1' %}selected{% endif %}>Any</option>
+{% for g in groups %}
+	<option value="{{ g.id }}" {% if value|string == g.id|string %}selected{% endif %}>{{ g.title }}</option>
+{% endfor %}
+</select>
+{% endmacro %}
+
+{% macro filters() %}
+<tr class="firstalt" valign="top"><td><p>User Name contains</p></td>
+	<td><p><input type="text" size="35" name="ausername" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and usergroup is</p></td>
+	<td><p>{{ group_select('usergroupid') }}</p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and email contains</p></td>
+	<td><p><input type="text" size="35" name="{{ 'email' if mode == 'genlist' else 'aemail' }}" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and parent's email contains</p></td>
+	<td><p><input type="text" size="35" name="parentemail" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and is coppa user (yes, no, blank for don't mind)</p></td>
+	<td><p><input type="text" size="35" name="coppauser" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and homepage contains</p></td>
+	<td><p><input type="text" size="35" name="homepage" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and ICQ Number contains</p></td>
+	<td><p><input type="text" size="35" name="icq" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and AIM Handle contains</p></td>
+	<td><p><input type="text" size="35" name="aim" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and Yahoo Messenger Handle contains</p></td>
+	<td><p><input type="text" size="35" name="yahoo" value=""></p></td></tr>
+{% if mode == 'genlist' %}
+<tr class="secondalt" valign="top"><td><p>and Biography contains</p></td>
+	<td><p><input type="text" size="35" name="biography" value=""></p></td></tr>
+{% endif %}
+<tr class="{{ 'firstalt' if mode == 'genlist' else 'secondalt' }}" valign="top"><td><p>and Signature contains</p></td>
+	<td><p><input type="text" size="35" name="signature" value=""></p></td></tr>
+<tr class="{{ 'secondalt' if mode == 'genlist' else 'firstalt' }}" valign="top"><td><p>and User Title contains</p></td>
+	<td><p><input type="text" size="35" name="usertitle" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and Join Date is after<br>(Format yyyy-mm-dd, leave blank for today)</p></td>
+	<td><p><input type="text" size="35" name="joindateafter" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and Join Date is before<br>(Format yyyy-mm-dd, leave blank for today)</p></td>
+	<td><p><input type="text" size="35" name="joindatebefore" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and Birthday is after<br>(Format yyyy-mm-dd)</p></td>
+	<td><p><input type="text" size="35" name="birthdayafter" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and Birthday is before<br>(Format yyyy-mm-dd)</p></td>
+	<td><p><input type="text" size="35" name="birthdaybefore" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and Last Visit is after<br>(Format yyyy-mm-dd hh:mm:ss, leave blank for today)</p></td>
+	<td><p><input type="text" size="35" name="lastvisitafter" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and Last Visit is before<br>(Format yyyy-mm-dd hh:mm:ss, leave blank for today)</p></td>
+	<td><p><input type="text" size="35" name="lastvisitbefore" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and Last Post is after<br>(Format yyyy-mm-dd hh:mm:ss, leave blank for today)</p></td>
+	<td><p><input type="text" size="35" name="lastpostafter" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and Last Post is before<br>(Format yyyy-mm-dd hh:mm:ss, leave blank for today)</p></td>
+	<td><p><input type="text" size="35" name="lastpostbefore" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>and Number of Posts is greater than</p></td>
+	<td><p><input type="text" size="35" name="postslower" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>and Number of Posts is less than</p></td>
+	<td><p><input type="text" size="35" name="postsupper" value=""></p></td></tr>
+{% endmacro %}
+
+{% if mode == 'result' %}
+{% if no_match %}
+<p><b>No users matched your search conditions.</b></p>
+{% else %}
+<p><b>{{ log[0] }}</b></p>
+<p>
+{% for line in log[1:] %}{{ line }}<br>
+{% endfor %}
+</p>
+{% if next_page %}
+<form method="post" action="{{ url_for('admin.users_email') }}">
+{% for k, v in hidden.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+<input type="hidden" name="startat" value="{{ startat }}">
+<input type="hidden" name="perpage" value="{{ perpage }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<p><input type="submit" value="   Do Next Page (page {{ next_page }})   "></p>
+</form>
+{% else %}
+<p><b>All done!</b></p>
+{% endif %}
+{% endif %}
+
+{% elif mode == 'genlist' %}
+<p>Notes on 'Text to separate addresses by' field: This is a space by default, but you may wish to produce, CSV (in this case use a comma) or quoted CSV (use: "," in this case, including the quotes), so both of these are possible.</p>
+<form method="post" action="{{ url_for('admin.users_email_genlist') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Generate Mailing List</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Text to separate addresses by</p></td>
+	<td><p><textarea name="septext" rows="4" cols="40"> </textarea></p></td></tr>
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Select users where:</span></b></font></td></tr>
+{{ filters() }}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Generate List   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<p><b>To generate a list of emails, click <a href="{{ url_for('admin.users_email_genlist') }}">here</a>.</b></p>
+<form method="post" action="{{ url_for('admin.users_email') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Email Board Members</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Just a test? <font size="1">(do not actually send emails)</font></p></td>
+	<td>{{ yesno('test', default_yes=False) }}</td></tr>
+<tr class="secondalt" valign="top"><td><p>Messages to send at once:</p></td>
+	<td><p><input type="text" size="35" name="perpage" value="500"></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>From:</p></td>
+	<td><p><input type="text" size="35" name="from" value="{{ from_addr }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Subject:</p></td>
+	<td><p><input type="text" size="35" name="subject" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Message:<p><font size="1">In the message, you may use $userid, $activateid, $username and $email.<br><br>This is the string to use if you want to email the activation link to a member:<br><input type="text" size="35" value="$bburl/register.php?a=act&amp;u=$userid&amp;i=$activateid" readonly></font></p><p><font size="1">Note: you can no longer send passwords using this form as they are encrypted in the database. Please link to the 'lost password' form instead.</font></p></p></td>
+	<td><p><textarea name="message" rows="10" cols="50"></textarea></p></td></tr>
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Email to users where:</span></b></font></td></tr>
+{{ filters() }}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Send Email   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

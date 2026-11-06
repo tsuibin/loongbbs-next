@@ -11,6 +11,7 @@ from flask import (
     abort,
     current_app,
     flash,
+    Response,
     redirect,
     render_template,
     request,
@@ -84,8 +85,8 @@ NAV_GROUPS = [
         {"label": "PM Statistics", "endpoint": "admin.users_pmstats"},
         {"label": "IP Addresses", "endpoint": "admin.users_ips"},
         {"label": "Referrals", "endpoint": "admin.users_referrals"},
-        {"label": "Email Users", "module": "Email Users"},
-        {"label": "Build Mailing List", "module": "Build Mailing List"},
+        {"label": "Email Users", "endpoint": "admin.users_email"},
+        {"label": "Build Mailing List", "endpoint": "admin.users_email_genlist"},
     ]},
     {"title": "User Titles", "links": [
         {"label": "Add", "module": "Add User Title"},
@@ -956,6 +957,126 @@ def _ref_counts(startdate, enddate, referrerid=None):
     if referrerid is not None:
         stmt = stmt.where(User.referrerid == referrerid)
     return db.session.execute(stmt.group_by(User.referrerid)).all()
+
+
+_MAIL_LOG = Path(__file__).resolve().parent.parent / "logs" / "admin-email.log"
+
+
+def _groups():
+    return db.session.execute(select(UserGroup).order_by(UserGroup.title)).scalars().all()
+
+
+def _mail_conditions(form, *, genlist: bool) -> list:
+    """把原版 email.php 的 WHERE 串翻译成条件列表（本地缺列的项不参与）。"""
+    conds = []
+    pairs = [("ausername", User.username)]
+    pairs.append(("email" if genlist else "aemail", User.email))
+    pairs += [
+        ("homepage", User.homepage),
+        ("icq", User.icq),
+        ("aim", User.aim),
+        ("yahoo", User.yahoo),
+        ("signature", User.signature),
+        ("usertitle", User.usertitle),
+    ]
+    for name, column in pairs:
+        raw = (form.get(name) or "").strip()
+        if raw:
+            conds.append(func.lower(column).like(f"%{raw.lower()}%"))
+
+    group_raw = (form.get("usergroupid") or "").strip()
+    if group_raw not in ("", "-1"):
+        try:
+            conds.append(User.usergroupid == int(group_raw))
+        except ValueError:
+            pass
+
+    for name, column, op in (("joindateafter", User.joined_at, ">"),
+                             ("joindatebefore", User.joined_at, "<"),
+                             ("lastvisitafter", User.last_visit, ">"),
+                             ("lastvisitbefore", User.last_visit, "<")):
+        dt = _ref_parse_date(form.get(name) or "")
+        if dt is not None:
+            conds.append(column > dt if op == ">" else column < dt)
+
+    # 原版用 user.posts 字段；本地没有该列，按 posts 表实时计数比较
+    posts_count = (select(func.count(Post.id)).where(Post.author_id == User.id)
+                   .correlate(User).scalar_subquery())
+    lower = (form.get("postslower") or "").strip()
+    upper = (form.get("postsupper") or "").strip()
+    if lower.isdigit():
+        conds.append(posts_count > int(lower))
+    if upper.isdigit():
+        conds.append(posts_count < int(upper))
+    return conds
+
+
+def _mail_targets(form, *, genlist: bool):
+    # 原版所有查询都追加 adminemail=1（用户同意接收管理员邮件），本地对应 allowmail
+    conds = _mail_conditions(form, genlist=genlist)
+    stmt = select(User).where(*conds, User.allowmail.is_(True))
+    return db.session.execute(stmt.order_by(User.id.desc())).scalars().all()
+
+
+@bp.route("/email", methods=["GET", "POST"])
+def users_email():
+    """Users → Email Users：照原版 email.php 的 start / dosendmail / donext。"""
+    if request.method == "GET":
+        return render_template("admin/email.html", mode="start",
+                               from_addr=get_settings().get("webmasteremail", ""),
+                               groups=_groups())
+
+    form = request.form
+    perpage = request.form.get("perpage", type=int) or 500
+    startat = request.form.get("startat", type=int) or 0
+    test = (form.get("test") or "") == "1"
+    subject = form.get("subject") or ""
+    message = form.get("message") or ""
+    sender = form.get("from") or get_settings().get("webmasteremail", "")
+
+    targets = _mail_targets(form, genlist=False)
+    if not targets:
+        return render_template("admin/email.html", mode="result", no_match=True)
+
+    chunk = targets[startat:startat + perpage]
+    page = startat // perpage + 1
+    totalpages = max(1, -(-len(targets) // perpage))
+    log: list[str] = []
+    log.append(f"Emailing users. Page {page}/{totalpages} ({len(targets)} users total).")
+    for u in chunk:
+        body = (message.replace("$email", u.email)
+                       .replace("$username", u.username)
+                       .replace("$userid", str(u.id)))
+        log.append(f"{u.id} - {u.username} .... ")
+        if test:
+            log.append("testing ... ")
+        else:
+            _MAIL_LOG.parent.mkdir(parents=True, exist_ok=True)
+            with _MAIL_LOG.open("a", encoding="utf-8") as fh:
+                fh.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] to={u.email} from={sender} "
+                         f"subject={subject}\n{body}\n---\n")
+            log.append("sending ... ")
+        log.append("ok")
+
+    hidden = {k: v for k, v in form.items() if k not in ("_csrf", "action")}
+    next_page = page + 1 if page < totalpages else None
+    return render_template("admin/email.html", mode="result", log=log,
+                           next_page=next_page, hidden=hidden,
+                           startat=startat + perpage, perpage=perpage)
+
+
+@bp.route("/email/genlist", methods=["GET", "POST"])
+def users_email_genlist():
+    """Users → Build Mailing List：照原版 email.php 的 genlist / makelist。"""
+    if request.method == "GET":
+        return render_template("admin/email.html", mode="genlist", groups=_groups())
+
+    septext = request.form.get("septext")
+    if septext is None:
+        septext = " "
+    targets = _mail_targets(request.form, genlist=True)
+    text = "".join(u.email + septext for u in targets)
+    return Response(text, mimetype="text/plain; charset=utf-8")
 
 
 @bp.route("/users/referrals", methods=["GET", "POST"])
