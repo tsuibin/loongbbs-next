@@ -1,0 +1,84 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Add New User{% else %}新增用户{% endif %}{% endblock %}
+{% block content %}
+
+{% set counter = {'n': 0} %}
+{% macro rowclass() %}
+{%- set _ = counter.update({'n': counter.n + 1}) -%}
+{{ 'firstalt' if counter.n % 2 == 1 else 'secondalt' }}
+{% endmacro %}
+
+{% macro yesno(name, label, default=0) %}
+<tr class="{{ rowclass() }}" valign="top">
+	<td width="50%">{{ label|safe }}</td>
+	<td>Yes<input type="radio" name="{{ name }}" value="1"{% if default == 1 %} checked{% endif %}> No <input type="radio" name="{{ name }}" value="0"{% if default == 0 %} checked{% endif %}></td>
+</tr>
+{% endmacro %}
+
+{% macro inputcode(name, label, value='') %}
+<tr class="{{ rowclass() }}" valign="top">
+	<td width="50%">{{ label|safe }}</td>
+	<td><input type="text" name="{{ name }}" size="35" value="{{ value }}"></td>
+</tr>
+{% endmacro %}
+
+<p>Add New User</p>
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">User Profile</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="50%">User Group</td>
+	<td><select name="usergroupid">
+	{% for g in groups %}
+		<option value="{{ g.id }}"{% if g.id == 2 %} selected{% endif %}>{{ g.title }}</option>
+	{% endfor %}
+	</select></td></tr>
+{{ inputcode('ausername', 'User Name') }}
+{{ inputcode('apassword', 'Password') }}
+{{ inputcode('email', 'Email Address') }}
+{{ inputcode('usertitle', 'User Title') }}
+{{ yesno('customtitle', "Use Custom Title<br><font size='1'>(This forces the title that you put in the field above to be used)</font>", 0) }}
+<tr class="{{ rowclass() }}" valign="top"><td>Style set</td><td><select name="userstyleid"><option value="0">Use forum default</option></select></td></tr>
+{{ inputcode('homepage', 'Home Page', 'http://www.') }}
+{{ inputcode('birthday', "Birthday<br>(Format yyyy-mm-dd)") }}
+<tr class="{{ rowclass() }}" valign="top"><td>Signature</td><td><textarea name="signature" rows="8" cols="45"></textarea></td></tr>
+{{ inputcode('icq', 'ICQ Number') }}
+{{ inputcode('aim', 'AIM Handle') }}
+{{ inputcode('yahoo', 'Yahoo Messenger Handle') }}
+{{ yesno('coppauser', 'COPPA user', 0) }}
+{{ inputcode('parentemail', 'Parent Email Address') }}
+
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Options</span></b></font></td></tr>
+{{ yesno('adminemail', 'Receive mailings from admins', 1) }}
+{{ yesno('showemail', 'Show email address', 1) }}
+{{ yesno('invisible', "Invisible on 'Online users' list", 0) }}
+{{ yesno('receivepm', 'Receive PMs', 1) }}
+{{ yesno('emailonpm', 'Email on PM', 0) }}
+{{ yesno('pmpopup', 'PM Popup', 0) }}
+{{ yesno('showsignatures', 'Show Signatures', 1) }}
+{{ yesno('showavatars', 'Show Avatars', 1) }}
+{{ yesno('showimages', 'Show Images', 1) }}
+{{ yesno('showvbcode', 'Show VBcode', 1) }}
+{{ yesno('emailnotification', 'Use email notification by default', 1) }}
+{{ yesno('cookieuser', 'Remember Username and password', 1) }}
+{{ yesno('nosessionhash', 'Browse boards with cookies', 1) }}
+{{ inputcode('joindate', "Join Date<br>(Format yyyy-mm-dd, leave blank for today)") }}
+{{ inputcode('daysprune', "Default view age<br>'Select threads from last x days'<br>Recommended values: 1, 2, 5, 10, 20, 30, 45, 60, 75, 100, 365, 1000 (ie all). -1 gives default forum selection", '-1') }}
+{{ inputcode('lastvisit', "Last Visit<br>(Format yyyy-mm-dd hh:mm:ss, leave blank for today)") }}
+{{ inputcode('lastactivity', "Last Activity<br>(Format yyyy-mm-dd hh:mm:ss, leave blank for today)") }}
+{{ inputcode('lastpost', "Last Post<br>(Format yyyy-mm-dd hh:mm:ss, leave blank for today)") }}
+{{ inputcode('posts', 'Number of Posts', '0') }}
+{{ inputcode('timezoneoffset', 'Time Zone Offset (hours)', '0') }}
+{{ inputcode('aipaddress', 'IP Address') }}
+
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="Save">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% endblock %}

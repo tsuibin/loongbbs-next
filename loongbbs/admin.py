@@ -27,6 +27,7 @@ from .models import (
     Forum,
     ForumPermission,
     PERMISSION_FIELDS,
+    generate_password_hash,
     PERMISSION_LABELS,
     Poll,
     PollOption,
@@ -75,7 +76,7 @@ NAV_GROUPS = [
         {"label": "New Attachments", "endpoint": "admin.moderate_attachments"},
     ]},
     {"title": "Users", "links": [
-        {"label": "Add", "module": "Add User"},
+        {"label": "Add", "endpoint": "admin.user_add"},
         {"label": "Find", "endpoint": "admin.users_page"},
         {"label": "Move/Prune", "module": "Move/Prune Users"},
         {"label": "PM Statistics", "module": "PM Statistics"},
@@ -852,6 +853,89 @@ def _confirm_page(thread_ids):
         ids_text=",".join(str(i) for i in thread_ids),
         total=total,
     )
+
+
+@bp.route("/users/add", methods=["GET", "POST"])
+def user_add():
+    """Users → Add：照原版 user.php 的 add / insert 新建用户。"""
+    groups = db.session.execute(select(UserGroup).order_by(UserGroup.id)).scalars().all()
+
+    def _page():
+        return render_template("admin/user_add.html", groups=groups)
+
+    if request.method == "GET":
+        return _page()
+
+    username = (request.form.get("ausername") or "").strip()
+    password = (request.form.get("apassword") or "").strip()
+    if not username:
+        flash("You did not give this user an username", "error")
+        return _page()
+    existing = db.session.scalar(select(User).where(func.lower(User.username) == username.lower()))
+    if existing is not None:
+        flash(f"There is already a user named {username}", "error")
+        return _page()
+    if not password:
+        flash("You did not give this user a password", "error")
+        return _page()
+
+    def _yes(name, default):
+        return (request.form.get(name) if request.form.get(name) is not None else str(default)) == "1"
+
+    def _dt(field):
+        raw = (request.form.get(field) or "").strip()
+        if not raw:
+            return datetime.now(timezone.utc).replace(tzinfo=None)
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(raw, fmt)
+            except ValueError:
+                continue
+        return datetime.now(timezone.utc).replace(tzinfo=None)
+
+    group_id = request.form.get("usergroupid", type=int) or 2
+    custom_title = _yes("customtitle", 0)
+    usertitle = (request.form.get("usertitle") or "").strip()
+    if not custom_title:
+        group_obj = db.session.get(UserGroup, group_id)
+        usertitle = (group_obj.usertitle or "") if group_obj else ""
+
+    user = User(
+        username=username,
+        email=(request.form.get("email") or "").strip(),
+        password_hash=generate_password_hash(password),
+        usergroupid=group_id,
+        usertitle=usertitle,
+        homepage=(request.form.get("homepage") or "").strip(),
+        birthday=(request.form.get("birthday") or "").strip(),
+        signature=request.form.get("signature") or "",
+        icq=(request.form.get("icq") or "").strip(),
+        aim=(request.form.get("aim") or "").strip(),
+        yahoo=(request.form.get("yahoo") or "").strip(),
+        allowmail=_yes("adminemail", 1),
+        showemail=_yes("showemail", 1),
+        invisible=_yes("invisible", 0),
+        receivepm=_yes("receivepm", 1),
+        emailonpm=_yes("emailonpm", 0),
+        pmpopup=_yes("pmpopup", 0),
+        showsignatures=_yes("showsignatures", 1),
+        showavatars=_yes("showavatars", 1),
+        showimages=_yes("showimages", 1),
+        vbcode=_yes("showvbcode", 1),
+        emailnotification=_yes("emailnotification", 1),
+        cookieuser=_yes("cookieuser", 1),
+        nosessionhash=_yes("nosessionhash", 1),
+        prunedays=request.form.get("daysprune", type=int) if request.form.get("daysprune") else -1,
+        timezoneoffset=request.form.get("timezoneoffset", type=int) or 0,
+        newstyleset=request.form.get("userstyleid", type=int) or 0,
+        joined_at=_dt("joindate"),
+        last_visit=_dt("lastvisit"),
+        last_seen=_dt("lastactivity"),
+    )
+    db.session.add(user)
+    db.session.commit()
+    flash("Record added", "success")
+    return redirect(url_for("admin.users_page"))
 
 
 @bp.route("/mod/moderate/posts", methods=["GET", "POST"])
