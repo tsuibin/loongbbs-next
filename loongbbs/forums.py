@@ -338,6 +338,8 @@ def index():
                 and _naive(last_post.created_at) > cutoff
             )
     return render_template("index.html", categories=categories, stats=stats)
+
+
 @bp.get("/f/<int:forum_id>")
 def forum(forum_id: int):
     forum_obj = db.session.get(Forum, forum_id)
@@ -347,17 +349,52 @@ def forum(forum_id: int):
     page = clamp_page(request.args.get("page"))
     per_page = _per_page("threads_per_page", 25)
 
-    stmt = (
-        select(Thread)
-        .where(Thread.forum_id == forum_obj.id)
-        .order_by(Thread.is_sticky.desc(), Thread.last_post_at.desc())
-        .offset((page - 1) * per_page)
-        .limit(per_page)
+    # 排序/时间范围：对应 vB forumdisplay.php 的 sortfield / sortorder / daysprune
+    sortfield = (request.args.get("sortfield") or "lastpost").lower()
+    sortorder = (request.args.get("sortorder") or "desc").lower()
+    if sortfield not in {"title", "lastpost", "replycount", "views", "postusername"}:
+        sortfield = "lastpost"
+    if sortorder not in {"asc", "desc"}:
+        sortorder = "desc"
+    try:
+        daysprune = int(request.args.get("daysprune") or 1000)
+    except (TypeError, ValueError):
+        daysprune = 1000
+    daysprune = max(1, min(daysprune, 1000))
+
+    reply_subq = (
+        select(func.count(Post.id))
+        .where(Post.thread_id == Thread.id, Post.is_deleted.is_(False))
+        .scalar_subquery()
     )
+    sort_columns = {
+        "title": Thread.title,
+        "lastpost": Thread.last_post_at,
+        "replycount": reply_subq,
+        "views": Thread.views,
+        "postusername": User.username,
+    }
+
+    stmt = select(Thread)
+    if sortfield == "postusername":
+        stmt = stmt.join(User, Thread.author_id == User.id)
+    stmt = stmt.where(Thread.forum_id == forum_obj.id)
+    if daysprune < 1000:
+        stmt = stmt.where(Thread.last_post_at >= utcnow() - timedelta(days=daysprune))
+    column = sort_columns[sortfield]
+    stmt = stmt.order_by(
+        Thread.is_sticky.desc(),
+        column.asc() if sortorder == "asc" else column.desc(),
+    )
+    stmt = stmt.offset((page - 1) * per_page).limit(per_page)
     threads = db.session.execute(stmt).scalars().all()
-    total = db.session.scalar(
-        select(func.count(Thread.id)).where(Thread.forum_id == forum_obj.id)
-    ) or 0
+
+    total_stmt = select(func.count(Thread.id)).where(Thread.forum_id == forum_obj.id)
+    if daysprune < 1000:
+        total_stmt = total_stmt.where(
+            Thread.last_post_at >= utcnow() - timedelta(days=daysprune)
+        )
+    total = db.session.scalar(total_stmt) or 0
     pages = max(1, (total + per_page - 1) // per_page)
 
     forums_all = db.session.execute(select(Forum).order_by(Forum.position, Forum.id)).scalars().all()
@@ -391,6 +428,10 @@ def forum(forum_id: int):
         total=total,
         page_args=page_args,
         time_ago=time_ago,
+        sortfield=sortfield,
+        sortorder=sortorder,
+        daysprune=daysprune,
+        inverse_order=("asc" if sortorder == "desc" else "desc"),
     )
 
 

@@ -24,12 +24,12 @@
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr bgcolor="#8080A6" id="cat" align="center">
 	<td bgcolor="#8080A6" align="center" nowrap colspan="3"><font face="verdana,arial,helvetica" size="1">
-	<a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>主题</b></font></a> </font></td>
-	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>主题发起人</b></font></a> </font></td>
-	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>回复</b></font></a> </font></td>
-	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>查看</b></font></a> </font></td>
+	<a href="{{ url_for('forums.forum', forum_id=forum.id, sortfield='title', sortorder=('asc' if sortfield == 'title' and sortorder == 'desc' else 'desc' if sortfield == 'title' else 'asc'), daysprune=daysprune) }}"><font color="#EEEEFF"><b>主题</b></font></a> {% if sortfield == 'title' %}<img src="{{ url_for('static', filename='images/sort' ~ sortorder ~ '.gif') }}" border="0" alt="">{% endif %}</font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id, sortfield='postusername', sortorder=('asc' if sortfield == 'postusername' and sortorder == 'desc' else 'desc' if sortfield == 'postusername' else 'asc'), daysprune=daysprune) }}"><font color="#EEEEFF"><b>主题发起人</b></font></a> {% if sortfield == 'postusername' %}<img src="{{ url_for('static', filename='images/sort' ~ sortorder ~ '.gif') }}" border="0" alt="">{% endif %}</font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id, sortfield='replycount', sortorder=('asc' if sortfield == 'replycount' and sortorder == 'desc' else 'desc' if sortfield == 'replycount' else 'asc'), daysprune=daysprune) }}"><font color="#EEEEFF"><b>回复</b></font></a> {% if sortfield == 'replycount' %}<img src="{{ url_for('static', filename='images/sort' ~ sortorder ~ '.gif') }}" border="0" alt="">{% endif %}</font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id, sortfield='views', sortorder=('asc' if sortfield == 'views' and sortorder == 'desc' else 'desc' if sortfield == 'views' else 'asc'), daysprune=daysprune) }}"><font color="#EEEEFF"><b>查看</b></font></a> {% if sortfield == 'views' %}<img src="{{ url_for('static', filename='images/sort' ~ sortorder ~ '.gif') }}" border="0" alt="">{% endif %}</font></td>
 	<td bgcolor="#8080A6" align="center" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>评分</b></font></a> </font></td>
-	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>最后发表</b></font></a> <a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/sortasc.gif') }}" border="0" alt="反向排序" align="absmiddle"></a></font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id, sortfield='lastpost', sortorder=('asc' if sortfield == 'lastpost' and sortorder == 'desc' else 'desc' if sortfield == 'lastpost' else 'asc'), daysprune=daysprune) }}"><font color="#EEEEFF"><b>最后发表</b></font></a> {% if sortfield == 'lastpost' %}<img src="{{ url_for('static', filename='images/sort' ~ sortorder ~ '.gif') }}" border="0" alt="">{% endif %}</font></td>
 </tr>
 
 {% for thread in threads %}
@@ -69,32 +69,23 @@
 	<nobr>
 	<b>显示第 {{ (page - 1) * (settings.threads_per_page|int) + 1 }} 至 {{ [page * (settings.threads_per_page|int), total]|min }} 条，共 {{ total }} 个主题，排序方式为 </b>
 	<select name="sortfield">
-		<option value="title">主题标题</option>
-		<option value="lastpost" selected>最后发表时间</option>
-		<option value="replycount">回复数</option>
-		<option value="views">查看数</option>
-		<option value="postusername">主题发起人</option>
+		<option value="title"{% if sortfield == 'title' %} selected{% endif %}>主题标题</option>
+		<option value="lastpost"{% if sortfield == 'lastpost' %} selected{% endif %}>最后发表时间</option>
+		<option value="replycount"{% if sortfield == 'replycount' %} selected{% endif %}>回复数</option>
+		<option value="views"{% if sortfield == 'views' %} selected{% endif %}>查看数</option>
+		<option value="postusername"{% if sortfield == 'postusername' %} selected{% endif %}>主题发起人</option>
 	</select>
 	</nobr><nobr>
 	<b>，顺序为</b>
 	<select name="sortorder">
-		<option value="asc">升序</option>
-		<option value="desc" selected>降序</option>
+		<option value="asc"{% if sortorder == 'asc' %} selected{% endif %}>升序</option>
+		<option value="desc"{% if sortorder == 'desc' %} selected{% endif %}>降序</option>
 	</select>
 	<b>，时间范围为</b>
 	<select name="daysprune">
-		<option value="1">最近一天</option>
-		<option value="2">最近 2 天</option>
-		<option value="5">最近 5 天</option>
-		<option value="10">最近 10 天</option>
-		<option value="20">最近 20 天</option>
-		<option value="30">最近 30 天</option>
-		<option value="45">最近 45 天</option>
-		<option value="60">最近 60 天</option>
-		<option value="75">最近 75 天</option>
-		<option value="100">最近 100 天</option>
-		<option value="365">最近一年</option>
-		<option value="1000" selected>从最开始</option>
+{% for d in [1, 2, 5, 10, 20, 30, 45, 60, 75, 100, 365, 1000] %}
+		<option value="{{ d }}"{% if daysprune == d %} selected{% endif %}>{% if d == 1 %}最近一天{% elif d == 365 %}最近一年{% elif d == 1000 %}从最开始{% else %}最近 {{ d }} 天{% endif %}</option>
+{% endfor %}
 	</select><!-- go button -->
 	<input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom">
 	</nobr>
