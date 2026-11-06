@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import re
 import secrets
+from datetime import timezone
 from pathlib import Path
 
 from flask import (
@@ -539,14 +540,85 @@ def edit_options_post():
 # ---- member.php?action=editprofile -----------------------------------------
 
 
+def _post_count(user) -> int:
+    return (
+        db.session.scalar(
+            select(func.count()).select_from(Post).where(Post.author_id == user.id)
+        )
+        or 0
+    )
+
+
+def _custom_title_allowed(user) -> bool:
+    """vB 组 28：当前用户是否有资格自设头衔（member.php:277-296 / 497-519）。
+
+    ctEnable=0 一律不可；管理员且 ctAdmin=1 无条件可；否则按 ctPosts（发帖数）
+    与 ctDays（注册天数）判断，ctEitherOr=0 表示「任一满足」，=1 表示「两者都要」。
+    """
+    if get_setting("ctEnable", "1") != "1":
+        return False
+    if getattr(user, "is_admin", False) and get_setting("ctAdmin", "1") == "1":
+        return True
+
+    try:
+        min_posts = int(get_setting("ctPosts") or 10)
+    except (TypeError, ValueError):
+        min_posts = 10
+    try:
+        min_days = int(get_setting("ctDays") or 10)
+    except (TypeError, ValueError):
+        min_days = 10
+
+    posts_ok = _post_count(user) >= min_posts
+    joined = user.joined_at
+    if joined is not None and joined.tzinfo is None:
+        joined = joined.replace(tzinfo=timezone.utc)
+    days = (utcnow() - joined).days if joined else 0
+    days_ok = min_days == 0 or days >= min_days
+
+    if get_setting("ctEitherOr", "1") == "0":
+        return posts_ok or days_ok
+    return posts_ok and days_ok
+
+
+def _ct_censor(text: str) -> str:
+    """vB 的 customcensortext()：按 ctCensorWords 把命中词替换成 censorchar。"""
+    words = (get_setting("ctCensorWords") or "").strip()
+    char = (get_setting("censorchar") or "*").strip()[:1] or "*"
+    for raw in words.split():
+        token = raw.strip()
+        if not token:
+            continue
+        if token.startswith("{") and token.endswith("}") and len(token) > 2:
+            core = token[1:-1]
+            pattern = r"(?<![A-Za-z])" + re.escape(core) + r"(?![A-Za-z])"
+            length = len(core)
+        else:
+            pattern = re.escape(token)
+            length = len(token)
+        text = re.sub(pattern, char * length, text, flags=re.I)
+    return text
+
+
+def _custom_title_limits() -> tuple[bool, int]:
+    try:
+        max_chars = int(get_setting("ctMaxChars") or 25)
+    except (TypeError, ValueError):
+        max_chars = 25
+    return _custom_title_allowed(current_user), max(1, max_chars)
+
+
 @bp.get("/usercp/profile")
 @login_required
 def edit_profile():
     """对应 vB 的 member.php?action=editprofile。"""
+    ct_allowed, ct_max_chars = _custom_title_limits()
     return render_template(
         "auth/editprofile.html",
         cpnav_current="profile",
         forums=_forum_jump_list(),
+        ct_allowed=ct_allowed,
+        ct_max_chars=ct_max_chars,
     )
 
 
@@ -580,10 +652,13 @@ def edit_profile_post():
             ok = False
 
     if not ok:
+        ct_allowed, ct_max_chars = _custom_title_limits()
         return render_template(
             "auth/editprofile.html",
             cpnav_current="profile",
             forums=_forum_jump_list(),
+            ct_allowed=ct_allowed,
+            ct_max_chars=ct_max_chars,
         )
 
     user.email = email
@@ -596,6 +671,25 @@ def edit_profile_post():
     user.interests = (form.get("interests") or "").strip()[:200]
     user.occupation = (form.get("occupation") or "").strip()[:100]
     user.birthday = (form.get("birthday") or "").strip()[:10]
+
+    # 组 28 自定义用户头衔：资格够了才处理 customtext / resettitle
+    if _custom_title_allowed(user):
+        try:
+            max_chars = int(get_setting("ctMaxChars") or 25)
+        except (TypeError, ValueError):
+            max_chars = 25
+        max_chars = max(1, max_chars)
+        if form.get("resettitle") == "yes":
+            # 原版勾 Reset 时把 customtitle 归 0，头衔回落到用户组/发帖数头衔
+            user.usertitle = ""
+        else:
+            customtext = (form.get("customtext") or "").strip()
+            if customtext:
+                customtext = customtext[:max_chars]
+                customtext = censor_text(customtext)
+                if (not getattr(user, "is_admin", False)) or get_setting("ctCensorMod", "1") == "1":
+                    customtext = _ct_censor(customtext)
+                user.usertitle = customtext
 
     db.session.commit()
     flash("个人资料已更新。")

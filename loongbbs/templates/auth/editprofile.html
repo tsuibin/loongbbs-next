@@ -65,8 +65,20 @@
 	表情符号是 {{ settings.get('ontext', 'ON') }}</p></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><textarea name="signature" rows="6" cols="40">{{ nav_user.signature }}</textarea></font></td>
 </tr>
+{% if ct_allowed %}
 <tr>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>生日:</b></font></td>
+	<td bgcolor="#F1F1F1" valign="top"><font face="verdana, arial, helvetica" size="2"><b>自定义头衔:</b></font><br>
+	<font face="verdana,arial,helvetica" size="1">显示在你的帖子中用户名下方的头衔。最多可输入 {{ ct_max_chars }} 个字符。<br>
+	若想恢复用户组默认头衔，请勾选「恢复默认」。不允许 HTML。</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
+	当前头衔: <b>{{ nav_user.usertitle_text }}</b><br><br>
+	新头衔: <input type="text" class="bginput" name="customtext" value="" size="30" maxlength="{{ ct_max_chars }}">
+	&nbsp;&nbsp;恢复默认: <input type="checkbox" name="resettitle" value="yes">
+	</font></td>
+</tr>
+{% endif %}
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>生日:</b></font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="birthday" value="{{ nav_user.birthday }}" size="12" maxlength="10">&nbsp;<font face="verdana,arial,helvetica" size="1">格式 YYYY-MM-DD，可留空</font></font></td>
 </tr>
 <tr>
