@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 表情列表{% endblock %}
+
+{% block content %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 表情列表</b></font></td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr><td>
+<font face="verdana, arial, helvetica" size="2">
+<p>“表情”是一些能表达情绪或感受的小图标。如果你用过邮件或网络聊天，应该对这套东西不陌生。
+发帖时在正文里写下面对应的代码，发表后会自动变成表情图形。</p>
+
+<p>当前可用的表情：</p>
+</font>
+
+<table border="0" width="90%" cellpadding="4" cellspacing="1" bgcolor="#555576" align="center">
+<tr align="center">
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>输入什么</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>含义</b></font></td>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>显示成什么</b></font></td>
+</tr>
+{% for code, title, filename in smilies %}
+<tr align="center">
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="2">{{ code }}</font></td>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="2">{{ title }}</font></td>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}"><img src="{{ url_for('static', filename='images/smilies/' ~ filename) }}" border="0" alt="{{ title }}"></td>
+</tr>
+{% endfor %}
+</table>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr><td><font face="verdana, arial, helvetica" size="2">
+<p>如果某篇帖子里不想让代码变成表情（例如贴程序代码时不想让 <b>;)</b> 变成眨眼），
+可以在发帖的选项里选择不在本帖使用表情。</p>
+<p><b>vB 代码说明</b>见 <a href="{{ url_for('misc.bbcode') }}">这里</a>。</p>
+</font></td></tr>
+</table>
+</td></tr>
+</table>
+{% endblock %}

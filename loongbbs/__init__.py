@@ -45,6 +45,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     from .pm import bp as pm_bp
     from .admin import bp as admin_bp
     from .members import bp as members_bp
+    from .misc import bp as misc_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(forums_bp)
@@ -53,6 +54,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(pm_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(members_bp)
+    app.register_blueprint(misc_bp)
 
     from .utils import csrf_protect, current_user_or_none
 

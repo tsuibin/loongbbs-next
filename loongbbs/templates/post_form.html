@@ -101,7 +101,7 @@ function checklength(theform) {
 <tr id="codebuttons">
 	<td bgcolor="#DFDFDF" valign="top"><font face="verdana, arial, helvetica" size="2"><b>vB 代码</b></font>
 	<font face="verdana,arial,helvetica" size="1">
-	[<a href="javascript:void(0);" onclick="alert('[b]粗体[/b]\\n[i]斜体[/i]\\n[u]下划线[/u]\\n[url]网址[/url]\\n[email]邮箱[/email]\\n[img]图片地址[/img]\\n[code]代码[/code]\\n[php]PHP 代码[/php]\\n[quote]引用[/quote]\\n[size=3]字号[/size]\\n[font=arial]字体[/font]\\n[color=red]颜色[/color]\\n[list][*]列表[/list]\\n\\n表情代码见右侧 Smilies 面板。');">帮助</a>]<br>
+	[<a href="{{ url_for('misc.bbcode') }}#buttons" target="_blank">帮助</a>]<br>
 	<input type="radio" name="mode" value="0" checked> 普通模式
 	<br>
 	<input type="radio" name="mode" value="1"> 增强模式
@@ -161,6 +161,7 @@ function checklength(theform) {
 			<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/smilies/' ~ filename) }}" border="0" alt="{{ title }}"></td>
 		</tr>
 		{% endfor %}
+		<tr><td colspan="3" align="center" bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">[<a href="{{ url_for('misc.smilies') }}" target="_blank">查看全部表情</a>]</font></td></tr>
 		</table></td>
 	<td bgcolor="#DFDFDF">
 		<textarea name="body" rows="20" cols="70" wrap="virtual">{{ request.form.get('body') or (post.body if post else '') }}</textarea><br>

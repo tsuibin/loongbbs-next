@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - vB 代码说明{% endblock %}
+
+{% block content %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; vB 代码说明</b></font></td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr><td>
+<font face="verdana, arial, helvetica" size="2">
+
+<a name="buttons"></a>
+<h3>vB 代码按钮</h3>
+<p>发帖页的 vB 代码一栏里，这些按钮可以帮你插入标签：</p>
+<table cellpadding="4" cellspacing="1" border="0" bgcolor="#555576" width="100%">
+<tr bgcolor="#8080A6"><td><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>按钮</b></font></td>
+<td><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>插入的代码</b></font></td>
+<td><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>作用</b></font></td></tr>
+{% for btn, code, use in [
+ ('B','[B]文本[/B]','粗体'),
+ ('I','[I]文本[/I]','斜体'),
+ ('U','[U]文本[/U]','下划线'),
+ ('字号','[SIZE=3]文本[/SIZE]','字号 1-4'),
+ ('字体','[FONT=arial]文本[/FONT]','字体'),
+ ('颜色','[COLOR=red]文本[/COLOR]','颜色'),
+ ('http://','[URL]网址[/URL] 或 [URL=网址]说明[/URL]','插入超链接'),
+ (' @ ','[EMAIL]邮箱[/EMAIL]','插入邮箱'),
+ ('IMG','[IMG]图片地址[/IMG]','插入图片（需 http:// 开头）'),
+ (' # ','[CODE]代码[/CODE]','代码块，等宽、保留空格'),
+ ('PHP','[PHP]代码[/PHP]','PHP 代码块'),
+ ('List','[LIST][*]项目[/LIST]','无序列表'),
+ ('Quote','[QUOTE]引文[/QUOTE]','引用'),
+ ('x（关闭当前标签）','关闭最近打开的那个标签','补上对应的结束标签'),
+ ('x（关闭全部标签）','关闭所有已打开的标签','把未闭合的标签全部闭合')] %}
+<tr bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}">
+	<td><font face="verdana,arial,helvetica" size="1">{{ btn }}</font></td>
+	<td><font face="verdana,arial,helvetica" size="1" color="#CC0000">{{ code }}</font></td>
+	<td><font face="verdana,arial,helvetica" size="1">{{ use }}</font></td>
+</tr>
+{% endfor %}
+</table>
+
+<p><b>什么是 vB 代码？</b></p>
+<p>vB 代码是一组标签，语法比 HTML 简单，用来给帖子加格式，但永远不会破坏页面版式。某个版块能不能用 vB 代码由管理员按版块设置，发帖前请先看版块规则。</p>
+
+<p><b>超链接</b></p>
+<p>只要在正文里写完整网址，链接会自动生成；以 <i>www.</i> 开头时不必加 <i>http://</i>。也可以自己加标签：</p>
+<blockquote><p><font color="red">[url]</font>www.vbulletin.com/forum/<font color="red">[/url]</font></p></blockquote>
+<p>要显示说明文字而不是网址本身，用带等号的形式：</p>
+<blockquote><p><font color="red">[url=http://www.vbulletin.com/forum/]</font>点击访问 vBulletin 论坛<font color="red">[/url]</font></p></blockquote>
+<p>效果：<a href="http://www.vbulletin.com/forum/" target="_blank">点击访问 vBulletin 论坛</a>。</p>
+
+<p><b>邮箱链接</b></p>
+<blockquote><p><font color="red">[email]</font>myname@domain.com<font color="red">[/email]</font></p></blockquote>
+<p>也可以写成带说明的形式：</p>
+<blockquote><p><font color="red">[email=myname@domain.com]</font>给我写信<font color="red">[/email]</font></p></blockquote>
+
+<p><b>粗体、下划线、斜体</b></p>
+<ul>
+	<li><font color="red">[b]</font>文本<font color="red">[/b]</font> → <b>文本</b></li>
+	<li><font color="red">[u]</font>文本<font color="red">[/u]</font> → <u>文本</u></li>
+	<li><font color="red">[i]</font>文本<font color="red">[/i]</font> → <i>文本</i></li>
+</ul>
+
+<p><b>颜色、字号与字体</b></p>
+<ul>
+	<li><font color="red">[color=blue]</font>文本<font color="red">[/color]</font> → <font color="blue">文本</font></li>
+	<li><font color="red">[size=4]</font>文本<font color="red">[/size]</font> → <font size="4">文本</font></li>
+	<li><font color="red">[font=courier]</font>文本<font color="red">[/font]</font> → <font face="courier">文本</font></li>
+</ul>
+<p>这些可以叠加使用：</p>
+<blockquote><p><font color="red">[color=purple][u][b]</font>哇，这么多格式！<font color="red">[/b][/u][/color]</font></p></blockquote>
+<blockquote><p><font color="purple"><b><u>哇，这么多格式！</u></b></font></p></blockquote>
+
+<p><b>列表</b></p>
+<p><font color="red">[list]</font><br>
+<font color="red">[*]</font>第一项<br>
+<font color="red">[*]</font>第二项<br>
+<font color="red">[/list]</font></p>
+<p>效果：</p>
+<ul><li>第一项</li><li>第二项</li></ul>
+<p>编号列表用 [list=1]，字母列表用 [list=A]。</p>
+
+<p><b>插入图片</b></p>
+<blockquote><p><font color="red">[img]</font>http://www.example.com/图片地址.gif<font color="red">[/img]</font></p></blockquote>
+<p>地址必须带 <i>http://</i>；还可以把 [img] 套进 [url] 做成点击放大的缩略图。</p>
+
+<p><b>引用</b></p>
+<blockquote><p><font color="red">[quote]</font>别试。<br>
+要么做，要么不做，没有“试试看”。<font color="red">[/quote]</font></p></blockquote>
+<p>[quote] 里的文字会自动缩进显示。</p>
+
+<p><b>代码与 PHP 标签</b></p>
+<p>贴程序源码或 ASCII 画时，用 [code]：内容按等宽字体显示、空格原样保留。</p>
+<blockquote><p><font color="red">[code]</font><br>
+&lt;script language="Javascript"&gt;<br>
+alert("Hello world!");<br>
+&lt;/script&gt;<br>
+<font color="red">[/code]</font></p></blockquote>
+<p>PHP 代码用 [php]，会按 PHP 语法着色显示（本项目按代码块原样呈现）。</p>
+
+<p><b>常见错误</b></p>
+<ul>
+	<li><font color="red">[url]</font> www.vbulletin.com <font color="red">[/url]</font> —— 标签与内容之间不要留空格。</li>
+	<li><font color="red">[email]</font>myname@domain.com<font color="red">[email]</font> —— 结束标签要带斜杠：[<b>/</b>email]。</li>
+</ul>
+
+<p>表情代码见 <a href="{{ url_for('misc.smilies') }}">表情列表</a>。</p>
+
+</font>
+</td></tr>
+</table>
+{% endblock %}
