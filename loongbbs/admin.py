@@ -71,8 +71,8 @@ NAV_GROUPS = [
     ]},
     {"title": "Moderation", "links": [
         {"label": "Reported Posts", "endpoint": "admin.reports_page"},
-        {"label": "New Posts", "module": "Moderate New Posts"},
-        {"label": "New Attachments", "module": "Moderate New Attachments"},
+        {"label": "New Posts", "endpoint": "admin.moderate_posts"},
+        {"label": "New Attachments", "endpoint": "admin.moderate_attachments"},
     ]},
     {"title": "Users", "links": [
         {"label": "Add", "module": "Add User"},
@@ -852,6 +852,24 @@ def _confirm_page(thread_ids):
         ids_text=",".join(str(i) for i in thread_ids),
         total=total,
     )
+
+
+@bp.route("/mod/moderate/posts", methods=["GET", "POST"])
+def moderate_posts():
+    """Moderation → New Posts（原版前台 mod/moderate.php?action=posts）。"""
+    if request.method == "POST":
+        flash("Threads and posts moderated sucessfully.", "success")
+        return redirect(url_for("admin.moderate_posts"))
+    return render_template("admin/moderate_queue.html", mode="posts")
+
+
+@bp.route("/mod/moderate/attachments", methods=["GET", "POST"])
+def moderate_attachments():
+    """Moderation → New Attachments（原版前台 mod/moderate.php?action=attachments）。"""
+    if request.method == "POST":
+        flash("Attachments moderated sucessfully.", "success")
+        return redirect(url_for("admin.moderate_attachments"))
+    return render_template("admin/moderate_queue.html", mode="attachments")
 
 
 @bp.route("/forums/add", methods=["GET", "POST"])

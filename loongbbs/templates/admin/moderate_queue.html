@@ -1,0 +1,24 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if mode == 'posts' %}New Posts{% else %}New Attachments{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'posts' %}
+<p><b>Moderation &rsaquo; New Posts</b></p>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Threads awaiting validation</span></b></font></td></tr>
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Posts awaiting validation</span></b></font></td></tr>
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">{% if ui_lang == 'en' %}Nothing to moderate!{% else %}暂无需要审核的主题或帖子。{% endif %}</span></b></font></td></tr>
+</table>
+</td></tr></table>
+
+{% else %}
+<p><b>Moderation &rsaquo; New Attachments</b></p>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">{% if ui_lang == 'en' %}Nothing to do!{% else %}暂无需要审核的附件。{% endif %}</span></b></font></td></tr>
+</table>
+</td></tr></table>
+{% endif %}
+
+{% endblock %}
