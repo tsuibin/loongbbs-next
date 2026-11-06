@@ -316,6 +316,17 @@ def index():
         select(Category).order_by(Category.position, Category.id)
     ).scalars().all()
 
+    # 后台「首页版块选项」组（vB 组 5），对应 index.php 的
+    # $showforumdescription / $displayloggedin / $highlightadmin / $showlocks / $forumhomedepth
+    show_description = get_setting("showforumdescription") != "0"
+    display_loggedin = get_setting("displayloggedin") != "0"
+    highlight_admin = get_setting("highlightadmin") != "0"
+    show_locks = get_setting("showlocks") == "1"
+    try:
+        home_depth = int(get_setting("forumhomedepth") or 2)
+    except ValueError:
+        home_depth = 2
+
     stats = {
         "threads": db.session.scalar(select(func.count(Thread.id))) or 0,
         "posts": db.session.scalar(
@@ -340,7 +351,27 @@ def index():
                 cutoff and last_post and _naive(last_post.created_at)
                 and _naive(last_post.created_at) > cutoff
             )
-    return render_template("index.html", categories=categories, stats=stats)
+            # 原版：canpostnew 为假 / allowposting=0 且 showlocks 打开时才换成锁图标
+            forum_obj.lock_icon = bool(show_locks and forum_obj.is_closed)
+
+    online_users = []
+    if display_loggedin:
+        online_users = db.session.execute(
+            select(User)
+            .where(User.last_seen >= utcnow() - timedelta(minutes=15))
+            .order_by(User.username)
+        ).scalars().all()
+
+    return render_template(
+        "index.html",
+        categories=categories,
+        stats=stats,
+        show_description=show_description,
+        display_loggedin=display_loggedin,
+        highlight_admin=highlight_admin,
+        home_depth=home_depth,
+        online_users=online_users,
+    )
 
 
 @bp.get("/f/<int:forum_id>")

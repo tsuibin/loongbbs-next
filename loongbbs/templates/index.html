@@ -55,12 +55,13 @@
 </tr>
 
 {% for forum in category.forums %}
+{% if home_depth >= 2 %}
 <tr align="center">
 	{% set nl = nav_user.last_seen|dt('%Y%m%d%H%M') if nav_user and nav_user.last_seen else '99999999999999' %}
 	{% set lp = forum.last_post.created_at|dt('%Y%m%d%H%M') if forum.last_post else '0' %}
-	<td bgcolor="#DFDFDF" valign="top"><img src="{{ url_for('static', filename='images/' ~ ('offlock.gif' if forum.is_closed else ('on.gif' if forum.has_new else 'off.gif'))) }}" border="0" alt=""></td>
+	<td bgcolor="#DFDFDF" valign="top"><img src="{{ url_for('static', filename='images/' ~ ('offlock.gif' if forum.lock_icon else ('on.gif' if forum.has_new else 'off.gif'))) }}" border="0" alt=""></td>
 	<td bgcolor="#F1F1F1" align="left"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font face="verdana, arial, helvetica" size="2"><b>{{ forum.name }}</b></font></a>
-	{% if forum.description %}<br><font face="verdana,arial,helvetica" size="1">{{ forum.description }}</font>{% endif %}{% if forum.is_closed %}<br><font face="verdana,arial,helvetica" size="1">（版块已关闭）</font>{% endif %}</td>
+	{% if show_description and forum.description %}<br><font face="verdana,arial,helvetica" size="1">{{ forum.description }}</font>{% endif %}{% if forum.is_closed %}<br><font face="verdana,arial,helvetica" size="1">（版块已关闭）</font>{% endif %}</td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ forum.post_count }}</font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ forum.thread_count }}</font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">{% set last = forum.last_post %}{% if last %}<table cellpadding="0" cellspacing="0" border="0" width="100%" id="ltlink"><tr align="right">
@@ -70,17 +71,21 @@
 	</tr></table>{% else %}从未{% endif %}</font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">&nbsp;</font></td>
 </tr>
+{% endif %}
 {% endfor %}
 {% endfor %}
 
+{% if display_loggedin %}
 <tr id="cat">
 	<td bgcolor="#606096" colspan="6"><a href="{{ url_for('forums.index') }}"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>当前在线用户</b></font></a><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>: {{ stats.online }}</b></font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1" colspan="6"><font face="verdana,arial,helvetica" size="1">
 	<nobr>最近 15 分钟内有 {{ stats.online }} 位会员在版面上活动。</nobr><br>
+	{% if online_users %}{% for member in online_users %}{% if highlight_admin and member.is_admin %}<b><i>{{ member.username }}</i></b>{% else %}<a href="{{ url_for('auth.profile', username=member.username) }}">{{ member.username }}</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}<br>{% endif %}
 	{% if nav_user %}其中包含你自己。{% else %}登录后可以在这里看到自己的名字。{% endif %}</font></td>
 </tr>
+{% endif %}
 </table>
 </td></tr></table>
 <!-- /main -->
