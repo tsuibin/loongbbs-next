@@ -12,6 +12,21 @@ from flask_login import current_user
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _ensure_columns() -> None:
+    """后加的列在既有 sqlite 库上补一次（create_all 不会改已存在的表）。"""
+    from sqlalchemy import text
+
+    from .extensions import db
+
+    needed = {"users": {"referrerid": "INTEGER NOT NULL DEFAULT 0"}}
+    for table, cols in needed.items():
+        existing = {row[1] for row in db.session.execute(text(f"PRAGMA table_info({table})"))}
+        for name, ddl in cols.items():
+            if name not in existing:
+                db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+    db.session.commit()
+
+
 def create_app(test_config: dict | None = None) -> Flask:
     app = Flask(__name__, instance_relative_config=False)
 
@@ -399,6 +414,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         from .permissions import ensure_seed
 
         db.create_all()
+        _ensure_columns()
         ensure_seed()
 
     return app

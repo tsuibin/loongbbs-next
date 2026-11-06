@@ -60,6 +60,7 @@ class User(UserMixin, db.Model):
     # vB 的时区偏移带半小时（-3.5 / +5.5），这里存分钟数：480 表示 +8:00
     timezoneoffset = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     # 用户组：vB 用 usergroupid 指向 usergroup 表，usertitle 为空时取组的 usertitle
+    referrerid = db.Column(db.Integer, default=0, nullable=False, server_default="0")
     usergroupid = db.Column(db.Integer, nullable=False, default=2, server_default="2")
     usertitle = db.Column(db.String(100), nullable=False, default="", server_default="")
     newstyleset = db.Column(db.Integer, nullable=False, default=0, server_default="0")

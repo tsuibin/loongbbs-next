@@ -1,0 +1,65 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}User Referrals{% else %}推荐人报表{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'result' %}
+{% if rows %}
+<p><b>User Referrals</b>{% if startdate_norm and enddate_norm %} - from {{ startdate_norm }} to {{ enddate_norm }}{% else %} - covering all time{% endif %}</p>
+<p>Click the user's name to see information on the people that they have referred</p>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td align="center"><font size="1"><b>Username</b></font></td>
+	<td align="center"><font size="1"><b>Referral Count</b></font></td></tr>
+{% for r in rows %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" align="center">
+	<td><a href="{{ url_for('admin.users_referrals_detail', referrerid=r.id, startdate=startdate, enddate=enddate) }}">{{ r.username }}</a></td>
+	<td>{{ r.count }}</td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+{% else %}
+<p>No Referrals for that time period</p>
+{% endif %}
+
+{% elif mode == 'detail' %}
+<p><b>Referrals for <a href="{{ url_for('admin.users_referrals_detail', referrerid=referrerid) }}">{{ referrer.username if referrer else referrerid }}</a></b>{% if startdate and enddate %} - from {{ startdate }} to {{ enddate }}{% else %} - covering all time{% endif %}</p>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead">
+	<td align="center"><font size="1"><b>Username</b></font></td>
+	<td align="center"><font size="1"><b>Posts</b></font></td>
+	<td align="center"><font size="1"><b>Email</b></font></td>
+	<td align="center"><font size="1"><b>Joindate</b></font></td>
+	<td align="center"><font size="1"><b>Lastvisit</b></font></td>
+</tr>
+{% for r in rows %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" align="center">
+	<td>{{ r.username }}</td><td>{{ r.posts }}</td><td>{{ r.email }}</td>
+	<td>{{ r.joined }}</td><td>{{ r.last_visit }}</td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+
+{% else %}
+<p>Please input the dates that you would like the report run for or leave them blank for a report covering everything</p>
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">User Referrals</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Start Date<br>(Format: yyyy-mm-dd hh:mm:ss)</p></td>
+	<td><p><input type="text" size="35" name="startdate" value="{{ startdate }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>End Date<br>(Format: yyyy-mm-dd hh:mm:ss)</p></td>
+	<td><p><input type="text" size="35" name="enddate" value="{{ enddate }}"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Display   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

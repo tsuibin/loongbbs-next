@@ -83,7 +83,7 @@ NAV_GROUPS = [
         {"label": "Move/Prune", "module": "Move/Prune Users"},
         {"label": "PM Statistics", "endpoint": "admin.users_pmstats"},
         {"label": "IP Addresses", "endpoint": "admin.users_ips"},
-        {"label": "Referrals", "module": "Referrals"},
+        {"label": "Referrals", "endpoint": "admin.users_referrals"},
         {"label": "Email Users", "module": "Email Users"},
         {"label": "Build Mailing List", "module": "Build Mailing List"},
     ]},
@@ -927,6 +927,100 @@ def users_ips():
 
     return render_template("admin/users_ips.html", tree=tree, ipaddress=ipaddress,
                            username=username, depth=depth, uid=uid)
+
+
+REF_DATE_FMT = "%m-%d-%Y %I:%M %p"
+
+
+def _ref_parse_date(raw: str):
+    """把 yyyy-mm-dd[ hh:mm:ss] 转成 datetime；空或非法返回 None。"""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return None
+
+
+def _ref_counts(startdate, enddate, referrerid=None):
+    """按 user.referrerid 统计被推荐人数（原版 referrers / showreferrers 的那条 GROUP BY）。"""
+    stmt = (select(User.referrerid, func.count(User.id))
+            .where(User.referrerid != 0))
+    if startdate is not None:
+        stmt = stmt.where(User.joined_at >= startdate)
+    if enddate is not None:
+        stmt = stmt.where(User.joined_at <= enddate)
+    if referrerid is not None:
+        stmt = stmt.where(User.referrerid == referrerid)
+    return db.session.execute(stmt.group_by(User.referrerid)).all()
+
+
+@bp.route("/users/referrals", methods=["GET", "POST"])
+def users_referrals():
+    """Users → Referrals：照原版 user.php 的 referrers / showreferrers。"""
+    if request.method == "GET":
+        today = datetime.now()
+        start_default = (today - timedelta(days=31)).strftime("%Y-%m-%d")
+        end_default = today.strftime("%Y-%m-%d")
+        return render_template("admin/referrals.html",
+                               startdate=request.args.get("startdate", start_default),
+                               enddate=request.args.get("enddate", end_default))
+
+    start_raw = request.form.get("startdate") or ""
+    end_raw = request.form.get("enddate") or ""
+    startdate = _ref_parse_date(start_raw)
+    enddate = _ref_parse_date(end_raw)
+    # 原版只在两个日期都填了才加时间条件
+    if not (startdate and enddate):
+        startdate = enddate = None
+
+    rows = []
+    for referrerid, cnt in sorted(_ref_counts(startdate, enddate),
+                                  key=lambda kv: (-kv[1], kv[0])):
+        name = db.session.scalar(select(User.username).where(User.id == referrerid))
+        rows.append({"id": referrerid, "username": name or f"(id {referrerid})", "count": cnt})
+
+    return render_template("admin/referrals.html", mode="result", rows=rows,
+                           startdate=start_raw, enddate=end_raw,
+                           startdate_norm=start_raw, enddate_norm=end_raw)
+
+
+@bp.route("/users/referrals/detail")
+def users_referrals_detail():
+    """Users → Referrals → 某个推荐人推荐了谁（原版 showreferrals）。"""
+    referrerid = request.args.get("referrerid", type=int) or 0
+    start_raw = request.args.get("startdate") or ""
+    end_raw = request.args.get("enddate") or ""
+    startdate = _ref_parse_date(start_raw)
+    enddate = _ref_parse_date(end_raw)
+    if not (startdate and enddate):
+        startdate = enddate = None
+
+    referrer = db.session.get(User, referrerid) if referrerid else None
+    stmt = select(User).where(User.referrerid == referrerid) if referrerid else select(User).where(User.id == 0)
+    if startdate is not None:
+        stmt = stmt.where(User.joined_at >= startdate)
+    if enddate is not None:
+        stmt = stmt.where(User.joined_at <= enddate)
+    members = db.session.execute(stmt.order_by(User.joined_at)).scalars().all()
+
+    counts = dict(db.session.execute(
+        select(Post.author_id, func.count(Post.id)).group_by(Post.author_id)).all())
+    rows = [{
+        "id": u.id,
+        "username": u.username,
+        "posts": counts.get(u.id, 0),
+        "email": u.email,
+        "joined": u.joined_at.strftime(REF_DATE_FMT) if u.joined_at else "",
+        "last_visit": u.last_visit.strftime(REF_DATE_FMT) if u.last_visit else "",
+    } for u in members]
+
+    return render_template("admin/referrals.html", mode="detail", rows=rows,
+                           referrer=referrer, referrerid=referrerid,
+                           startdate=start_raw, enddate=end_raw)
 
 
 @bp.route("/users/pmstats")
