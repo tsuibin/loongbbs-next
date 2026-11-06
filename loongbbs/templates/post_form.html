@@ -98,6 +98,7 @@ function checklength(theform) {
 	</font></td>
 </tr>
 
+{% if settings.get('allowvbcodebuttons', '1') != '0' %}
 <tr id="codebuttons">
 	<td bgcolor="#DFDFDF" valign="top"><font face="verdana, arial, helvetica" size="2"><b>vB 代码</b></font>
 	<font face="verdana,arial,helvetica" size="1">
@@ -142,6 +143,7 @@ function checklength(theform) {
 	</tr></table>
 	</td>
 </tr>
+{% endif %}
 
 <tr>
 	<td bgcolor="#DFDFDF" valign="top" nowrap><font face="verdana, arial, helvetica" size="2"><b>消息:</b></font>
@@ -150,6 +152,7 @@ function checklength(theform) {
 		了解你可以在帖子里使用<br>
 		哪些代码。
 		</font></p>
+{% if settings.get('allowsmilies', '1') != '0' %}
 		<table cellpadding="3" cellspacing="1" border="0" bgcolor="#F1F1F1" class="smilieTable" align="center">
 		<tr>
 			<td colspan="3" align="center" bgcolor="#DFDFDF" style="border-width:1px; border-style:inset"><font face="verdana,arial,helvetica" size="1"><b>表情</b></font></td>
@@ -162,7 +165,8 @@ function checklength(theform) {
 		</tr>
 		{% endfor %}
 		<tr><td colspan="3" align="center" bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">[<a href="{{ url_for('misc.smilies') }}" target="_blank">查看全部表情</a>]</font></td></tr>
-		</table></td>
+		</table>
+{% endif %}</td>
 	<td bgcolor="#DFDFDF">
 		<textarea name="body" rows="20" cols="70" wrap="virtual">{{ request.form.get('body') or (post.body if post else '') }}</textarea><br>
 		<font face="verdana,arial,helvetica" size="1"><a href="javascript:checklength(document.vbform);">[检查消息长度]</a>　支持 [b] [i] [u] [size] [font] [color] [url] [email] [img] [code] [php] [quote] [list]</font>

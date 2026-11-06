@@ -196,16 +196,51 @@ def smilie_img(filename: str, title: str) -> str:
     )
 
 
+def _posting_options() -> dict[str, str]:
+    """发帖代码权限：读后台「发帖代码权限」组的设置，拿不到时按原版默认全开。"""
+    try:
+        from .settings import get_settings
+
+        return get_settings()
+    except Exception:  # pragma: no cover - 没有 app context 时（脚本、测试）
+        return {}
+
+
+def _flag(options: dict[str, str], key: str, default: str = "1") -> bool:
+    return str(options.get(key, default) or default).strip().lower() not in ("0", "", "no", "off")
+
+
 def render_body(text: str) -> str:
     """Escape everything, then re-enable a small BBCode subset.
 
     Raw HTML is never allowed, so a post can not inject markup; the only tags
     that can appear in the output are the ones built here.
+
+    解析范围受后台「发帖代码权限」组控制（vB 的 allowbbcode / allowhtml /
+    allowbbimagecode / allowsmilies / allowdynimg / maximages）。
     """
     if not text:
         return ""
 
+    options = _posting_options()
+    allow_bbcode = _flag(options, "allowbbcode")
+    allow_img = _flag(options, "allowbbimagecode", "0")
+    allow_smilies = _flag(options, "allowsmilies")
+    allow_dynimg = _flag(options, "allowdynimg", "0")
+    try:
+        max_images = int(str(options.get("maximages", "10") or "10").strip())
+    except ValueError:
+        max_images = 10
+
     escaped = html.escape(text.replace("\r\n", "\n").replace("\r", "\n"), quote=False)
+
+    if not allow_bbcode:
+        # 关掉 vB 代码后只剩换行与表情（表情是独立开关）
+        escaped = escaped.replace("\n", "<br>")
+        if allow_smilies:
+            for code, title, filename in SMILIES:
+                escaped = escaped.replace(code, smilie_img(filename, title))
+        return escaped
 
     # Pull [code] blocks out first: inside them newlines must stay newlines.
     code_blocks: list[str] = []
@@ -225,12 +260,22 @@ def render_body(text: str) -> str:
         escaped,
         flags=re.I | re.S,
     )
-    escaped = re.sub(
-        r"\[img\](.*?)\[/img\]",
-        _img_tag,
-        escaped,
-        flags=re.I | re.S,
-    )
+
+    drawn_images = 0
+
+    def img_replace(match: re.Match) -> str:
+        nonlocal drawn_images
+        url = match.group(1).strip()
+        if not allow_img or not _URL_OK.match(url):
+            return url
+        if not allow_dynimg and ("?" in url or "&" in url):
+            return url
+        if drawn_images >= max_images:
+            return url
+        drawn_images += 1
+        return f'<img src="{url}" border="0" alt="">'
+
+    escaped = re.sub(r"\[img\](.*?)\[/img\]", img_replace, escaped, flags=re.I | re.S)
     for tag in ("b", "i", "u", "s"):
         escaped = re.sub(
             rf"\[{tag}\](.*?)\[/{tag}\]", rf"<{tag}>\1</{tag}>", escaped, flags=re.I | re.S
@@ -256,8 +301,9 @@ def render_body(text: str) -> str:
     escaped = escaped.replace("\n", "<br>")
 
     # 表情：和 vB 一样在解析完 BBCode 后按代码替换（[code] 块已被暂存，不会被替换）
-    for code, title, filename in SMILIES:
-        escaped = escaped.replace(code, smilie_img(filename, title))
+    if allow_smilies:
+        for code, title, filename in SMILIES:
+            escaped = escaped.replace(code, smilie_img(filename, title))
 
     for index, body in enumerate(code_blocks):
         escaped = escaped.replace(f"\x00code{index}\x00", f"<pre class='codeblock'>{body}</pre>")

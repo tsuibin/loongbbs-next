@@ -4,10 +4,11 @@ from __future__ import annotations
 from flask import g
 from flask import current_app
 
+from .admin_settings import SETTING_DEFAULTS as SETTING_DEFAULTS_SRC
 from .extensions import db
 from .models import Setting
 
-DEFAULTS = {
+LOCAL_DEFAULTS = {
     "site_name": "LoongBBS Next",
     "site_tagline": "龙芯社区论坛 · Python 重制版",
     "posts_per_page": "10",
@@ -21,6 +22,9 @@ DEFAULTS = {
     "avatarmaxsize": "1024",
     "avatarcustomposts": "0",
 }
+
+# vB 后台 Options 的默认值打底，本站自有键覆盖同名项
+DEFAULTS = {**SETTING_DEFAULTS_SRC, **LOCAL_DEFAULTS}
 
 
 def get_settings() -> dict[str, str]:
