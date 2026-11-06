@@ -46,22 +46,7 @@
 </tr>
 <tr>
 	<td align="center">
-	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>
-	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
-		<option value="">{% if ui_lang == 'en' %}Please select one:{% else %}请选择一项：{% endif %}</option>
-		<option value="">--------------------</option>
-		<option value="{{ url_for('pm.inbox') }}">{% if ui_lang == 'en' %}Private Messages{% else %}私信{% endif %}</option>
-		<option value="{{ url_for('auth.usercp') }}">{% if ui_lang == 'en' %}User Control Panel{% else %}用户控制面板{% endif %}</option>
-		<option value="{{ url_for('online.whos_online') }}">{% if ui_lang == 'en' %}Who's Online{% else %}在线用户{% endif %}</option>
-		<option value="{{ url_for('search.search') }}">{% if ui_lang == 'en' %}Search Forums{% else %}搜索版块{% endif %}</option>
-		<option value="{{ url_for('forums.index') }}">{% if ui_lang == 'en' %}Forums Home{% else %}论坛首页{% endif %}</option>
-		<option value="">--------------------</option>
-		{% for c in categories %}
-		<option value="{{ url_for('forums.index') }}#cat{{ c.id }}"> {{ c.name }}</option>
-		{% for f in c.forums %}<option value="{{ url_for('forums.forum', forum_id=f.id) }}">-- {{ f.name }}</option>{% endfor %}
-		{% endfor %}
-	</select>
-	<input type="button" value="GO" onclick="var s=document.getElementById('forumjump'); if(s.value) location.href=s.value;">
+	{% include "_forumjump.html" %}
 	</td>
 </tr>
 </table>

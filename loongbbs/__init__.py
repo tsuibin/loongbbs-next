@@ -12,6 +12,19 @@ from flask_login import current_user
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def forum_jump_categories():
+    """版块跳转下拉用的分类 + 版块清单（对应原版 forumjump 模板里的 $jumpforumbits）。"""
+    from sqlalchemy import select
+
+    from .extensions import db
+    from .models import Category
+
+    try:
+        return db.session.execute(select(Category).order_by(Category.position)).scalars().all()
+    except Exception:  # 表还没建（首启 / 安装中）时下拉留空，不影响页面
+        return []
+
+
 def _ensure_icons() -> None:
     """Post Icons 表为空时写入参考站 icon 表的 14 条原值。"""
     from sqlalchemy import func, select
@@ -551,6 +564,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "lang_url": language_url,
             "t": translate,
             "can": can,
+            "forum_jump": forum_jump_categories(),
         }
 
     @app.errorhandler(403)

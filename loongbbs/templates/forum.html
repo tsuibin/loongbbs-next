@@ -128,23 +128,28 @@ function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999
 	<td>
 	{% if settings.get('useforumjump', '1') == '1' %}
 	<table cellpadding="0" cellspacing="0" border="0">
-	<form action="{{ url_for('forums.index') }}" method="get"><tr><td>
+	<tr><td>
 		<font face="verdana,arial,helvetica" size="1">
-		<b>论坛跳转:</b><br>
-		<select name="forumid"
-		onchange="window.location=('{{ url_for('forums.index') }}'+(this.options[this.selectedIndex].value=='__home__'?'':'f/'+this.options[this.selectedIndex].value))">
-			<option value="-1" selected>请选择:</option>
-			<option value="-1">--------------------</option>
-			<option value="pm">悄悄话</option>
-			<option value="cp">用户控制面板</option>
-			<option value="search">搜索论坛</option>
-			<option value="__home__">论坛首页</option>
-			<option value="-1">--------------------</option>
-			{% for f in forums_all %}<option value="{{ f.id }}" {{ 'selected' if f.id == forum.id }}>{{ f.name }}</option>{% endfor %}
+		<b>{% if ui_lang == 'en' %}Forum Jump:{% else %}版块跳转：{% endif %}</b><br>
+		<select id="forumjump" name="forumid" onchange="if(this.value) location.href=this.value;">
+			<option value="">{% if ui_lang == 'en' %}Please select one:{% else %}请选择一项：{% endif %}</option>
+			<option value="">--------------------</option>
+			<option value="{{ url_for('pm.inbox') }}">{% if ui_lang == 'en' %}Private Messages{% else %}私信{% endif %}</option>
+			<option value="{{ url_for('auth.usercp') }}">{% if ui_lang == 'en' %}User Control Panel{% else %}用户控制面板{% endif %}</option>
+			<option value="{{ url_for('online.whos_online') }}">{% if ui_lang == 'en' %}Who's Online{% else %}在线用户{% endif %}</option>
+			<option value="{{ url_for('search.search') }}">{% if ui_lang == 'en' %}Search Forums{% else %}搜索版块{% endif %}</option>
+			<option value="{{ url_for('forums.index') }}">{% if ui_lang == 'en' %}Forums Home{% else %}论坛首页{% endif %}</option>
+			<option value="">--------------------</option>
+			{% for cat in forum_jump %}
+			<option value="">{{ cat.name }}</option>
+			{% for f in cat.forums %}
+			<option value="{{ url_for('forums.forum', forum_id=f.id) }}"{{ ' selected' if f.id == forum.id }}>-- {{ f.name }}</option>
+			{% endfor %}
+			{% endfor %}
 		</select><!-- go button -->
-		<input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom">
+		<input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom" onclick="var s=document.getElementById('forumjump'); if(s.value) location.href=s.value; return false;">
 		</font>
-	</td></tr></form>
+	</td></tr>
 	</table>
 	{% endif %}
 	</td>

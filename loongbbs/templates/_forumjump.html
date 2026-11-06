@@ -1,0 +1,26 @@
+{% set jump_forum_id = forum.id if (forum is defined and forum) else none %}
+{% set jump_page = page_key if page_key is defined else none %}
+<table cellpadding="0" cellspacing="0" border="0">
+<tr><td>
+	<font face="verdana,arial,helvetica" size="1">
+	<b>{% if ui_lang == 'en' %}Forum Jump:{% else %}版块跳转：{% endif %}</b><br>
+	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
+		<option value="">{% if ui_lang == 'en' %}Please select one:{% else %}请选择一项：{% endif %}</option>
+		<option value="">--------------------</option>
+		<option value="{{ url_for('pm.inbox') }}"{% if jump_page == 'pm' %} selected{% endif %}>{% if ui_lang == 'en' %}Private Messages{% else %}私信{% endif %}</option>
+		<option value="{{ url_for('auth.usercp') }}"{% if jump_page == 'cp' %} selected{% endif %}>{% if ui_lang == 'en' %}User Control Panel{% else %}用户控制面板{% endif %}</option>
+		<option value="{{ url_for('online.whos_online') }}"{% if jump_page == 'wol' %} selected{% endif %}>{% if ui_lang == 'en' %}Who's Online{% else %}在线用户{% endif %}</option>
+		<option value="{{ url_for('search.search') }}"{% if jump_page == 'search' %} selected{% endif %}>{% if ui_lang == 'en' %}Search Forums{% else %}搜索版块{% endif %}</option>
+		<option value="{{ url_for('forums.index') }}"{% if jump_page == 'home' %} selected{% endif %}>{% if ui_lang == 'en' %}Forums Home{% else %}论坛首页{% endif %}</option>
+		<option value="">--------------------</option>
+		{% for cat in forum_jump %}
+		<option value="">{{ cat.name }}</option>
+		{% for f in cat.forums %}
+		<option value="{{ url_for('forums.forum', forum_id=f.id) }}"{% if f.id == jump_forum_id %} selected{% endif %}>-- {{ f.name }}</option>
+		{% endfor %}
+		{% endfor %}
+	</select><!-- go button -->
+	<input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom" onclick="var s=document.getElementById('forumjump'); if(s.value) location.href=s.value; return false;">
+	</font>
+</td></tr>
+</table>
