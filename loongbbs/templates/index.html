@@ -65,8 +65,8 @@
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ forum.post_count }}</font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ forum.thread_count }}</font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">{% set last = forum.last_post %}{% if last %}<table cellpadding="0" cellspacing="0" border="0" width="100%" id="ltlink"><tr align="right">
-		<td nowrap>{{ last.created_at|datefmt }} <font color="#666686">{{ last.created_at|timefmt }}</font><br>
-		by <a href="{{ url_for('auth.profile', username=last.author.username) }}"><b>{{ last.author.username }}</b></a></td>
+		<td nowrap><font face="verdana,arial,helvetica" size="1">{{ last.created_at|datefmt }} <font color="#666686">{{ last.created_at|timefmt }}</font><br>
+		by <a href="{{ url_for('auth.profile', username=last.author.username) }}"><b>{{ last.author.username }}</b></a></font></td>
 		<td nowrap>&nbsp;<a href="{{ url_for('forums.thread', thread_id=last.thread_id) }}#post{{ last.id }}"><img src="{{ url_for('static', filename='images/lastpost.gif') }}" border="0" alt="前往最后一帖"></a></td>
 	</tr></table>{% else %}从未{% endif %}</font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">&nbsp;</font></td>
