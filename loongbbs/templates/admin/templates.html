@@ -1,0 +1,280 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Templates{% else %}模板管理{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'insert_error' %}
+<p>You forgot a title for this template!</p>
+<p><a href="{{ url_for('admin.template_add') }}" class="lc">[add template]</a></p>
+
+{% elif mode == 'add' %}
+<form method="post" action="{{ url_for('admin.template_insert') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add new template</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Template name</p></td><td><p><input type="text" name="title" value="{{ template.title }}" size="60"></p></td></tr>
+<tr class="secondalt"><td><p>Template set</p></td><td><p><select name="templatesetid">
+	{% for s in sets %}<option value="{{ s.id }}"{% if setid == s.id %} selected{% endif %}>{{ s.title }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="firstalt"><td><p>Template<br><br>
+	{% if template.title %}<font size="1"><a href="{{ url_for('admin.template_view', title=template.title) }}" class="lc">[view default template]</a></font>{% endif %}</p></td>
+	<td><p><textarea name="template" rows="25" cols="80">{{ template.template }}</textarea></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="group" value="{{ group }}">
+	<input type="submit" value="   Save   ">
+	<input type="button" value="   Reset   " onclick="window.location='{{ url_for('admin.template_add') }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'edit' %}
+<form method="post" action="{{ url_for('admin.template_edit', template_id=template.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit template</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Template name</p></td><td><p><input type="text" name="title" value="{{ template.title }}" size="60"></p></td></tr>
+<tr class="secondalt"><td><p>Template set</p></td><td><p><select name="templatesetid">
+	{% for s in sets %}<option value="{{ s.id }}"{% if setid == s.id %} selected{% endif %}>{{ s.title }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="firstalt"><td><p>Template<br><br><font size="1">
+	<a href="{{ url_for('admin.template_view', title=template.title) }}" class="lc">[view default template]</a></font></p></td>
+	<td><p><textarea name="template" rows="25" cols="80">{{ template.template }}</textarea></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="group" value="{{ group }}">
+	<input type="hidden" name="orig_templatesetid" value="{{ setid }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="button" value="   Reset   " onclick="window.location='{{ url_for('admin.template_list', expandset=setid) }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'remove' %}
+<form method="post" action="{{ url_for('admin.template_remove', template_id=template.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="60%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Are you sure you want to delete (revert) this template?</p></td></tr>
+<tr class="tblhead" id="submitrow"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="window.location='{{ url_for('admin.template_list', expandset=template.templatesetid) }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'view' %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">View Default template</span></b></font></td></tr>
+<tr class="firstalt"><td><p>{{ name }}</p>
+	{% if body is not none %}<p><textarea rows="20" cols="80" readonly>{{ body }}</textarea></p>
+	{% else %}<p>There is no default template with that name.</p>{% endif %}
+</td></tr>
+</table>
+</td></tr></table>
+<p><a href="{{ url_for('admin.template_list') }}" class="lc">[go back]</a></p>
+
+{% elif mode == 'addset' %}
+<form method="post" action="{{ url_for('admin.template_insertset') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add new template set</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Title</p></td><td><p><input type="text" name="title" value="" size="60"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'editset' %}
+<form method="post" action="{{ url_for('admin.template_editset', set_id=tset.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit template set</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Title</p></td><td><p><input type="text" name="title" value="{{ tset.title }}" size="60"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="button" value="   Reset   " onclick="window.location='{{ url_for('admin.template_list', expandset=tset.id) }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'removeset' %}
+<form method="post" action="{{ url_for('admin.template_removeset', set_id=tset.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="60%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Are you sure you want to delete this template set? Doing so will also delete
+(revert) all templates in this set!</p></td></tr>
+<tr class="tblhead" id="submitrow"><td align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="window.location='{{ url_for('admin.template_list') }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'search' %}
+{% if error == 'need_search' %}<p>Need to enter a search string to do a search &amp; replace</p>{% endif %}
+<form method="get" action="{{ url_for('admin.template_list') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Search for string:</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Search string</p></td><td><p><input type="text" name="searchstring" value="" size="40"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="group" value="all">
+	<input type="submit" value="   Find String   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.template_replace') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Search and replace ALL templates. Be careful!</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Search string</p></td><td><p><input type="text" name="searchstring" value="" size="40"></p></td></tr>
+<tr class="secondalt"><td><p>Replace string</p></td><td><p><input type="text" name="replacestring" value="" size="40"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Find/Replace   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'replace_done' %}
+<p>Doing search for '{{ searchstring }}' and replacing with '{{ replacestring }}'.</p>
+{% for row in updated %}
+<p>Updated template {{ row.title }}, id {{ row.id }}
+	<a href="{{ url_for('admin.template_edit', template_id=row.id) }}" class="lc">[edit]</a></p>
+{% endfor %}
+<p>All done!</p>
+
+{% elif mode == 'imgtags' %}
+<p>Doing this will parse ALL templates for &lt;img&gt; tags, and insert in any it can the neccessary
+width and height tags. This will work with any tags where the file name is actually specified, either
+as a relative path, or as a URL.</p>
+<p>We recommend that you back up your templates before going ahead and doing it.</p>
+<p><a href="{{ url_for('admin.template_doimgtags') }}" class="lc">Click here to do it!</a></p>
+
+{% elif mode == 'imgtags_done' %}
+{% for name in done %}<p>Done {{ name }}</p>{% endfor %}
+{% if not done %}<p>No template needed image dimensions.</p>{% endif %}
+<p><a href="{{ url_for('admin.template_list') }}" class="lc">[go back]</a></p>
+
+{% elif mode == 'downloadset' %}
+<form method="post" action="{{ url_for('admin.template_generate') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Download template set</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Template set</p></td><td><p><select name="templatesetid">
+	<option value="-1">Global template set</option>
+	{% for s in sets %}<option value="{{ s.id }}">{{ s.title }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="secondalt"><td><p>Create new set from downloaded templates?<br>(Selecting no will download them into<br>the same set they came from)</p></td>
+	<td><p>Yes <input type="radio" name="newset" value="1"> No <input type="radio" name="newset" value="0" checked></p></td></tr>
+<tr class="firstalt"><td><p>New set's name:<br>(If creating a new set)</p></td>
+	<td><p><input type="text" name="newsetname" value="" size="40"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Download   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'uploadset' %}
+{% if error == 'empty' %}<p>No template data was uploaded.</p>{% endif %}
+<form method="post" action="{{ url_for('admin.template_douploadset') }}" enctype="multipart/form-data">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Upload template set</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Upload template data</p></td><td><p><input type="file" name="upload" size="40"></p></td></tr>
+<tr class="secondalt"><td colspan="2"><p><font size="1">原版用 eval() 执行上传的 PHP 代码；本板不执行任何代码，
+只解析其中的 <i>INSERT INTO template</i> 语句后写入 templates 表。</font></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Upload   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'upload_done' %}
+<p>Done</p>
+<p>已解析并写入 {{ created }} 条模板{% if sets_created %}，新建模板集：{{ sets_created|join('、') }}{% endif %}。</p>
+<p><a href="{{ url_for('admin.template_list') }}" class="lc">[go back]</a></p>
+
+{% else %}
+<p>Templates with <span class="gc">this color</span> names are using the original templates that are included
+by default with vBulletin and may only be added in order to create a custom template.<br>
+Templates with <span class="cc">this color</span> names are custom templates you have edited and may be
+re-edited or reverted back to their original version.</p>
+
+<p>To edit an <span class="gc">original template</span>, click the "change original" link. To edit any other
+template, click the "edit" link. To delete a template, click the "revert to original" link</p>
+
+<p>Please note that not all related templates may be contained within a group, as grouping is only done
+alphabetically. If you can't find a template, try the template search utility or turn on "Add template name
+in comments" in your options!</p>
+
+{% if searchstring %}<p>Search string: <b>{{ searchstring }}</b>（仅显示命中的模板）</p>{% endif %}
+
+<ul>
+{% for g in groups %}
+<li><b>{{ g.title }}</b>
+	<a href="{{ url_for('admin.template_editset', set_id=g.id) }}" class="lc">[edit]</a>
+	<a href="{{ url_for('admin.template_removeset', set_id=g.id) }}" class="lc">[remove]</a>
+	<a href="{{ url_for('admin.template_add', templatesetid=g.id, group=group) }}" class="lc">[add template]</a>
+	<a href="{{ url_for('admin.template_list', expandset=g.id, group='all') }}" class="lc">[show all]</a>
+	<a href="{{ url_for('admin.template_list', expandset=g.id) }}" class="lc">[collapse groups]</a>
+	<ul>
+	{% if g.expanded %}
+		{% set ns = namespace(last='') %}
+		{% if g.custom %}<b>Custom templates</b>{% endif %}
+		{% for c in g.custom %}
+		<li><span class="cc">{{ c.title }}</span>
+			<a href="{{ url_for('admin.template_edit', template_id=c.id, group=group) }}" class="lc">[edit]</a>
+			<a href="{{ url_for('admin.template_remove', template_id=c.id, group=group) }}" class="lc">[remove]</a></li>
+		{% endfor %}
+		{% if g.custom and g.defaults %}<br><b>Default templates</b>{% endif %}
+		{% for d in g.defaults %}
+			{% if d.group_name and d.group_name != ns.last %}
+				{% set ns.last = d.group_name %}
+				<li><a name="{{ d.group_key }}"></a><b>{{ d.group_name }} Templates</b>
+					<a href="{{ url_for('admin.template_list', expandset=g.id, group=d.group_key) }}#{{ d.group_key }}" class="lc">[expand]</a></li>
+			{% endif %}
+			{% if d.show %}
+			{% if d.row_id %}
+			<li><span class="cc">{{ d.title }}</span>
+				<a href="{{ url_for('admin.template_edit', template_id=d.row_id, group=group) }}" class="lc">[edit]</a>
+				<a href="{{ url_for('admin.template_remove', template_id=d.row_id, group=group) }}" class="lc">[revert to original]</a>
+				<a href="{{ url_for('admin.template_view', title=d.title) }}" class="lc">[view original]</a></li>
+			{% else %}
+			<li><span class="gc">{{ d.title }}</span>
+				<a href="{{ url_for('admin.template_add', templatesetid=g.id, title=d.title, group=group) }}" class="lc">[change original]</a></li>
+			{% endif %}
+			{% endif %}
+		{% endfor %}
+	{% else %}
+		<li><b><a href="{{ url_for('admin.template_list', expandset=g.id) }}" class="lc">[expand list]</a></b></li>
+	{% endif %}
+	</ul>
+</li>
+{% endfor %}
+</ul>
+<p>That's all folks</p>
+{% endif %}
+
+{% endblock %}

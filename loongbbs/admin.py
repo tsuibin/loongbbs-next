@@ -154,10 +154,13 @@ NAV_GROUPS = [
         {"label": "Add Set", "endpoint": "admin.replacement_addset"},
     ]},
     {"title": "Templates", "links": [
-        {"label": "Add", "module": "Add Template"},
-        {"label": "Modify", "module": "Modify Templates"},
-        {"label": "Search", "module": "Search Templates"},
-        {"label": "Add Template Set", "module": "Add Template Set"},
+        {"label": "Add", "endpoint": "admin.template_add"},
+        {"label": "Modify", "endpoint": "admin.template_list"},
+        {"label": "Search", "endpoint": "admin.template_search"},
+        {"label": "Add Template Set", "endpoint": "admin.template_addset"},
+        {"label": "Download Set", "endpoint": "admin.template_downloadset"},
+        {"label": "Upload Set", "endpoint": "admin.template_uploadset"},
+        {"label": "Do <img> Tags", "endpoint": "admin.template_imgtags"},
     ]},
 ]
 
@@ -4148,6 +4151,388 @@ def replacement_editset(set_id: int):
             db.session.commit()
         return redirect(url_for("admin.replacement_list", expandset=set_id))
     return render_template("admin/replacements.html", mode="editset", group=group)
+
+
+# ---------------------------------------------------------------------------
+# Templates（照 admin/template.php）
+# ---------------------------------------------------------------------------
+
+TEMPLATE_GROUPS = [
+    ("calendar", "Calendar"), ("emailsubject", "Email Subject"), ("email", "Email"),
+    ("error", "Error Message"), ("faq", "FAQ"), ("forumdisplay", "Forum Display"),
+    ("forumhome", "Forum Home Page"), ("getinfo", "User Info Display"), ("memberlist", "Member List"),
+    ("modify", "User Option"), ("new", "New Posting"), ("pagenav", "Page Navigation"),
+    ("poll", "Polling"), ("postbit", "Postbit"), ("priv", "Private Messaging"),
+    ("redirect", "Redirection Message"), ("register", "Registration"), ("search", "Search"),
+    ("showthread", "Show Thread"), ("subscribe", "Subscribed Thread"), ("threads", "Thread Management"),
+    ("usercp", "User Control Panel"), ("vbcode", "vB Code"), ("whosonline", "Who\'s Online"),
+    ("showgroup", "Show Groups"),
+]
+
+
+def _template_group_of(title: str):
+    """原版用 strpos(" $title", $text)==1 判断前缀，即 title 以该 key 开头。"""
+    for key, display in TEMPLATE_GROUPS:
+        if title.startswith(key):
+            return key, display
+    return None, None
+
+
+def _template_sets_all() -> list:
+    return db.session.execute(select(TemplateSet).order_by(TemplateSet.id)).scalars().all()
+
+
+def _template_master_rows() -> list:
+    return db.session.execute(select(Template).where(
+        Template.templatesetid == -1, Template.title != "options").order_by(Template.title)).scalars().all()
+
+
+@bp.route("/templates")
+@bp.route("/templates/modify")
+def template_list():
+    """原版 action=modify：按模板集列出，默认折叠；支持 expandset / group / searchstring。"""
+    raw_expand = request.args.get("expandset")
+    expandset = int(raw_expand) if raw_expand and raw_expand.lstrip("-").isdigit() else -1
+    group = request.args.get("group") or ""
+    searchstring = request.args.get("searchstring") or ""
+    master = _template_master_rows()
+    master_text = {row.title: (row.template or "") for row in master}
+    groups = []
+    for tset in _template_sets_all():
+        # 原版搜索时把 expandset 置 0，于是所有集合都展开
+        item = {"id": tset.id, "title": tset.title,
+                "expanded": bool(searchstring) or expandset == tset.id,
+                "custom": [], "defaults": []}
+        if item["expanded"]:
+            rows = db.session.execute(select(Template).where(
+                Template.templatesetid == tset.id, Template.title != "options")
+                .order_by(Template.title)).scalars().all()
+            for row in rows:
+                if row.title in master_text:
+                    continue
+                if searchstring and searchstring not in (row.template or ""):
+                    continue
+                item["custom"].append({"id": row.id, "title": row.title})
+            for word in sorted(master_text):
+                found = next((row for row in rows if row.title == word), None)
+                if searchstring:
+                    hit = searchstring in master_text[word] or (
+                        found is not None and searchstring in (found.template or ""))
+                    if not hit:
+                        continue
+                key, display = _template_group_of(word)
+                item["defaults"].append({
+                    "title": word, "row_id": found.id if found is not None else 0,
+                    "group_key": key or "", "group_name": display or "",
+                    # 原版只有 group=all 或 group=<组短名> 时才展开组内模板，其余只留组标题
+                    "show": (not key) or group == "all" or group == key,
+                })
+        groups.append(item)
+    return render_template("admin/templates.html", mode="list", groups=groups,
+                           expandset=expandset, group=group, searchstring=searchstring,
+                           group_names=TEMPLATE_GROUPS)
+
+
+@bp.route("/templates/add")
+def template_add():
+    """原版 action=add / customize：带 title 时预填母版内容。"""
+    title = (request.args.get("title") or "").strip()
+    body = ""
+    if title:
+        row = db.session.execute(select(Template).where(
+            Template.templatesetid == -1, Template.title == title)).scalars().first()
+        body = row.template if row is not None else ""
+    raw = request.args.get("templatesetid")
+    setid = int(raw) if raw and raw.lstrip("-").isdigit() else -1
+    return render_template("admin/templates.html", mode="add", sets=_template_sets_all(),
+                           template={"title": title, "template": body}, setid=setid,
+                           group=request.args.get("group") or "")
+
+
+@bp.route("/templates/insert", methods=["POST"])
+def template_insert():
+    """原版 action=insert：同集合同 title 存在则更新，否则插入；空 title 给出提示。"""
+    title = (request.form.get("title") or "").strip()
+    body = request.form.get("template") or ""
+    raw = request.form.get("templatesetid") or "-1"
+    setid = int(raw) if raw.lstrip("-").isdigit() else -1
+    if not title:
+        return render_template("admin/templates.html", mode="insert_error")
+    row = db.session.execute(select(Template).where(
+        Template.templatesetid == setid, Template.title == title)).scalars().first()
+    if row is None:
+        db.session.add(Template(templatesetid=setid, title=title, template=body))
+    else:
+        row.template = body
+    db.session.commit()
+    return redirect(url_for("admin.template_list", expandset=setid,
+                            group=request.form.get("group") or ""))
+
+
+@bp.route("/templates/edit/<int:template_id>", methods=["GET", "POST"])
+def template_edit(template_id: int):
+    """原版 action=edit / doupdate：换集合时目标集合已有同名则改那条，否则新建。"""
+    row = db.session.get(Template, template_id)
+    if row is None:
+        abort(404)
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip() or row.title
+        body = request.form.get("template") or ""
+        raw = request.form.get("templatesetid") or str(row.templatesetid)
+        setid = int(raw) if raw.lstrip("-").isdigit() else row.templatesetid
+        if setid != row.templatesetid:
+            other = db.session.execute(select(Template).where(
+                Template.templatesetid == setid, Template.title == title)).scalars().first()
+            if other is not None:
+                other.template = body
+            else:
+                db.session.add(Template(templatesetid=setid, title=title, template=body))
+            db.session.delete(row)
+        else:
+            row.title = title
+            row.template = body
+        db.session.commit()
+        return redirect(url_for("admin.template_list", expandset=setid,
+                                group=request.form.get("group") or ""))
+    return render_template("admin/templates.html", mode="edit", sets=_template_sets_all(),
+                           template=row, setid=row.templatesetid,
+                           group=request.args.get("group") or "")
+
+
+@bp.route("/templates/remove/<int:template_id>", methods=["GET", "POST"])
+def template_remove(template_id: int):
+    """原版 action=remove / kill：确认后删除（即还原成默认）。"""
+    row = db.session.get(Template, template_id)
+    if row is None:
+        abort(404)
+    if request.method == "POST":
+        setid = row.templatesetid
+        db.session.delete(row)
+        db.session.commit()
+        return redirect(url_for("admin.template_list", expandset=setid))
+    return render_template("admin/templates.html", mode="remove", template=row)
+
+
+@bp.route("/templates/view")
+def template_view():
+    """原版 action=view：查看母版里某个模板的默认内容。"""
+    title = (request.args.get("title") or "").strip()
+    row = db.session.execute(select(Template).where(
+        Template.templatesetid == -1, Template.title == title)).scalars().first()
+    return render_template("admin/templates.html", mode="view", name=title,
+                           body=(row.template if row is not None else None))
+
+
+@bp.route("/templates/addset")
+def template_addset():
+    return render_template("admin/templates.html", mode="addset")
+
+
+@bp.route("/templates/insertset", methods=["POST"])
+def template_insertset():
+    title = (request.form.get("title") or "").strip()
+    if not title:
+        return redirect(url_for("admin.template_addset"))
+    tset = TemplateSet(title=title)
+    db.session.add(tset)
+    db.session.commit()
+    return redirect(url_for("admin.template_list", expandset=tset.id))
+
+
+@bp.route("/templates/editset/<int:set_id>", methods=["GET", "POST"])
+def template_editset(set_id: int):
+    tset = db.session.get(TemplateSet, set_id)
+    if tset is None:
+        abort(404)
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        if title:
+            tset.title = title
+            db.session.commit()
+        return redirect(url_for("admin.template_list", expandset=set_id))
+    return render_template("admin/templates.html", mode="editset", tset=tset)
+
+
+@bp.route("/templates/removeset/<int:set_id>", methods=["GET", "POST"])
+def template_removeset(set_id: int):
+    """原版 action=removeset / killset：删集合与其模板，style 指向改到最小集合。"""
+    tset = db.session.get(TemplateSet, set_id)
+    if tset is None:
+        abort(404)
+    if request.method == "POST":
+        db.session.execute(delete(Template).where(Template.templatesetid == set_id))
+        db.session.delete(tset)
+        db.session.flush()
+        min_set = db.session.execute(select(func.min(TemplateSet.id))).scalar() or 1
+        db.session.execute(update(StyleSet).where(
+            StyleSet.templatesetid == set_id).values(templatesetid=min_set))
+        db.session.commit()
+        return redirect(url_for("admin.template_list"))
+    return render_template("admin/templates.html", mode="removeset", tset=tset)
+
+
+@bp.route("/templates/search")
+def template_search():
+    """原版 action=search：查找字符串 / 全量查找替换两个表单。"""
+    return render_template("admin/templates.html", mode="search")
+
+
+@bp.route("/templates/replace", methods=["POST"])
+def template_replace():
+    """原版 action=replace：对所有非母版集合的模板做字符串替换。"""
+    searchstring = request.form.get("searchstring") or ""
+    replacestring = request.form.get("replacestring") or ""
+    if not searchstring:
+        return render_template("admin/templates.html", mode="search", error="need_search")
+    rows = db.session.execute(select(Template).where(
+        Template.templatesetid != -1)).scalars().all()
+    updated = []
+    for row in rows:
+        new_body = (row.template or "").replace(searchstring, replacestring)
+        if new_body != row.template:
+            row.template = new_body
+            updated.append(row)
+    db.session.commit()
+    return render_template("admin/templates.html", mode="replace_done",
+                           searchstring=searchstring, replacestring=replacestring,
+                           updated=updated)
+
+
+@bp.route("/templates/imgtags")
+def template_imgtags():
+    """原版 action=imgtags：说明页 + 执行链接。"""
+    return render_template("admin/templates.html", mode="imgtags")
+
+
+@bp.route("/templates/doimgtags")
+def template_doimgtags():
+    """原版 action=doimgtags：给模板里的 <img> 补 width/height（本地用 Pillow 读真实尺寸）。"""
+    from PIL import Image
+
+    root = Path(current_app.root_path)
+    bases = [root.parent, root, root / "static"]
+    rows = db.session.execute(select(Template).order_by(Template.title)).scalars().all()
+    done = []
+    for row in rows:
+        body = row.template or ""
+        if "<img" not in body:
+            continue
+        parts = body.split("<img")
+        out = [parts[0]]
+        for chunk in parts[1:]:
+            after = chunk[chunk.find(">"):][1:] if ">" in chunk else ""
+            tag = " " + (chunk[:len(chunk) - len(after)] if after else chunk)
+            src = _getprop(tag, "src")
+            dims = ""
+            if src and "://" not in src:
+                candidate = Path(src.lstrip("/"))
+                path = candidate if candidate.is_absolute() else next(
+                    (b / candidate for b in bases if (b / candidate).exists()), None)
+                if path is not None and path.exists():
+                    try:
+                        with Image.open(path) as image:
+                            dims = f' width="{image.width}" height="{image.height}" '
+                    except OSError:
+                        dims = ""
+            tag = re.sub(r'width="[0-9]*"', "", tag, flags=re.I)
+            tag = re.sub(r"width=[0-9]*", "", tag, flags=re.I)
+            tag = re.sub(r'height="[0-9]*"', "", tag, flags=re.I)
+            tag = re.sub(r"height=[0-9]*", "", tag, flags=re.I)
+            while "  " in tag:
+                tag = tag.replace("  ", " ")
+            out.append("<img" + dims + tag + after)
+        new_body = "".join(out)
+        if new_body != body:
+            row.template = new_body
+            done.append(row.title)
+    db.session.commit()
+    return render_template("admin/templates.html", mode="imgtags_done", done=done)
+
+
+@bp.route("/templates/downloadset")
+def template_downloadset():
+    """原版 action=downloadset：下载模板集表单。"""
+    return render_template("admin/templates.html", mode="downloadset", sets=_template_sets_all())
+
+
+@bp.route("/templates/generate", methods=["POST"])
+def template_generate():
+    """原版 action=generate：按 PHP 语句格式导出模板集，头 filename=template.php。"""
+    raw = request.form.get("templatesetid") or "-1"
+    setid = int(raw) if raw.lstrip("-").isdigit() else -1
+    newset = request.form.get("newset") == "1"
+    newsetname = (request.form.get("newsetname") or "").replace("'", "\\'")
+    rows = db.session.execute(select(Template).where(
+        Template.templatesetid == setid, Template.title != "options")
+        .order_by(Template.title)).scalars().all()
+    lines = []
+    if newset:
+        lines.append('$DB_site->query("INSERT INTO templateset (templatesetid,title) VALUES (NULL,'
+                     f"'{newsetname}')\"');")
+        lines.append("$newsetid=$DB_site->insert_id();")
+    else:
+        lines.append('$DB_site->query("DELETE FROM template WHERE title<>\'options\' AND '
+                     f"templatesetid=\'{setid}\'\");")
+    for row in rows:
+        body = (row.template or "").replace("\r", "").replace("$", "\\$").replace('"', '\\"')
+        target = "$newsetid" if newset else str(setid)
+        lines.append('$DB_site->query("INSERT INTO template (templateid,templatesetid,title,template) '
+                     f"VALUES (NULL,'{target}','{row.title}','{body}')\";")
+    text = "\n".join(lines) + "\n"
+    return Response(text, mimetype="unknown/unknown",
+                    headers={"Content-Disposition": "filename=template.php"})
+
+
+@bp.route("/templates/uploadset")
+def template_uploadset():
+    """原版 action=uploadset：上传模板数据。"""
+    return render_template("admin/templates.html", mode="uploadset")
+
+
+@bp.route("/templates/douploadset", methods=["POST"])
+def template_douploadset():
+    """原版 action=douploadset 用 eval 执行上传的 PHP；本地不执行代码，
+    改为解析其中的 INSERT INTO template 语句后落库。"""
+    upload = request.files.get("upload")
+    text = ""
+    if upload is not None and upload.filename:
+        text = upload.read().decode("utf-8", "replace")
+    if not text.strip():
+        return render_template("admin/templates.html", mode="uploadset", error="empty")
+    pattern = re.compile(
+        r"INSERT INTO template\s*\([^)]*\)\s*VALUES\s*\(\s*NULL\s*,\s*'([^']*)'\s*,\s*"
+        r"'((?:[^'\\]|\\.)*)'\s*,\s*'((?:[^'\\]|\\.)*)'", re.S)
+    created = 0
+    sets_created = []
+    new_set_id = None
+    for match in pattern.finditer(text):
+        set_ref, title, body = match.group(1).strip(), match.group(2), match.group(3)
+        title = title.replace("\\'", "'")
+        body = (body.replace("\\'", "'").replace('\\"', '"')
+                .replace("\\$", "$").replace("\\r", ""))
+        if set_ref == "$newsetid":
+            if new_set_id is None:
+                name_match = re.search(
+                    r"INSERT INTO templateset\s*\([^)]*\)\s*VALUES\s*\(\s*NULL\s*,\s*'([^']*)'", text)
+                name = name_match.group(1) if name_match else "Imported Template Set"
+                tset = TemplateSet(title=name)
+                db.session.add(tset)
+                db.session.flush()
+                sets_created.append(name)
+                new_set_id = tset.id
+            setid = new_set_id
+        else:
+            setid = int(set_ref) if set_ref.isdigit() else -1
+        exists = db.session.execute(select(Template).where(
+            Template.templatesetid == setid, Template.title == title)).scalars().first()
+        if exists is None:
+            db.session.add(Template(templatesetid=setid, title=title, template=body))
+        else:
+            exists.template = body
+        created += 1
+    db.session.commit()
+    return render_template("admin/templates.html", mode="upload_done", created=created,
+                           sets_created=sets_created)
 
 
 @bp.route("/replacements/removeset/<int:set_id>", methods=["GET", "POST"])
