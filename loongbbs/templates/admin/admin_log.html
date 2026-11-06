@@ -1,0 +1,138 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Admin Log{% else %}管理日志{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'help' %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="80%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Instructions for limiting view/prune access to the admin log.</span></b></font></td></tr>
+<tr class="firstalt"><td>
+<p>Access control to the admin log is <b>not</b> controlled through the control panel for security reasons.<br>
+In vBulletin access is controlled by two variables ($canviewadminlog / $canpruneadminlog) placed in
+<i>admin/config.php</i>, each taking one userid or a comma separated list of userids.</p>
+<p>This board has no <i>admin/config.php</i>: the log is written for every administrator action, and the
+log viewer / prune forms are available to any member of the Administrator usergroup.</p>
+</td></tr>
+</table>
+</td></tr></table>
+<p><a href="{{ url_for('admin.adminlog_choose') }}" class="lc">[restart]</a></p>
+
+{% elif mode == 'resolve' %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="60%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">IP Address Lookup</span></b></font></td></tr>
+<tr class="firstalt"><td>IP Address</td><td>{{ ip }}</td></tr>
+<tr class="secondalt"><td>Host Name</td><td>{% if host %}{{ host }}{% else %}Could not resolve this IP address{% endif %}</td></tr>
+</table>
+</td></tr></table>
+<p><a href="{{ url_for('admin.adminlog_choose') }}" class="lc">[restart]</a></p>
+
+{% elif mode == 'prune' %}
+<form method="post" action="{{ url_for('admin.adminlog_doprunelog') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="70%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Confirm Log Prune</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Are you sure you want to prune these {{ "{:,}".format(count) }} log entries from the admin log?</p></td></tr>
+<tr class="tblhead" id="submitrow"><td align="center">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<input type="hidden" name="datecut" value="{{ datecut.isoformat() }}">
+<input type="hidden" name="script" value="{{ script }}">
+<input type="hidden" name="userid" value="{{ userid }}">
+<input type="submit" value="   Yes, delete them   ">
+<input type="button" value="   Oops, no!   " onclick="window.location='{{ url_for('admin.adminlog_choose') }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'view' %}
+<form method="post" action="{{ url_for('admin.adminlog_view') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="7"><font size="1"><b><span class="tblhead">vBulletin Administrator's Control Panel Log Viewer (page {{ page }}/{{ totalpages }}) | There are {{ "{:,}".format(total) }} total log entries.</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="7" align="center"><br>use the navigation controls at the bottom of the page to change the page you are viewing</td></tr>
+<tr class="tblhead">
+	<td><b><span class="tblhead">Log id</span></b></td>
+	<td><b><a href="{{ url_for('admin.adminlog_view', perpage=perpage, script=script, userid=userid, orderby='user', page=page) }}" title="order results by username"><span class="tblhead">Username</span></a></b></td>
+	<td><b><a href="{{ url_for('admin.adminlog_view', perpage=perpage, script=script, userid=userid, orderby='date', page=page) }}" title="order results by date"><span class="tblhead">Date</span></a></b></td>
+	<td><b><a href="{{ url_for('admin.adminlog_view', perpage=perpage, script=script, userid=userid, orderby='script', page=page) }}" title="order results by script accessed"><span class="tblhead">Script</span></a></b></td>
+	<td><b><span class="tblhead">Action</span></b></td>
+	<td><b><span class="tblhead">Extra info</span></b></td>
+	<td><b><span class="tblhead">IP Address</span></b></td>
+</tr>
+{% for e in entries %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+	<td>{{ e.id }}</td>
+	<td><a href="{{ url_for('admin.users_page') }}?userid={{ e.userid }}"><b>{{ e.username }}</b></a></td>
+	<td><font size="1">{{ e.date }}</font></td>
+	<td>{{ e.script }}&nbsp;</td>
+	<td>{{ e.action }}&nbsp;</td>
+	<td>{{ e.extrainfo }}&nbsp;</td>
+	<td><font size="1">{% if e.ip %}<a href="{{ url_for('admin.adminlog_resolveip', ip=e.ip) }}">{{ e.ip }}</a>{% else %}&nbsp;{% endif %}</font></td>
+</tr>
+{% endfor %}
+<tr id="submitrow"><td colspan="7" align="center">
+	{% if page != 1 %}
+	<input type="button" value="&laquo; first page" onclick="window.location='{{ url_for('admin.adminlog_view', perpage=perpage, script=script, userid=userid, orderby=orderby, page=1) }}'">
+	<input type="button" value="&lt; prev page" onclick="window.location='{{ url_for('admin.adminlog_view', perpage=perpage, script=script, userid=userid, orderby=orderby, page=page-1) }}'">
+	{% endif %}
+	{% if page != totalpages %}
+	<input type="button" value="next page &gt;" onclick="window.location='{{ url_for('admin.adminlog_view', perpage=perpage, script=script, userid=userid, orderby=orderby, page=page+1) }}'">
+	<input type="button" value="last page &raquo;" onclick="window.location='{{ url_for('admin.adminlog_view', perpage=perpage, script=script, userid=userid, orderby=orderby, page=totalpages) }}'">
+	{% endif %}
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+<p><a href="{{ url_for('admin.adminlog_choose') }}" class="lc">[restart]</a></p>
+
+{% else %}
+{% if no_records %}<p>No records matched your query. Returning you to the start page.</p>{% endif %}
+<form method="get" action="{{ url_for('admin.adminlog_view') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">vBulletin Administrator's Control Panel Log Viewer</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Log entries to display per page</p></td><td><p><select name="perpage">
+	{% for n in [5, 10, 15, 20, 25, 30, 40, 50, 100] %}<option value="{{ n }}"{% if n == 15 %} selected{% endif %}>{{ n }}</option>
+	{% endfor %}<option value="{{ total | default(0) }}">------------------------------</option>
+</select></p></td></tr>
+<tr class="secondalt"><td><p>Show only access to this script:</p></td><td><p><select name="script">
+	<option value="">------------- all -------------</option>
+	{% for s in scripts %}<option value="{{ s }}">{{ s }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="firstalt"><td><p>Show only logs generated by:</p></td><td><p><select name="userid">
+	<option value="">------------- all -------------</option>
+	{% for u in users %}<option value="{{ u.userid }}">{{ u.username }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="secondalt"><td><p>Order log entries by ...</p></td><td><p><select name="orderby">
+	<option value="date" selected>date</option>
+	<option value="user">user name</option>
+	<option value="script">script accessed</option>
+	<option value="">------------- all -------------</option>
+</select></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center"><input type="submit" value="   View Logs   "></td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="get" action="{{ url_for('admin.adminlog_prunelog') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Prune Admin Log</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Remove entries relating script:</p></td><td><p><select name="script">
+	<option value="">------------- all -------------</option>
+	{% for s in scripts %}<option value="{{ s }}">{{ s }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="secondalt"><td><p>Remove entries logged by user:</p></td><td><p><select name="userid">
+	<option value="">------------- all -------------</option>
+	{% for u in users %}<option value="{{ u.userid }}">{{ u.username }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="firstalt"><td><p>Remove entries older than days:</p></td><td><p><input type="text" name="daysprune" value="30" size="6"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center"><input type="submit" value="   Prune Logs   "></td></tr>
+</table>
+</td></tr></table>
+</form>
+<p align="center"><a href="{{ url_for('admin.adminlog_help') }}" class="lc">Want to restrict access to this script?</a></p>
+{% endif %}
+
+{% endblock %}

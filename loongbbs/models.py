@@ -724,3 +724,18 @@ class Announcement(db.Model):
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Announcement {self.id} forum={self.forum_id} {self.title}>"
 
+class AdminLog(db.Model):
+    """vB 2.3.11 的 ``adminlog`` 表：后台操作日志（后台 Statistics & Logs → Admin Log）。"""
+
+    __tablename__ = "admin_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    userid = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    dateline = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    script = db.Column(db.String(120), nullable=False, default="", server_default="")
+    action = db.Column(db.String(120), nullable=False, default="", server_default="")
+    extrainfo = db.Column(db.String(255), nullable=False, default="", server_default="")
+    ipaddress = db.Column(db.String(45), nullable=False, default="", server_default="")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<AdminLog {self.id} {self.script} {self.action}>"

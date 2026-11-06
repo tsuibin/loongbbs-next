@@ -23,6 +23,7 @@ from sqlalchemy import delete, func, select
 
 from .extensions import db
 from .models import (
+    AdminLog,
     Announcement,
     BBCode,
     Attachment,
@@ -135,7 +136,7 @@ NAV_GROUPS = [
     ]},
     {"title": "Statistics & Logs", "links": [
         {"label": "Statistics", "endpoint": "admin.stats_page"},
-        {"label": "Admin Log", "module": "Admin Log"},
+        {"label": "Admin Log", "endpoint": "admin.adminlog_choose"},
     ]},
     {"title": "Styles", "links": [
         {"label": "Add Style", "module": "Add Style"},
@@ -1876,6 +1877,173 @@ def _misc_remove_dupe() -> tuple:
     db.session.commit()
     lines = [f"&nbsp;&nbsp;&nbsp; <p>Deleted thread <b>{t}</b></p>" for t in deleted]
     return lines, ("" if deleted else "没有发现重复主题。")
+
+
+LOG_ORDER = {"user": "user", "script": "script", "date": "date"}
+
+
+def _admin_log(script: str, action: str, extrainfo: str = "", userid=None, ipaddress: str = "") -> None:
+    """照原版 adminlog()：把一次后台操作写进 admin_log 表。"""
+    if not current_user.is_authenticated:
+        return
+    try:
+        entry = AdminLog(
+            userid=getattr(current_user, "id", None),
+            dateline=datetime.now(),
+            script=(script or "")[:120],
+            action=(action or "")[:120],
+            extrainfo=(extrainfo or "")[:255],
+            ipaddress=(ipaddress or request.remote_addr or "")[:45],
+        )
+        db.session.add(entry)
+        db.session.commit()
+    except Exception:  # pragma: no cover - 日志失败不能影响主流程
+        db.session.rollback()
+
+
+@bp.before_request
+def _log_admin_post():
+    """原版各脚本在动作开头显式调用 adminlog()；本地在此统一记录所有后台写操作。"""
+    if request.method != "POST":
+        return None
+    if not current_user.is_authenticated or not getattr(current_user, "is_admin", False):
+        return None
+    pairs = [(k, v) for k, v in request.form.items(multi=True) if k != "_csrf"]
+    summary = " ".join(f"{k}={v}" for k, v in pairs[:6])[:200]
+    _admin_log(request.endpoint or request.path, request.form.get("action") or "POST", summary)
+    return None
+
+
+def _log_scripts() -> list:
+    return [r for (r,) in db.session.execute(select(AdminLog.script).distinct().order_by(AdminLog.script))]
+
+
+def _log_users() -> list:
+    rows = db.session.execute(
+        select(AdminLog.userid, User.username).join(User, User.id == AdminLog.userid, isouter=True)
+        .distinct().order_by(User.username)
+    ).all()
+    return [{"userid": uid, "username": username or f"(deleted {uid})"} for uid, username in rows]
+
+
+def _log_query():
+    script = request.values.get("script") or ""
+    userid = request.values.get("userid") or ""
+    query = select(AdminLog)
+    if script:
+        query = query.where(AdminLog.script == script)
+    if userid.isdigit():
+        query = query.where(AdminLog.userid == int(userid))
+    return query, script, userid
+
+
+def _log_date(value) -> str:
+    if not value:
+        return ""
+    value = value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+    suffix = "th" if 11 <= value.day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(value.day % 10, "th")
+    return f"{value.strftime('%H:%M')}, {value.day}{suffix} {value.strftime('%b %Y')}"
+
+
+@bp.route("/adminlog")
+@bp.route("/adminlog/choose")
+def adminlog_choose():
+    """原版 action=choose：查看条件表单 + 清理表单。"""
+    _admin_log("adminlog.php", "choose")
+    return render_template("admin/admin_log.html", mode="choose",
+                           scripts=_log_scripts(), users=_log_users())
+
+
+@bp.route("/adminlog/view")
+def adminlog_view():
+    """原版 action=view：七列日志表 + 分页 + 页头计数。"""
+    perpage = request.values.get("perpage") or "15"
+    perpage = int(perpage) if perpage.isdigit() and int(perpage) > 0 else 15
+    page = request.values.get("page") or "1"
+    page = int(page) if page.isdigit() and int(page) > 0 else 1
+    orderby = request.values.get("orderby") or "date"
+    orderby = LOG_ORDER.get(orderby, "date")
+
+    query, script, userid = _log_query()
+    total = db.session.scalar(select(func.count()).select_from(query.subquery())) or 0
+    totalpages = max(1, -(-total // perpage))
+    if orderby == "user":
+        query = query.join(User, User.id == AdminLog.userid, isouter=True).order_by(
+            User.username.asc(), AdminLog.id.desc())
+    elif orderby == "script":
+        query = query.order_by(AdminLog.script.asc(), AdminLog.id.desc())
+    else:
+        query = query.order_by(AdminLog.id.desc())
+    rows = db.session.execute(query.offset((page - 1) * perpage).limit(perpage)).scalars().all()
+    if not rows:
+        _admin_log("adminlog.php", "view (no records)")
+        return render_template("admin/admin_log.html", mode="choose", no_records=True,
+                               scripts=_log_scripts(), users=_log_users())
+    entries = []
+    for row in rows:
+        user = db.session.get(User, row.userid) if row.userid else None
+        entries.append({"id": row.id, "userid": row.userid,
+                        "username": user.username if user else "(deleted)",
+                        "date": _log_date(row.dateline), "script": row.script,
+                        "action": row.action, "extrainfo": row.extrainfo, "ip": row.ipaddress})
+    return render_template("admin/admin_log.html", mode="view", entries=entries, page=page,
+                           totalpages=totalpages, total=total, perpage=perpage,
+                           orderby=orderby, script=script, userid=userid)
+
+
+@bp.route("/adminlog/prunelog", methods=["GET", "POST"])
+def adminlog_prunelog():
+    """原版 action=prunelog：先数一遍再让用户确认。"""
+    query, script, userid = _log_query()
+    days = (request.values.get("daysprune") or "30")
+    days = int(days) if days.isdigit() else 30
+    datecut = datetime.now() - timedelta(days=days)
+    count = db.session.scalar(
+        select(func.count()).select_from(query.where(AdminLog.dateline < datecut).subquery())) or 0
+    if not count:
+        flash("Error: No logs matched your search conditions.", "error")
+        return render_template("admin/admin_log.html", mode="choose",
+                               scripts=_log_scripts(), users=_log_users())
+    return render_template("admin/admin_log.html", mode="prune", count=count, datecut=datecut,
+                           script=script, userid=userid, daysprune=days)
+
+
+@bp.route("/adminlog/doprunelog", methods=["POST"])
+def adminlog_doprunelog():
+    """原版 action=doprunelog：执行删除并待办"Admin Log Pruned."。"""
+    datecut_raw = request.form.get("datecut") or ""
+    try:
+        datecut = datetime.fromisoformat(datecut_raw)
+    except ValueError:
+        datecut = datetime.now()
+    query, script, userid = _log_query()
+    rows = db.session.execute(query.where(AdminLog.dateline < datecut)).scalars().all()
+    removed = len(rows)
+    for row in rows:
+        db.session.delete(row)
+    db.session.commit()
+    flash(f"Admin Log Pruned. ({removed} entries removed)", "success")
+    return render_template("admin/admin_log.html", mode="choose",
+                           scripts=_log_scripts(), users=_log_users())
+
+
+
+
+@bp.route("/adminlog/help")
+def adminlog_help():
+    """原版 action=help：说明后台日志的访问控制配置（本地无 config.php，权限由管理员角色控制）。"""
+    return render_template("admin/admin_log.html", mode="help")
+
+
+@bp.route("/adminlog/resolveip")
+def adminlog_resolveip():
+    """原版 action=resolveip：IP 反查主机名。"""
+    ip = request.args.get("ip") or ""
+    try:
+        host = socket.gethostbyaddr(ip)[0]
+    except (OSError, ValueError):
+        host = ""
+    return render_template("admin/admin_log.html", mode="resolve", ip=ip, host=host)
 
 
 MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July",
