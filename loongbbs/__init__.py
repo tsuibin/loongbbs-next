@@ -151,6 +151,55 @@ def create_app(test_config: dict | None = None) -> Flask:
         session.permanent = True
         app.permanent_session_lifetime = timedelta(seconds=timeout)
 
+        # 组 20 cookiepath / cookiedomain：会话 cookie 的路径与域名（原版
+        # functions.php 的 setcookie($name,$value,$expire,$cookiepath,$cookiedomain,...)）
+        app.config["SESSION_COOKIE_PATH"] = (get_setting("cookiepath") or "/").strip() or "/"
+        domain = (get_setting("cookiedomain") or "").strip()
+        app.config["SESSION_COOKIE_DOMAIN"] = domain or None
+
+    @app.after_request
+    def _http_header_options(response):
+        """vB 组 20：addheaders / nocacheheaders / gzipoutput / gziplevel。
+
+        原版在 global.php 里按开关直接 header()；这里同样按开关往响应上加，
+        只在 HTML 页面上生效（图片、附件下载等二进制响应不改）。
+        """
+        import gzip
+
+        from .settings import get_setting
+
+        if request.path.startswith("/static"):
+            return response
+
+        is_html = (response.mimetype or "") == "text/html"
+
+        # addheaders：显式发 200 OK 的文本类型（原版 header("Content-type: text/html; charset=UTF-8")）
+        if is_html and get_setting("addheaders") == "1":
+            response.headers["Content-Type"] = "text/html; charset=UTF-8"
+
+        # nocacheheaders：四个禁缓存头，值照抄原版
+        if get_setting("nocacheheaders") == "1":
+            response.headers["Expires"] = "Mon, 26 Jul 1997 05:00:00 GMT"
+            response.headers["Last-Modified"] = format_datetime(datetime.now(timezone.utc))
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+
+        # gzipoutput：Accept-Encoding 里带 gzip 才压，gziplevel=0 表示不压
+        if is_html and get_setting("gzipoutput") == "1":
+            try:
+                level = int(get_setting("gziplevel") or 1)
+            except ValueError:
+                level = 1
+            level = max(0, min(level, 9))
+            accepts = (request.headers.get("Accept-Encoding") or "").lower()
+            if level > 0 and "gzip" in accepts and response.status_code == 200:
+                data = response.get_data()
+                if data:
+                    response.set_data(gzip.compress(data, compresslevel=level, mtime=0))
+                    response.headers["Content-Encoding"] = "gzip"
+                    response.headers["Vary"] = "Accept-Encoding"
+        return response
+
     @app.before_request
     def _touch_last_seen():
         if current_user.is_authenticated:
