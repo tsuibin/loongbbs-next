@@ -182,7 +182,7 @@ def login():
     return redirect(url_for("forums.index"))
 
 
-@bp.post("/logout")
+@bp.route("/logout", methods=["GET", "POST"])
 @login_required
 def logout():
     logout_user()

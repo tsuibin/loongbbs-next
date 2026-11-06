@@ -15,7 +15,7 @@
 {% if not nav_user %}
 <tr>
 	<td colspan="2"><font face="verdana, arial, helvetica" size="2"><b>{% if ui_lang == 'en' %}Welcome to {{ settings.site_name }}.{% else %}欢迎来到 {{ settings.site_name }}。{% endif %}</b></font><br>
-	<font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}If this is your first visit, be sure to check out the <a href="{{ url_for('forums.index') }}"><b>FAQ</b></a> by clicking the link above. You may have to <a href="{{ url_for('auth.register_form') }}"><b>register</b></a> before you can post: click the register link above to proceed. To start viewing messages, select the forum that you want to visit from the selection below.{% else %}如果你是第一次访问，请先看看 <a href="{{ url_for('forums.index') }}"><b>FAQ</b></a>；
+	<font face="verdana,arial,helvetica" size="1">{% if ui_lang == 'en' %}If this is your first visit, be sure to check out the <a href="{{ url_for('misc.faq') }}"><b>FAQ</b></a> by clicking the link above. You may have to <a href="{{ url_for('auth.register_form') }}"><b>register</b></a> before you can post: click the register link above to proceed. To start viewing messages, select the forum that you want to visit from the selection below.{% else %}如果你是第一次访问，请先看看 <a href="{{ url_for('misc.faq') }}"><b>FAQ</b></a>；
 	发帖前需要先 <a href="{{ url_for('auth.register_form') }}"><b>注册</b></a>，
 	点击上面的注册链接即可继续。
 	要开始浏览帖子，请从下面的版块列表中选择一个进入。{% endif %}</font><hr></td>
