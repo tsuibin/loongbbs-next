@@ -80,13 +80,15 @@ Avatars Add/Modify/Upload（`/admin/avatars` 全套）、Statistics（`/admin/ho
 
 ## 六、建议的处理顺序
 
+> P0 六项已全部完成并各自单独提交（详见文末「七、P0 完成情况」）。
+
 **P0（用户一用就撞到）**
-1. 编辑个人资料 `editprofile` + 补 `users` 那 7 个资料列（一次改完，顺带修掉 `/u/` 的空行）
-2. 找回密码 `lostpw`（邮箱重置令牌）
-3. 会员列表 `memberlist`（顶栏 members 图标落地）
-4. 版块内搜索（`search()` 读 `forum` 参数，一行改动起效）
-5. 标记已读 / 全部标记已读（「标记这个版块为已读」落地）
-6. 打印主题 `printthread`（纯模板，成本最低）
+1. ~~编辑个人资料 `editprofile` + 补 `users` 那 7 个资料列~~ ✅ eb1dee9
+2. ~~找回密码 `lostpw`（邮箱重置令牌）~~ ✅ 2497cc5
+3. ~~会员列表 `memberlist`（顶栏 members 图标落地）~~ ✅ 7386f99
+4. ~~版块内搜索（`search()` 读 `forum` 参数）~~ ✅ 9c3fa20
+5. ~~标记已读 / 全部标记已读~~ ✅ be759d0
+6. ~~打印主题 `printthread`~~ ✅ b4a3c45
 
 **P1（社区感强烈依赖）**
 7. 主题评分 `threadrate`（下拉已经在页面上，只缺一张票表和聚合显示）
@@ -110,3 +112,22 @@ Avatars Add/Modify/Upload（`/admin/avatars` 全套）、Statistics（`/admin/ho
 private / usercp / member(仅 getinfo+editoptions+editpassword+好友忽略) / search / attachment / avatar / register），
 另有 2 个只有界面（threadrate 下拉、printthread 链接）；后台 20+ 模块，本项目覆盖 6 个。
 缺的不是"页面长得不一样"，而是这些页面背后的第二层功能。
+
+---
+
+## 七、P0 完成情况（均已单独提交到 main）
+
+| # | 功能 | 对应原版 | 入口 | 提交 |
+|---|------|----------|------|------|
+| 1 | 版块内搜索 | search.php 的 `forumid` 过滤 | `/search?forum=<id>` | 9c3fa20 |
+| 2 | 标记已读 / 全部已读 | forumdisplay 与 index 的标记链接 | `/f/<id>/markread`、`/markread/all` | be759d0 |
+| 3 | 可打印版本 | printthread.php | `/t/<id>/print?perpage=&pagenumber=` | b4a3c45 |
+| 4 | 编辑个人资料 | member.php?action=editprofile | `/usercp/profile` | eb1dee9 |
+| 5 | 会员列表 | memberlist.php | `/members`（`?letter= &what= &page=`） | 7386f99 |
+| 6 | 找回密码 | member.php?action=lostpw | `/lostpw`、`/lostpw/reset/<token>` | 2497cc5 |
+
+数据层随之补齐：`forum_reads` 表、`users.last_visit`、`users.homepage/icq/aim/yahoo/location/interests/occupation/birthday`，
+迁移脚本 `upgrade_forum_reads.py`、`upgrade_profile_fields.py`。
+
+仍缺的原版入口：calendar、faq、misc、announcement、online、poll、showgroups、sendtofriend、report、subscription；
+后台 18 组中 12 组仍走 `/admin/not-port` 占位。
