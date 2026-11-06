@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, g, render_template
+from flask import Flask, g, render_template, request
 from flask_login import current_user
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -72,6 +72,26 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.before_request
     def _mark_request_start():
         g._t0 = time.perf_counter()
+
+    @app.before_request
+    def _board_closed_guard():
+        """vB 的 bbactive：关站时只有管理员还能浏览，其余人看到关闭说明。"""
+        from .settings import get_settings
+
+        current = get_settings()
+        if current.get("bbactive", "1") != "0":
+            return None
+        path = request.path or "/"
+        if (
+            path.startswith("/static")
+            or path.startswith("/admin")
+            or path in ("/login", "/logout")
+        ):
+            return None
+        if current_user.is_authenticated and getattr(current_user, "is_admin", False):
+            return None
+        reason = (current.get("bbclosedreason") or "论坛暂时关闭，请稍后再来。").strip()
+        return render_template("board_closed.html", reason=reason), 503
 
     @app.before_request
     def _touch_last_seen():
