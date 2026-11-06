@@ -12,7 +12,7 @@
 	<td valign="bottom" align="right"><font face="verdana,arial,helvetica" size="1">
 	{% if nav_user and not forum.is_closed %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a><br>
 	<nobr><a href="{{ url_for('forums.forum', forum_id=forum.id) }}">订阅这个版块</a><br>
-	<a href="{{ url_for('forums.forum', forum_id=forum.id) }}">标记这个版块为已读</a></nobr>{% endif %}&nbsp;</font></td>
+	<a href="{{ url_for('forums.mark_forum_read', forum_id=forum.id) }}">标记这个版块为已读</a></nobr>{% endif %}&nbsp;</font></td>
 </tr>
 </table>
 
@@ -33,8 +33,9 @@
 </tr>
 
 {% for thread in threads %}
+{% set hot = thread.reply_count - 1 > 15 %}
 <tr align="center">
-	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/' ~ ('lockfolder.gif' if thread.is_closed else 'folder.gif')) }}" border="0" alt=""></td>
+	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/' ~ ('lockfolder.gif' if thread.is_closed else ('newhotfolder.gif' if thread.has_new and hot else ('newfolder.gif' if thread.has_new else ('hotfolder.gif' if hot else 'folder.gif'))))) }}" border="0" alt=""></td>
 	<td bgcolor="#DFDFDF">&nbsp;</td>
 	<td bgcolor="#F1F1F1" align="left" width="70%"><font face="verdana, arial, helvetica" size="2">{% if thread.is_sticky %}置顶: {% endif %}<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a></font> <font face="verdana,arial,helvetica" size="1">
 	{% if thread.reply_count > 1 %}

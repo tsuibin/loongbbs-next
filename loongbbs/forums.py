@@ -8,6 +8,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from flask_login import current_user, login_required
@@ -15,13 +16,82 @@ from sqlalchemy import func, or_, select
 
 from .attachments import save_uploads
 from .extensions import db
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
-from .models import Category, Forum, Post, Thread, User, utcnow
+from .models import Category, Forum, ForumRead, Post, Thread, User, utcnow
 from .settings import get_setting
 from .utils import clamp_page, format_dt, page_args, render_body, time_ago
 
 bp = Blueprint("forums", __name__)
+
+
+def _naive(dt):
+    """SQLite 读回来的是 naive，比较前统一成 naive UTC，避免 aware/naive 混比报错。"""
+    if dt is None:
+        return None
+    return dt.astimezone(timezone.utc).replace(tzinfo=None) if dt.tzinfo else dt
+
+
+def _mark_read(forum_id: int) -> None:
+    """记录「已读到此」。登录用户写 forum_reads 表，游客写 session（对应 vB 的 cookie）。"""
+    now = utcnow()
+    if current_user.is_authenticated:
+        row = db.session.scalar(
+            select(ForumRead).where(
+                ForumRead.user_id == current_user.id, ForumRead.forum_id == forum_id
+            )
+        )
+        if row is None:
+            row = ForumRead(user_id=current_user.id, forum_id=forum_id)
+            db.session.add(row)
+        row.marked_at = now
+        db.session.commit()
+    else:
+        marks = dict(session.get("forum_marks", {}))
+        marks[str(forum_id)] = now.isoformat()
+        session["forum_marks"] = marks
+
+
+def _read_cutoff(forum_id: int | None = None):
+    """返回该用户「已读到此」的时间点；没有记录时退回 last_seen，游客没有则返回 None。"""
+    candidates = []
+    if current_user.is_authenticated:
+        keys = [forum_id, -1] if forum_id is not None else [-1]
+        for key in keys:
+            row = db.session.scalar(
+                select(ForumRead).where(
+                    ForumRead.user_id == current_user.id, ForumRead.forum_id == key
+                )
+            )
+            if row is not None:
+                candidates.append(_naive(row.marked_at))
+        if current_user.last_visit or current_user.joined_at:
+            candidates.append(_naive(current_user.last_visit or current_user.joined_at))
+    else:
+        marks = session.get("forum_marks", {})
+        keys = [str(forum_id), "-1"] if forum_id is not None else ["-1"]
+        for key in keys:
+            if marks.get(key):
+                candidates.append(datetime.fromisoformat(marks[key]).replace(tzinfo=None))
+    candidates = [c for c in candidates if c is not None]
+    return max(candidates) if candidates else None
+
+
+@bp.get("/f/<int:forum_id>/markread")
+def mark_forum_read(forum_id: int):
+    forum_obj = db.session.get(Forum, forum_id)
+    if forum_obj is None:
+        abort(404)
+    _mark_read(forum_obj.id)
+    flash(f"「{forum_obj.name}」已标记为已读。", "success")
+    return redirect(url_for("forums.forum", forum_id=forum_obj.id))
+
+
+@bp.get("/markread/all")
+def mark_all_read():
+    _mark_read(-1)
+    flash("所有版块已标记为已读。", "success")
+    return redirect(request.referrer or url_for("forums.index"))
 
 
 def _per_page(key: str, fallback: int) -> int:
@@ -53,9 +123,15 @@ def index():
             )
         ) or 0,
     }
+    cutoff = _read_cutoff()
+    for category in categories:
+        for forum_obj in category.forums:
+            last_post = forum_obj.last_post
+            forum_obj.has_new = bool(
+                cutoff and last_post and _naive(last_post.created_at)
+                and _naive(last_post.created_at) > cutoff
+            )
     return render_template("index.html", categories=categories, stats=stats)
-
-
 @bp.get("/f/<int:forum_id>")
 def forum(forum_id: int):
     forum_obj = db.session.get(Forum, forum_id)
@@ -79,6 +155,11 @@ def forum(forum_id: int):
     pages = max(1, (total + per_page - 1) // per_page)
 
     forums_all = db.session.execute(select(Forum).order_by(Forum.position, Forum.id)).scalars().all()
+
+    cutoff = _read_cutoff(forum_obj.id)
+    for thread_obj in threads:
+        last_at = _naive(thread_obj.last_post_at)
+        thread_obj.has_new = bool(cutoff and last_at and last_at > cutoff)
 
     return render_template(
         "forum.html",

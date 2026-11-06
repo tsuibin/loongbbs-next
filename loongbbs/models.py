@@ -28,6 +28,8 @@ class User(UserMixin, db.Model):
     custom_avatar = db.Column(db.String(255), nullable=False, default="", server_default="")
     joined_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     last_seen = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    # 上一次访问（vB 的 lastvisit）：用来判断「有没有新帖」，不能和 last_seen（本次在线）混用
+    last_visit = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # ---- 用户选项（对应 vBulletin 2.x user 表的 editoptions 一组字段）----
     invisible = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
@@ -268,3 +270,20 @@ class UserGroup(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<UserGroup {self.id} {self.title}>"
+
+
+class ForumRead(db.Model):
+    """vB 2.3.11 的 ``forumread`` 表：记录每个用户在每个版块「已读到此」的时间。
+
+    ``forum_id = -1`` 表示「全部版块标记为已读」。
+    """
+
+    __tablename__ = "forum_reads"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    forum_id = db.Column(db.Integer, nullable=False, default=-1, index=True)
+    marked_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<ForumRead user={self.user_id} forum={self.forum_id}>"

@@ -78,6 +78,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             if seen is not None and seen.tzinfo is None:
                 seen = seen.replace(tzinfo=timezone.utc)
             if seen is None or (utcnow() - seen).total_seconds() > 300:
+                if seen is not None:
+                    # 新会话开始时，把上一次的在线时间记为 last_visit（未读判断的基准）
+                    current_user.last_visit = seen
                 current_user.last_seen = utcnow()
                 db.session.commit()
 
