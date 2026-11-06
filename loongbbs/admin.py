@@ -29,6 +29,7 @@ from .models import (
     PERMISSION_FIELDS,
     PERMISSION_LABELS,
     Poll,
+    PollOption,
     PollVote,
     Post,
     PostReport,
@@ -66,7 +67,7 @@ NAV_GROUPS = [
         {"label": "Mass Move", "endpoint": "admin.threads_move"},
         {"label": "Unsubscribe Thread", "endpoint": "admin.threads_unsubscribe"},
         {"label": "Strip Poll", "endpoint": "admin.threads_strip_poll"},
-        {"label": "Who Voted?", "module": "Who Voted?"},
+        {"label": "Who Voted?", "endpoint": "admin.threads_votes"},
     ]},
     {"title": "Moderation", "links": [
         {"label": "Reported Posts", "endpoint": "admin.reports_page"},
@@ -906,6 +907,62 @@ def threads_strip_poll():
         )
 
     return _entry()
+
+
+@bp.route("/threads/votes", methods=["GET", "POST"])
+def threads_votes():
+    """Threads & Posts → Who Voted?（原版 thread.php 的 votes / dovotes）。"""
+    polls = db.session.execute(
+        select(Poll).order_by(Poll.id.desc())
+    ).scalars().all()
+    titles = {}
+    for poll_obj in polls:
+        thread_obj = db.session.get(Thread, poll_obj.thread_id) if poll_obj.thread_id else None
+        titles[poll_obj.id] = thread_obj.title if thread_obj else ""
+
+    def _page():
+        return render_template(
+            "admin/thread_votes.html", mode="form", polls=polls, titles=titles
+        )
+
+    if request.method == "GET" or not (request.form.get("step") or "").strip():
+        return _page()
+
+    if request.form.get("step") == "votes":
+        poll_id = request.form.get("pollid", type=int)
+        poll_obj = db.session.get(Poll, poll_id) if poll_id else None
+        if poll_obj is None:
+            flash("Invalid poll id specified", "error")
+            return _page()
+        thread_obj = db.session.get(Thread, poll_obj.thread_id) if poll_obj.thread_id else None
+        options = db.session.execute(
+            select(PollOption).where(PollOption.poll_id == poll_obj.id).order_by(PollOption.position)
+        ).scalars().all()
+        votes = db.session.execute(
+            select(PollVote, User)
+            .join(User, User.id == PollVote.user_id, isouter=True)
+            .where(PollVote.poll_id == poll_obj.id)
+            .order_by(PollVote.option_id, User.username)
+        ).all()
+        groups = []
+        last_option_id = None
+        for vote, user_obj in votes:
+            if vote.option_id != last_option_id:
+                opt = next((o for o in options if o.id == vote.option_id), None)
+                groups.append({"option": opt.text if opt else "", "users": []})
+                last_option_id = vote.option_id
+            groups[-1]["users"].append(user_obj.username if user_obj else "")
+        return render_template(
+            "admin/thread_votes.html",
+            mode="result",
+            polls=polls,
+            titles=titles,
+            poll_obj=poll_obj,
+            thread_obj=thread_obj,
+            groups=groups,
+        )
+
+    return _page()
 
 
 @bp.route("/threads/prune", methods=["GET", "POST"])

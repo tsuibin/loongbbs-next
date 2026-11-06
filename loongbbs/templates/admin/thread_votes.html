@@ -1,0 +1,70 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Who Voted?{% else %}谁投了票{% endif %}{% endblock %}
+{% block content %}
+
+{% macro poll_form() %}
+<form method="post" name="pollform">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Who voted in poll x?</span></b></font></td></tr>
+<tr class="firstalt" valign="top">
+	<td>Poll Question</td>
+	<td>
+		<select name="pollid" onchange="var e=document.getElementById('threadtitle'); if(this.selectedIndex>=0){e.value=this.options[this.selectedIndex].getAttribute('data-title')||'';}">
+		{% for p in polls %}
+			<option value="{{ p.id }}" data-title="{{ titles.get(p.id, '') }}">[{{ p.id }}] {{ p.question }}</option>
+		{% endfor %}
+		</select>
+	</td>
+</tr>
+<tr class="secondalt" valign="top">
+	<td>(from thread:)</td>
+	<td><input type="text" size="50" id="threadtitle" value="{{ titles.get(polls[0].id, '') if polls else '' }}" readonly disabled></td>
+</tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="step" value="votes">
+	<input type="submit" value="List Votes">
+	<input type="reset" value="Reset">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endmacro %}
+
+{% if mode == 'form' %}
+<p><b>Threads &amp; Posts &rsaquo; Who Voted?</b></p>
+{% if polls %}
+{{ poll_form() }}
+{% else %}
+<p>{% if ui_lang == 'en' %}No polls found on this board.{% else %}站内还没有任何投票。{% endif %}</p>
+{% endif %}
+
+{% else %}
+<p>Poll: <b><a href="{{ url_for('forums.thread', thread_id=(thread_obj.id if thread_obj else 0)) }}" target="_blank">{{ poll_obj.question }}</a></b>
+in thread: <b><a href="{{ url_for('forums.thread', thread_id=(thread_obj.id if thread_obj else 0)) }}" target="_blank">{{ thread_obj.title if thread_obj else '' }}</a></b></p>
+
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">{{ poll_obj.question }} </span></b><font size="1">(Poll ID: {{ poll_obj.id }})</font></font></td></tr>
+{% for g in groups %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td width="40%"><b>{{ g.option }}</b></td>
+	<td>
+		{% for name in g.users %}
+			{% if name %}<a href="{{ url_for('auth.profile', username=name) }}" target="_blank">{{ name }}</a>{% else %}<font size="1">Guest</font>{% endif %} &nbsp;
+		{% endfor %}
+	</td>
+</tr>
+{% else %}
+<tr class="firstalt"><td colspan="2">{% if ui_lang == 'en' %}Nobody voted in this poll.{% else %}该投票还没有人投票。{% endif %}</td></tr>
+{% endfor %}
+</table>
+</td></tr></table>
+
+<hr size="1" noshade>
+
+{{ poll_form() }}
+{% endif %}
+
+{% endblock %}
