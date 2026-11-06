@@ -1,0 +1,55 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}IP Addresses{% else %}IP 地址{% endif %}{% endblock %}
+{% block content %}
+
+{% macro nodes(items) %}
+<ul>
+{% for n in items %}
+	{% if n.kind == 'user' %}
+	<li>{{ n.username }}
+		<a href="{{ url_for('admin.users_ips', userid=n.id, depth=depth) }}">edit</a> |
+		<a href="{{ url_for('search.search', searchuser=n.username) }}" target="_blank">find posts by user</a> |
+		<a href="{{ url_for('admin.users_ips', userid=n.id, depth=depth) }}">find more ips for user</a>
+		{% if n.children %}{{ nodes(n.children) }}{% endif %}
+	</li>
+	{% else %}
+	<li>{{ n.ip }} ({{ n.host }})
+		<a href="{{ url_for('admin.users_ips', ipaddress=n.ip, depth=depth) }}">find more users for this ip</a>
+		{% if n.children %}{{ nodes(n.children) }}{% endif %}
+	</li>
+	{% endif %}
+{% endfor %}
+</ul>
+{% endmacro %}
+
+{% if tree %}
+<div align="center">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">IP / User search results</span></b></font></td></tr>
+<tr class="firstalt"><td>{{ nodes(tree) }}</td></tr>
+</table>
+</td></tr></table>
+</div>
+{% endif %}
+
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Begin New Search</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td>IP Address:<br>(Or partial address)</td>
+	<td><input type="text" name="ipaddress" size="35" value="{{ ipaddress }}"></td></tr>
+<tr class="secondalt" valign="top"><td>User name</td>
+	<td><input type="text" name="username" size="35" value="{{ username }}"></td></tr>
+<tr class="firstalt" valign="top"><td>Depth to search</td>
+	<td><input type="text" name="depth" size="35" value="{{ depth }}"></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value=" Find ">
+	<input type="reset" value=" Reset ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% endblock %}

@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
+import socket
 
 from flask import (
     Blueprint,
@@ -81,7 +82,7 @@ NAV_GROUPS = [
         {"label": "Find", "endpoint": "admin.users_page"},
         {"label": "Move/Prune", "module": "Move/Prune Users"},
         {"label": "PM Statistics", "endpoint": "admin.users_pmstats"},
-        {"label": "IP Addresses", "module": "IP Addresses"},
+        {"label": "IP Addresses", "endpoint": "admin.users_ips"},
         {"label": "Referrals", "module": "Referrals"},
         {"label": "Email Users", "module": "Email Users"},
         {"label": "Build Mailing List", "module": "Build Mailing List"},
@@ -864,6 +865,68 @@ def _pm_counts():
                 select(col, func.count(PrivateMessage.id)).group_by(col)).all():
             counts[uid] = counts.get(uid, 0) + n
     return counts
+
+
+def _ip_users(prefix: str, prev_uid: int, depth: int) -> list[dict]:
+    """原版 doipaddress：按 IP 前缀找发过帖的用户，depth>0 时递归展开这些用户的其它 IP。"""
+    nodes: list[dict] = []
+    rows = db.session.execute(
+        select(User.id, User.username)
+        .join(Post, Post.author_id == User.id)
+        .where(Post.ipaddress.like(f"{prefix}%"), User.id != prev_uid)
+        .distinct().order_by(User.username)
+    ).all()
+    for uid, username in rows:
+        node = {"kind": "user", "id": uid, "username": username, "children": []}
+        if depth > 0:
+            node["children"] = _ip_list(uid, prefix, depth - 1)
+        nodes.append(node)
+    return nodes
+
+
+def _ip_list(uid: int, prev_ip: str, depth: int) -> list[dict]:
+    """原版 douserid：列出该用户发帖用过的 IP，depth>0 时递归展开同 IP 的其它用户。"""
+    nodes: list[dict] = []
+    rows = db.session.execute(
+        select(Post.ipaddress).where(Post.author_id == uid, Post.ipaddress != "",
+                                     Post.ipaddress != prev_ip)
+        .distinct().order_by(Post.ipaddress)
+    ).all()
+    for (ip,) in rows:
+        try:
+            host = socket.gethostbyaddr(ip)[0]
+        except Exception:
+            host = ip
+        node = {"kind": "ip", "ip": ip, "host": host, "children": []}
+        if depth > 0:
+            node["children"] = _ip_users(ip, uid, depth - 1)
+        nodes.append(node)
+    return nodes
+
+
+@bp.route("/users/ips", methods=["GET", "POST"])
+def users_ips():
+    """Users → IP Addresses：照原版 user.php 的 doipaddress / douserid / doips。"""
+    ipaddress = (request.values.get("ipaddress") or "").strip()
+    username = (request.values.get("username") or "").strip()
+    uid = request.values.get("userid", type=int) or 0
+    depth = request.values.get("depth", type=int) or 1
+    # 原版：没带 depth 参数且 depth>2 时回落 1
+    if depth > 2 and "depth" not in request.values:
+        depth = 1
+    depth = max(1, min(depth, 3))
+
+    tree: list[dict] = []
+    if username and not uid:
+        found = db.session.scalar(select(User.id).where(User.username == username))
+        uid = found or 0
+    if ipaddress:
+        tree += _ip_users(ipaddress, 0, depth - 1)
+    if uid:
+        tree += _ip_list(uid, "", depth - 1)
+
+    return render_template("admin/users_ips.html", tree=tree, ipaddress=ipaddress,
+                           username=username, depth=depth, uid=uid)
 
 
 @bp.route("/users/pmstats")
