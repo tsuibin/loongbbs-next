@@ -23,6 +23,9 @@ from .models import (
     EmailLog,
     Forum,
     ForumRead,
+    Poll,
+    PollOption,
+    PollVote,
     Post,
     PostReport,
     Thread,
@@ -517,10 +520,67 @@ def new_thread(forum_id: int):
     db.session.flush()
 
     save_uploads(post, request.files.getlist("files"))
+
+    # 发帖时勾了「发起投票」才建 poll（对应 vB newthread 的 $postpolloption）
+    if request.form.get("postpoll") == "yes":
+        question = (request.form.get("pollquestion") or "").strip()
+        options = [
+            (request.form.get(f"polloption{i}") or "").strip() for i in range(1, 6)
+        ]
+        options = [option for option in options if option][:5]
+        if question and len(options) >= 2:
+            poll_obj = Poll(thread_id=thread_obj.id, question=question[:200])
+            db.session.add(poll_obj)
+            db.session.flush()
+            for index, text in enumerate(options):
+                db.session.add(
+                    PollOption(poll_id=poll_obj.id, position=index, text=text[:200])
+                )
+
     db.session.commit()
 
     flash("主题已发布。", "success")
     return redirect(url_for("forums.thread", thread_id=thread_obj.id))
+
+
+@bp.post("/t/<int:thread_id>/vote")
+@login_required
+def vote_thread(thread_id: int):
+    """对应 vB poll.php?action=pollvote：一个用户对一个投票只投一票。"""
+    thread_obj = db.session.get(Thread, thread_id)
+    if thread_obj is None:
+        abort(404)
+    poll_obj = db.session.scalar(select(Poll).where(Poll.thread_id == thread_obj.id))
+    if poll_obj is None:
+        abort(404)
+
+    target = url_for("forums.thread", thread_id=thread_obj.id)
+    if poll_obj.is_closed:
+        flash("这个投票已关闭。", "error")
+        return redirect(target)
+
+    already = db.session.scalar(
+        select(PollVote.id).where(
+            PollVote.poll_id == poll_obj.id, PollVote.user_id == current_user.id
+        )
+    )
+    if already:
+        flash("你已经投过票了。", "error")
+        return redirect(target)
+
+    try:
+        option_id = int(request.form.get("optionid") or 0)
+    except ValueError:
+        option_id = 0
+    option = db.session.get(PollOption, option_id)
+    if option is None or option.poll_id != poll_obj.id:
+        flash("请选择一个选项。", "error")
+        return redirect(target)
+
+    db.session.add(PollVote(poll_id=poll_obj.id, option_id=option.id, user_id=current_user.id))
+    db.session.commit()
+    flash("投票成功，谢谢参与。", "success")
+    return redirect(target)
 
 
 @bp.get("/t/<int:thread_id>")
@@ -569,6 +629,40 @@ def thread(thread_id: int):
         .limit(1)
     )
 
+    # 投票：取本主题的 poll 与选项票数（对应 vB showthread 的 $pollinfo / $pollbits）
+    poll_obj = db.session.scalar(select(Poll).where(Poll.thread_id == thread_obj.id))
+    poll_rows = []
+    poll_total = 0
+    poll_my_vote = None
+    if poll_obj is not None:
+        counts = dict(
+            db.session.execute(
+                select(PollVote.option_id, func.count(PollVote.id))
+                .where(PollVote.poll_id == poll_obj.id)
+                .group_by(PollVote.option_id)
+            ).all()
+        )
+        poll_total = sum(counts.values())
+        for index, option in enumerate(poll_obj.options):
+            votes = int(counts.get(option.id, 0))
+            percent = int(round(votes * 100 / poll_total)) if poll_total else 0
+            poll_rows.append(
+                {
+                    "id": option.id,
+                    "text": option.text,
+                    "votes": votes,
+                    "percent": percent,
+                    "graphic": (index % 6) + 1,
+                    "width": max(1, int(round(votes * 100 / poll_total))) if poll_total else 1,
+                }
+            )
+        if current_user.is_authenticated:
+            poll_my_vote = db.session.scalar(
+                select(PollVote.option_id).where(
+                    PollVote.poll_id == poll_obj.id, PollVote.user_id == current_user.id
+                )
+            )
+
     return render_template(
         "thread.html",
         thread=thread_obj,
@@ -583,6 +677,10 @@ def thread(thread_id: int):
         time_ago=time_ago,
         prev_thread=prev_thread,
         next_thread=next_thread,
+        poll=poll_obj,
+        poll_rows=poll_rows,
+        poll_total=poll_total,
+        poll_my_vote=poll_my_vote,
         subscribed=bool(
             current_user.is_authenticated
             and db.session.scalar(

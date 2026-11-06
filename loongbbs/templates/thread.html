@@ -31,6 +31,55 @@
 </table>
 <!-- /first unread and next/prev -->
 
+{% if poll %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#8080A6" align="center" colspan="4"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF" class="thtcolor"><b>{{ poll.question }}</b></font></td>
+</tr>
+{% if poll_my_vote or poll.is_closed or not current_user.is_authenticated %}
+  {% for row in poll_rows %}
+<tr>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}" align="right" width="35%"><font face="verdana, arial, helvetica" size="2">{{ row.text }}{% if poll_my_vote == row.id %} <b>（你的选择）</b>{% endif %}</font></td>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}"><img src="{{ url_for('static', filename='images/polls/bar' ~ row.graphic ~ '-l.gif') }}" width="3" height="10" alt=""><img src="{{ url_for('static', filename='images/polls/bar' ~ row.graphic ~ '.gif') }}" width="{{ row.percent * 2 or 1 }}" height="10" alt=""><img src="{{ url_for('static', filename='images/polls/bar' ~ row.graphic ~ '-r.gif') }}" width="3" height="10" alt=""></td>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}" width="67"><font face="verdana, arial, helvetica" size="2">{{ row.votes }}</font></td>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}" width="67" align="center"><font face="verdana, arial, helvetica" size="2">{{ row.percent }}%</font></td>
+</tr>
+  {% endfor %}
+<tr>
+	<td bgcolor="#8080A6" align="right" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>合计:</b></font></td>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>{{ poll_total }} 票</b></font></td>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>100%</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" colspan="4"><font face="verdana,arial,helvetica" size="1">
+	{% if poll.is_closed %}这个投票已关闭。
+	{% elif poll_my_vote %}你已经投过票了。
+	{% else %}<a href="{{ url_for('auth.login') }}">登录</a>后才能投票。{% endif %}
+	</font></td>
+</tr>
+{% else %}
+<form method="post" action="{{ url_for('forums.vote_thread', thread_id=thread.id) }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  {% for row in poll_rows %}
+<tr>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}" width="5%"><input type="radio" id="opt{{ row.id }}" name="optionid" value="{{ row.id }}"{% if loop.first %} checked{% endif %}></td>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}" colspan="3"><font face="verdana, arial, helvetica" size="2"><label for="opt{{ row.id }}">{{ row.text }}</label></font></td>
+</tr>
+  {% endfor %}
+<tr>
+	<td bgcolor="#DFDFDF" colspan="4"><font face="verdana,arial,helvetica" size="2">
+	<input type="submit" class="bginput" value="投票">
+	</font></td>
+</tr>
+</form>
+{% endif %}
+</table>
+</td></tr></table>
+
+<br>
+{% endif %}
+
 <table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>

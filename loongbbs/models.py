@@ -380,3 +380,57 @@ class EmailLog(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<EmailLog to={self.to_email} subject={self.subject}>"
+
+
+class Poll(db.Model):
+    """vB 的 poll 表：发新主题时可附一个投票。"""
+
+    __tablename__ = "polls"
+
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(db.Integer, db.ForeignKey("threads.id"), nullable=False, index=True)
+    question = db.Column(db.String(200), nullable=False)
+    is_closed = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    thread = db.relationship("Thread")
+    options = db.relationship(
+        "PollOption", back_populates="poll", cascade="all, delete-orphan", order_by="PollOption.position"
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Poll {self.question}>"
+
+
+class PollOption(db.Model):
+    __tablename__ = "poll_options"
+
+    id = db.Column(db.Integer, primary_key=True)
+    poll_id = db.Column(db.Integer, db.ForeignKey("polls.id"), nullable=False, index=True)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    text = db.Column(db.String(200), nullable=False)
+
+    poll = db.relationship("Poll", back_populates="options")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<PollOption {self.text}>"
+
+
+class PollVote(db.Model):
+    """一个用户对一个投票只能投一票（vB 的 voterlist 语义）。"""
+
+    __tablename__ = "poll_votes"
+    __table_args__ = (db.UniqueConstraint("poll_id", "user_id", name="uq_poll_vote"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    poll_id = db.Column(db.Integer, db.ForeignKey("polls.id"), nullable=False, index=True)
+    option_id = db.Column(db.Integer, db.ForeignKey("poll_options.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    poll = db.relationship("Poll")
+    option = db.relationship("PollOption")
+    user = db.relationship("User")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<PollVote poll={self.poll_id} user={self.user_id} option={self.option_id}>"
