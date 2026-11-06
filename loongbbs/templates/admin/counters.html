@@ -1,0 +1,127 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Update Counters{% else %}更新计数{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'done' %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">{{ title }}</span></b></font></td></tr>
+<tr class="firstalt"><td><p>{{ lines|join|safe }}</p>
+{% if message %}<p><b>{{ message }}</b></p>{% endif %}
+<p><a href="{{ url_for('admin.misc_counters') }}" class="lc">[{% if ui_lang == 'en' %}Back to Update Counters{% else %}返回更新计数{% endif %}]</a></p></td></tr>
+</table>
+</td></tr></table>
+
+{% else %}
+
+<form method="post" action="{{ url_for('admin.misc_counter_run', action='updateuser') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Update User's Titles</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Number of users to do per cycle: </p></td><td><p><input type="text" size="35" name="perpage" value="1000"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Update   "><input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.misc_counter_run', action='updateposts') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Update User's Post Counts - does not add non-posting forums to total. (This will recalculate all of your user's post counts based on their CURRENT posts in the database. Do not run this if you have pruned posts or manually changed post counts and you wish to maintain their current counts.)</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Number of users to do per cycle: </p></td><td><p><input type="text" size="35" name="perpage" value="1000"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Update   "><input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.misc_counter_run', action='updateforum') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Update Forums Info - update forum post counts and last thread titles based on the values in the thread table.</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Number of forums to do per cycle: </p></td><td><p><input type="text" size="35" name="perpage" value="100"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Update   "><input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.misc_counter_run', action='updatethread') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Update Thread Info - update thread post counts, original posters, last post date, thread creation date, attachment totals</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Number of threads to do per cycle: </p></td><td><p><input type="text" size="35" name="perpage" value="2000"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Update   "><input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.misc_counter_run', action='buildsearchindex') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Rebuild search index - (very intensive, but rarely needed)</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Number of threads to do per cycle: </p></td><td><p><input type="text" size="35" name="perpage" value="100"></p></td></tr>
+<tr class="secondalt"><td><p>Thread number to start at: </p></td><td><p><input type="text" size="35" name="startat" value="0"></p></td></tr>
+<tr class="firstalt"><td><p>Total number of threads to process: <BR>(0 for unlimited)</p></td><td><p><input type="text" size="35" name="doprocess" value="0"></p></td></tr>
+<tr class="secondalt"><td><p>Include automatic JavaScript<BR>redirect to next page?</p></td><td><p>Yes<input type="radio" name="autoredirect" value="1" checked> No <input type="radio" name="autoredirect" value="0"></p></td></tr>
+<tr class="firstalt"><td colspan="2"><p><i>If you are reindexing, you may want to empty the indexes.</i> <a href="{{ url_for('admin.misc_counters') }}"><b>Click Here to do so!</b></a></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Re-index   "><input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.misc_counter_run', action='removeorphanthreads') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Remove orphan threads - remove threads that have no forum</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Number of threads to do per cycle: </p></td><td><p><input type="text" size="35" name="perpage" value="50"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Remove   "><input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.misc_counter_run', action='removeorphanposts') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Remove orphan posts - remove posts which have no threads</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Number of posts to do per cycle: </p></td><td><p><input type="text" size="35" name="perpage" value="50"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Remove   "><input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.misc_counter_run', action='removedupe') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Remove dupe threads - (relatively intensive, but useful after importing posts)</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Number of threads to do per cycle: </p></td><td><p><input type="text" size="35" name="perpage" value="500"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Remove   "><input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% endif %}
+
+{% endblock %}

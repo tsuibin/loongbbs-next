@@ -131,7 +131,7 @@ NAV_GROUPS = [
         {"label": "Back-up Database", "endpoint": "admin.backup_choose"},
         {"label": "Database Settings", "endpoint": "admin.dbsettings"},
         {"label": "BB Import Systems", "endpoint": "admin.bbimport"},
-        {"label": "Update Counters", "module": "Update Counters"},
+        {"label": "Update Counters", "endpoint": "admin.misc_counters"},
     ]},
     {"title": "Statistics & Logs", "links": [
         {"label": "Statistics", "endpoint": "admin.dashboard"},
@@ -1760,6 +1760,160 @@ def _db_test(uri: str):
     except Exception as exc:
         details.append(f"连接失败：{exc}")
         return False, details
+
+
+MISC_ACTIONS = {
+    "updateuser": ("Number of users to do per cycle: ", "Update User's Titles", "Update"),
+    "updateposts": ("Number of users to do per cycle: ", "Update User's Post Counts", "Update"),
+    "updateforum": ("Number of forums to do per cycle: ", "Update Forums Info", "Update"),
+    "updatethread": ("Number of threads to do per cycle: ", "Update Thread Info", "Update"),
+    "buildsearchindex": ("Number of threads to do per cycle: ", "Rebuild search index", "Re-index"),
+    "removeorphanthreads": ("Number of threads to do per cycle: ", "Remove orphan threads", "Remove"),
+    "removeorphanposts": ("Number of posts to do per cycle: ", "Remove orphan posts", "Remove"),
+    "removedupe": ("Number of threads to do per cycle: ", "Remove dupe threads", "Remove"),
+}
+
+
+def _misc_user_post_counts() -> dict:
+    rows = db.session.execute(db.text(
+        "SELECT author_id, COUNT(*) FROM posts WHERE is_deleted=0 GROUP BY author_id")).all()
+    return {int(r[0]): int(r[1]) for r in rows if r[0] is not None}
+
+
+def _misc_update_user() -> list:
+    """原版 updateuser：组头衔非空则用组头衔，否则按发帖数取最低门槛最高的头衔。"""
+    counts = _misc_user_post_counts()
+    titles = db.session.execute(db.text(
+        "SELECT title, minposts FROM usertitles ORDER BY minposts DESC")).all()
+    out = []
+    for user in db.session.execute(db.select(User)).scalars().all():
+        posts = counts.get(user.id, 0)
+        group = db.session.get(UserGroup, user.usergroupid) if user.usergroupid else None
+        if group is not None and (group.usertitle or "").strip():
+            newtitle = group.usertitle
+        else:
+            newtitle = next((t[0] for t in titles if int(t[1] or 0) <= posts), "")
+        if (user.usertitle or "") != newtitle:
+            user.usertitle = newtitle
+        out.append(f"Processing user <b>{user.id}</b><br>")
+    db.session.commit()
+    return out
+
+
+def _misc_update_posts() -> tuple:
+    counts = _misc_user_post_counts()
+    lines = []
+    for user in db.session.execute(db.select(User)).scalars().all():
+        lines.append(f"Processing user <b>{user.id}</b> — {counts.get(user.id, 0)} posts<br>")
+    return lines, "本地用户表没有 posts 派生列（发帖数一律实时统计），只做了核对，未写回任何列。"
+
+
+def _misc_update_forum() -> tuple:
+    lines = []
+    for forum in db.session.execute(db.select(Forum)).scalars().all():
+        threads = db.session.scalar(db.select(func.count(Thread.id)).where(Thread.forum_id == forum.id)) or 0
+        posts = db.session.scalar(db.select(func.count(Post.id)).join(
+            Thread, Thread.id == Post.thread_id).where(Thread.forum_id == forum.id)) or 0
+        lines.append(f"Processing forum <b>{forum.id}</b> — {threads} threads, {posts} posts<br>")
+    return lines, "本地版块表没有 threads / posts 派生列（版块计数一律实时聚合），只做了核对，未写回任何列。"
+
+
+def _misc_update_thread() -> list:
+    """原版 updatethread：把主题的首帖时间、末帖时间按帖表重算。"""
+    out = []
+    for th in db.session.execute(db.select(Thread)).scalars().all():
+        posts = db.session.execute(db.select(Post).where(Post.thread_id == th.id)).scalars().all()
+        if not posts:
+            out.append(f"Processing thread <b>{th.id}</b> — no posts, skipped<br>")
+            continue
+        first = min(posts, key=lambda p: (p.created_at, p.id))
+        last = max(posts, key=lambda p: (p.created_at, p.id))
+        if th.created_at != first.created_at:
+            th.created_at = first.created_at
+        if th.last_post_at != last.created_at:
+            th.last_post_at = last.created_at
+        out.append(f"Processing thread <b>{th.id}</b> — {len(posts)} posts<br>")
+    db.session.commit()
+    return out
+
+
+def _misc_remove_orphan_threads() -> tuple:
+    orphans = db.session.execute(db.text(
+        "SELECT t.id, t.title FROM threads t LEFT JOIN forums f ON f.id=t.forum_id WHERE f.id IS NULL")).all()
+    lines = []
+    for oid, otitle in orphans:
+        db.session.execute(db.text("DELETE FROM posts WHERE thread_id=:i"), {"i": oid})
+        db.session.execute(db.text("DELETE FROM threads WHERE id=:i"), {"i": oid})
+        lines.append(f"<p>Deleting thread {oid}</p>")
+    db.session.commit()
+    return lines, ("No orphan threads were found" if not orphans else "")
+
+
+def _misc_remove_orphan_posts() -> tuple:
+    orphans = db.session.execute(db.text(
+        "SELECT p.id FROM posts p LEFT JOIN threads t ON t.id=p.thread_id WHERE t.id IS NULL")).all()
+    lines = []
+    for (pid,) in orphans:
+        db.session.execute(db.text("DELETE FROM posts WHERE id=:i"), {"i": pid})
+        lines.append(f"<p>Deleting post {pid}</p>")
+    db.session.commit()
+    return lines, ("No orphan posts were found" if not orphans else "")
+
+
+def _misc_remove_dupe() -> tuple:
+    rows = db.session.execute(db.text(
+        "SELECT id, forum_id, title, author_id, created_at FROM threads ORDER BY id")).all()
+    seen = {}
+    deleted = []
+    for tid, fid, title, aid, ctime in rows:
+        key = (fid, title, aid, ctime)
+        if key in seen:
+            db.session.execute(db.text("DELETE FROM posts WHERE thread_id=:i"), {"i": tid})
+            db.session.execute(db.text("DELETE FROM threads WHERE id=:i"), {"i": tid})
+            deleted.append(tid)
+        else:
+            seen[key] = tid
+    db.session.commit()
+    lines = [f"&nbsp;&nbsp;&nbsp; <p>Deleted thread <b>{t}</b></p>" for t in deleted]
+    return lines, ("" if deleted else "没有发现重复主题。")
+
+
+@bp.route("/misc/counters")
+def misc_counters():
+    """Import & Maintenance → Update Counters：照原版 misc.php?action=chooser 的八个表单。"""
+    return render_template("admin/counters.html")
+
+
+@bp.route("/misc/counters/<action>", methods=["POST"])
+def misc_counter_run(action):
+    if action not in MISC_ACTIONS or action == "buildsearchindex":
+        if action == "buildsearchindex":
+            return render_template("admin/counters.html", mode="done", title="Rebuild search index",
+                                   lines=[], message="本地没有搜索索引表（原版的 searchindex 与 word 表），"
+                                                     "全站搜索按帖子内容实时检索，因此无索引可重建。")
+        flash("Unknown action", "error")
+        return redirect(url_for("admin.misc_counters"))
+    if action == "updateuser":
+        lines, message, title = _misc_update_user(), "User titles updated!", "Update User's Titles"
+    elif action == "updateposts":
+        lines, message = _misc_update_posts()
+        title = "Update User's Post Counts"
+    elif action == "updateforum":
+        lines, message = _misc_update_forum()
+        title = "Update Forums Info"
+    elif action == "updatethread":
+        lines, message, title = _misc_update_thread(), "Threads updated!", "Update Thread Info"
+    elif action == "removeorphanthreads":
+        lines, message = _misc_remove_orphan_threads()
+        title = "Remove orphan threads"
+    elif action == "removeorphanposts":
+        lines, message = _misc_remove_orphan_posts()
+        title = "Remove orphan posts"
+    else:
+        lines, message = _misc_remove_dupe()
+        title = "Remove dupe threads"
+    return render_template("admin/counters.html", mode="done", title=title, lines=lines,
+                           message=message)
 
 
 @bp.route("/bbimport", methods=["GET", "POST"])
