@@ -17,7 +17,17 @@ from flask_login import current_user, login_required
 from sqlalchemy import func, select
 
 from .extensions import db
-from .models import Attachment, Avatar, Category, Forum, Post, PrivateMessage, Thread, User
+from .models import (
+    Attachment,
+    Avatar,
+    Category,
+    Forum,
+    Post,
+    PostReport,
+    PrivateMessage,
+    Thread,
+    User,
+)
 from .settings import DEFAULTS, get_settings, set_setting
 from .utils import format_dt, human_size
 
@@ -46,6 +56,7 @@ NAV_GROUPS = [
         {"label": "Who Voted?", "module": "Who Voted?"},
     ]},
     {"title": "Moderation", "links": [
+        {"label": "Reported Posts", "endpoint": "admin.reports_page"},
         {"label": "New Posts", "module": "Moderate New Posts"},
         {"label": "New Attachments", "module": "Moderate New Attachments"},
     ]},
@@ -443,6 +454,53 @@ def _scan_avatar_dir(subdir: str) -> list[str]:
         if entry.is_file() and entry.suffix.lower() in AVATAR_EXTS:
             found.append(f"{subdir}/{entry.name}")
     return found
+
+
+@bp.get("/reports")
+def reports_page():
+    """Moderation › Reported Posts —— 前台举报的队列。"""
+    page = max(1, request.args.get("startpage", type=int) or 1)
+    perpage = 25
+    total = db.session.scalar(select(func.count(PostReport.id))) or 0
+    pending = (
+        db.session.scalar(
+            select(func.count(PostReport.id)).where(PostReport.resolved.is_(False))
+        )
+        or 0
+    )
+    pages = max(1, (total + perpage - 1) // perpage)
+    page = min(page, pages)
+    rows = (
+        db.session.execute(
+            select(PostReport)
+            .order_by(PostReport.resolved, PostReport.created_at.desc())
+            .offset((page - 1) * perpage)
+            .limit(perpage)
+        )
+        .scalars()
+        .all()
+    )
+    return render_template(
+        "admin/reports.html",
+        rows=rows,
+        total=total,
+        pending=pending,
+        page=page,
+        pages=pages,
+        format_dt=format_dt,
+    )
+
+
+@bp.post("/reports/<int:report_id>/resolve")
+def reports_resolve(report_id: int):
+    """标记举报为已处理（再按一次可重新打开）。"""
+    row = db.session.get(PostReport, report_id)
+    if row is None:
+        abort(404)
+    row.resolved = not bool(request.form.get("undo"))
+    db.session.commit()
+    flash("举报状态已更新。")
+    return redirect(url_for("admin.reports_page"))
 
 
 @bp.get("/avatars")

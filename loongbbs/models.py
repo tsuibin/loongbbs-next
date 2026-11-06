@@ -344,9 +344,28 @@ class ThreadRating(db.Model):
         return f"<ThreadRating thread={self.thread_id} user={self.user_id} vote={self.vote}>"
 
 
+class PostReport(db.Model):
+    """vB 的 reported post：会员举报某条帖子，后台 Moderation 组里处理。"""
+
+    __tablename__ = "post_reports"
+
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False, index=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    reason = db.Column(db.String(50), nullable=False, default="", server_default="")
+    note = db.Column(db.Text, nullable=False, default="")
+    resolved = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    post = db.relationship("Post")
+    reporter = db.relationship("User")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<PostReport post={self.post_id} by={self.reporter_id} resolved={self.resolved}>"
+
+
 class EmailLog(db.Model):
     """待发邮件记录：本地演示环境没有 SMTP，sendtofriend 只把内容落库并展示。"""
-
     __tablename__ = "email_log"
 
     id = db.Column(db.Integer, primary_key=True)

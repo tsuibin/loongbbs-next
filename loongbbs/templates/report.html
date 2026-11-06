@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 举报帖子{% endblock %}
+{% block content %}
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" alt="" border="0" align="absmiddle">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	<a href="{{ url_for('forums.forum', forum_id=post.thread.forum.id) }}">{{ post.thread.forum.name }}</a> &gt;
+	<a href="{{ url_for('forums.thread', thread_id=post.thread.id) }}">{{ post.thread.title }}</a> &gt;
+	举报帖子</b></font></td>
+</tr>
+</table>
+
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#606096"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>被举报的帖子</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
+	<b>作者:</b> <a href="{{ url_for('auth.profile', username=post.author.username) }}">{{ post.author.username }}</a>
+	&nbsp;·&nbsp;<b>发表时间:</b> {{ post.created_at|dt('%m-%d-%Y %I:%M %p') }}<br>
+	<b>标题:</b> {{ post.title or post.thread.title }}<br>
+	<div style="margin-top:6px;padding:6px;background:#FFFFFF;border:1px solid #555576;max-height:180px;overflow:auto;white-space:pre-wrap;">{{ post.body }}</div>
+	</font></td>
+</tr>
+</table>
+</td></tr></table>
+
+<br>
+
+{% if sent %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#606096"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>举报已提交</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
+	感谢你的举报，管理员会在后台「Moderation → Reported Posts」里看到这条记录（原因：{{ reason }}）。
+	</font></td>
+</tr>
+</table>
+</td></tr></table>
+{% else %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<form method="post" action="{{ url_for('forums.report_post', post_id=post.id) }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<tr>
+	<td bgcolor="#606096" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>举报原因</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" width="30%"><font face="verdana, arial, helvetica" size="2"><b>原因:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">
+	<select name="reason" class="bginput">
+		<option value="">请选择…</option>
+		<option value="广告或垃圾信息">广告或垃圾信息</option>
+		<option value="人身攻击或辱骂">人身攻击或辱骂</option>
+		<option value="与版块主题无关">与版块主题无关</option>
+		<option value="违法或不良内容">违法或不良内容</option>
+		<option value="其他">其他</option>
+	</select></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" valign="top"><font face="verdana, arial, helvetica" size="2"><b>补充说明:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><textarea name="note" rows="4" cols="45"></textarea></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" colspan="2" align="center"><font face="verdana, arial, helvetica" size="2">
+	<input type="submit" class="bginput" value="提交举报">
+	</font></td>
+</tr>
+</form>
+</table>
+</td></tr></table>
+{% endif %}
+
+<br>
+<center><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.thread', thread_id=post.thread.id) }}">返回主题</a></font></center>
+{% endblock %}

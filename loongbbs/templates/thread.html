@@ -90,7 +90,7 @@
 	{% endif %}
 	<p><font face="verdana,arial,helvetica" size="1">{% if post.author.signature %}{{ post.author.signature }}{% endif %}</font></p>
 	<p><font face="verdana,arial,helvetica" size="1">{% if post.updated_at %}（本帖最后由 {{ post.author.username }} 于 {{ post.updated_at|dt('%m-%d-%Y %I:%M %p') }} 修改过）{% endif %}</font></p>
-	<p align="right"><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('pm.compose_form', to=post.author.username) }}">向版主举报本帖</a> | IP: {% if nav_user %}已登录{% else %}未登录{% endif %}</font></p>
+	<p align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}<a href="{{ url_for('forums.report_form', post_id=post.id) }}">向版主举报本帖</a>{% else %}<a href="{{ url_for('auth.login_form') }}">向版主举报本帖</a>{% endif %} | IP: {% if nav_user %}已登录{% else %}未登录{% endif %}</font></p>
 	{% if nav_user and nav_user.is_admin %}
 	<form id="delpost{{ post.id }}" method="post" action="{{ url_for('forums.delete_post', post_id=post.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"></form>
 	{% endif %}

@@ -24,6 +24,7 @@ from .models import (
     Forum,
     ForumRead,
     Post,
+    PostReport,
     Thread,
     ThreadRating,
     ThreadSubscription,
@@ -196,6 +197,39 @@ def unsubscribe_thread(thread_id: int):
         db.session.commit()
         flash("已取消订阅这个主题。")
     return redirect(url_for("forums.thread", thread_id=thread_obj.id))
+
+
+@bp.get("/post/<int:post_id>/report")
+@login_required
+def report_form(post_id: int):
+    """对应 vB report.php：举报某一条帖子。"""
+    post_obj = db.session.get(Post, post_id)
+    if post_obj is None:
+        abort(404)
+    return render_template("report.html", post=post_obj, sent=False)
+
+
+@bp.post("/post/<int:post_id>/report")
+@login_required
+def report_post(post_id: int):
+    post_obj = db.session.get(Post, post_id)
+    if post_obj is None:
+        abort(404)
+    reason = (request.form.get("reason") or "").strip()[:50]
+    note = (request.form.get("note") or "").strip()
+    if not reason:
+        flash("请选择举报原因。")
+        return render_template("report.html", post=post_obj, sent=False)
+    db.session.add(
+        PostReport(
+            post_id=post_obj.id,
+            reporter_id=current_user.id,
+            reason=reason,
+            note=note,
+        )
+    )
+    db.session.commit()
+    return render_template("report.html", post=post_obj, sent=True, reason=reason)
 
 
 @bp.get("/sendtofriend")
