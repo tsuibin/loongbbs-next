@@ -739,3 +739,62 @@ class AdminLog(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<AdminLog {self.id} {self.script} {self.action}>"
+
+
+class Replacement(db.Model):
+    """vB 2.3.11 的 ``replacement`` 表：替换集里的一条 findword → replaceword。"""
+
+    __tablename__ = "replacements"
+
+    id = db.Column(db.Integer, primary_key=True)
+    replacementsetid = db.Column(db.Integer, nullable=False, default=-1, server_default="-1", index=True)
+    findword = db.Column(db.String(255), nullable=False, default="", server_default="")
+    replaceword = db.Column(db.Text, nullable=False, default="", server_default="")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Replacement {self.id} {self.findword}>"
+
+
+class Template(db.Model):
+    """vB 2.3.11 的 ``template`` 表：模板集里的一条 title → template。"""
+
+    __tablename__ = "templates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    templatesetid = db.Column(db.Integer, nullable=False, default=-1, server_default="-1", index=True)
+    title = db.Column(db.String(120), nullable=False, default="", server_default="")
+    template = db.Column(db.Text, nullable=False, default="", server_default="")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Template {self.id} {self.title}>"
+
+
+class ReplacementSet(db.Model):
+    """vB 2.3.11 的 ``replacementset`` 表：文字替换集（命名容器）。"""
+
+    __tablename__ = "replacement_sets"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False, default="", server_default="")
+
+
+class TemplateSet(db.Model):
+    """vB 2.3.11 的 ``templateset`` 表：模板集（命名容器）。"""
+
+    __tablename__ = "template_sets"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False, default="", server_default="")
+
+
+class StyleSet(db.Model):
+    """vB 2.3.11 的 ``style`` 表：风格集。"""
+
+    __tablename__ = "style_sets"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False, default="", server_default="")
+    replacementsetid = db.Column(db.Integer, nullable=False, default=-1, server_default="-1")
+    templatesetid = db.Column(db.Integer, nullable=False, default=-1, server_default="-1")
+    userselect = db.Column(db.Integer, nullable=False, default=1, server_default="1")
+

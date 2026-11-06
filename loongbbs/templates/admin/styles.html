@@ -1,0 +1,235 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Styles{% else %}风格管理{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'upload_error' %}
+<p>The version of the style file does not match your version of vBulletin. Please obtain an updated
+version of vBulletin and/or the style file.</p>
+<p>Your template version: {{ template_version }}<br>
+Style file template version: {{ version }}</p>
+<p>To use this style regardless of version, select the correct option on the previous page.</p>
+<p><a href="{{ url_for('admin.styles_download_upload') }}" class="lc">[go back]</a></p>
+
+{% elif mode == 'download' %}
+<form method="post" action="{{ url_for('admin.styles_dodownload') }}" id="downloadform">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Download one of your style sets</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Style</p></td><td><p><select name="styleid">
+	{% for s in styles %}<option value="{{ s.id }}">{{ s.title }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Download   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.styles_doupload') }}" enctype="multipart/form-data">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Upload existing style set: (from your computer)</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Style file: (upload from computer)</p></td><td><p><input type="file" name="stylefile" size="30"></p></td></tr>
+<tr class="secondalt"><td><p>Overwrite existing style</p></td><td><p><select name="oldstyleid">
+	{% for s in styles %}<option value="{{ s.id }}">{{ s.title }}</option>
+	{% endfor %}<option value="-1">No, create a new style</option></select></p></td></tr>
+<tr class="firstalt"><td><p>Use style file even if it is for a different version of vBulletin</p></td>
+	<td><p>Yes <input type="radio" name="ignorestyle" value="1"> No <input type="radio" name="ignorestyle" value="0" checked></p></td></tr>
+<tr class="secondalt"><td colspan="2"><p>(if this method doesn't work, try the below method)</p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Upload File   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.styles_doupload') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Import existing style set: (from local file)</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Style file: (local)</p></td><td><p><input type="text" name="stylefile" value="vbulletin.style" size="40"></p></td></tr>
+<tr class="secondalt"><td><p>Overwrite existing style</p></td><td><p><select name="oldstyleid">
+	{% for s in styles %}<option value="{{ s.id }}">{{ s.title }}</option>
+	{% endfor %}<option value="-1">No, create a new style</option></select></p></td></tr>
+<tr class="firstalt"><td><p>Use style file even if it is for a different version of vBulletin</p></td>
+	<td><p>Yes <input type="radio" name="ignorestyle" value="1"> No <input type="radio" name="ignorestyle" value="0" checked></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="localfile" value="1">
+	<input type="submit" value="   Import File   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'properties' %}
+<p>&quot;<b>{{ style.title }}</b>&quot;
+<a href="{{ url_for('admin.styles_edit', style_id=style.id) }}" class="lc">[edit style properties]</a></p>
+<p>Make sure you keep this page refreshed and up to date after making changes! Don't use a cached version!</p>
+<p><font size="1">This area of the control panel provides a more friendly interface to the templates and
+replacements sections. If you find that you cannot do something through this area, go directly to the
+templates and replacements sections. Empty a field to use the default.<br>
+If your browser supports it (IE4, NS6), values that are using the default values will be shown in
+<span class="gc">this color</span>, while customized values will be shown in
+<span class="cc">this color</span>.</font></p>
+
+<table border="0"><tr valign="top"><td><b>Jump to:</b></td><td>
+<a href="#templates" class="lc">[templates]</a><a href="#pagelayout" class="lc">[page layout]</a><a href="#tables" class="lc">[tables]</a><a href="#maincolors" class="lc">[main colors]</a><br>
+<a href="#calendarcolors" class="lc">[calendar colors]</a><a href="#imagepaths" class="lc">[image paths]</a><a href="#fonts" class="lc">[fonts]</a><a href="#textareas" class="lc">[textareas]</a>
+</td></tr></table>
+
+<script language="JavaScript">
+function updatecolor(preview, newvalue) {
+	preview.style.backgroundColor = newvalue;
+}
+</script>
+
+<form method="post" action="{{ url_for('admin.styles_properties', style_id=style.id) }}" name="styleform">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+
+<tr class="tblhead"><td colspan="2" id="templates"><font size="1"><b><span class="tblhead">Templates</span></b></font></td></tr>
+{% for t in text_templates %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+	<td><p>{{ t.label }}</p>
+	{% if t.title == 'phpinclude' %}<p><font size="1">(Don't print/echo out directly!)</font></p>{% endif %}
+	{% if t.title == 'headinclude' %}<p><font size="1">Code that is placed in &lt;head&gt; &lt;/head&gt; tags</font></p>{% endif %}
+	{% if t.title == 'header' %}<p><font size="1">Code that is placed just after the &lt;body&gt; tag</font></p>{% endif %}
+	{% if t.title == 'footer' %}<p><font size="1">Code that is placed just before the &lt;/body&gt; tag</font></p>{% endif %}
+	</td>
+	<td align="right"><textarea name="temp[{{ t.title }}]" rows="10" cols="80" wrap="default" class="{{ 'cc' if t.custom else 'gc' }}">{{ t.value }}</textarea>
+	<p align="right"><font size="1">(本地模板由 Jinja 文件渲染，此项仅在导出 .style 时序列化)</font></p></td>
+</tr>
+{% endfor %}
+
+<tr class="tblhead"><td colspan="2" id="pagelayout"><font size="1"><b><span class="tblhead">Page Layout</span></b></font></td></tr>
+<tr class="firstalt"><td width="50%"><p>HTML Doctype</p></td>
+	<td width="50%"><p><input type="text" name="replace[htmldoctype]" size="40" value="{{ fields[0].value }}"></p></td></tr>
+<tr class="secondalt"><td width="50%"><p>Body Tag</p></td>
+	<td width="50%"><p><input type="text" name="bodytag" size="40" value="{{ fields[-1].value }}"></p></td></tr>
+
+<tr class="tblhead"><td colspan="2" id="tables"><font size="1"><b><span class="tblhead">Tables</span></b></font></td></tr>
+{% for f in fields[1:8] %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}"><td width="50%"><p>{{ f.label }}{% if f.extra %}<br><font size="1">{{ f.extra|safe }}</font>{% endif %}</p></td>
+	<td width="50%"><p><input type="text" name="{{ f.name }}" size="40" value="{{ f.value }}"></p></td></tr>
+{% endfor %}
+
+<tr class="tblhead"><td colspan="2" id="maincolors"><font size="1"><b><span class="tblhead">Main Colors</span></b></font></td></tr>
+{% for f in fields[8:20] %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}"><td width="50%"><p>{{ f.label }}{% if f.extra %}<br><font size="1">{{ f.extra|safe }}</font>{% endif %}</p></td>
+	<td width="50%"><p><input type="text" name="{{ f.name }}" size="20" value="{{ f.value }}" id="col{{ loop.index0 }}" onchange="updatecolor(this.form.preview{{ loop.index0 }}, this.value)">
+	<input type="button" disabled value="              " id="preview{{ loop.index0 }}" style="background-color:{{ f.value }}"></p></td></tr>
+{% endfor %}
+
+<tr class="tblhead"><td colspan="2" id="calendarcolors"><font size="1"><b><span class="tblhead">Calendar Colors</span></b></font></td></tr>
+{% for f in fields[20:26] %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}"><td width="50%"><p>{{ f.label }}</p></td>
+	<td width="50%"><p><input type="text" name="{{ f.name }}" size="20" value="{{ f.value }}" id="cal{{ loop.index0 }}" onchange="updatecolor(this.form.previewcal{{ loop.index0 }}, this.value)">
+	<input type="button" disabled value="              " id="previewcal{{ loop.index0 }}" style="background-color:{{ f.value }}"></p></td></tr>
+{% endfor %}
+
+<tr class="tblhead"><td colspan="2" id="imagepaths"><font size="1"><b><span class="tblhead">Image Paths</span></b></font></td></tr>
+{% for f in fields[26:31] %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}"><td width="50%"><p>{{ f.label }}</p></td>
+	<td width="50%"><p><input type="text" name="{{ f.name }}" size="40" value="{{ f.value }}"></p></td></tr>
+{% endfor %}
+
+<tr class="tblhead"><td colspan="2" id="fonts"><font size="1"><b><span class="tblhead">Fonts</span></b></font></td></tr>
+{% for font in fonts %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}"><td colspan="2"><p><b>{{ font.label }}</b>{% if font.custom %} (customized){% endif %}</p></td></tr>
+<tr class="secondalt"><td width="50%"><p>{{ font.label }}: face</p></td><td width="50%"><p><input type="text" name="{{ font.findword }}face" size="40" value="{{ font.face }}"></p></td></tr>
+<tr class="firstalt"><td width="50%"><p>{{ font.label }}: size</p></td><td width="50%"><p><input type="text" name="{{ font.findword }}size" size="40" value="{{ font.size }}"></p></td></tr>
+<tr class="secondalt"><td width="50%"><p>{{ font.label }}: color</p></td><td width="50%"><p><input type="text" name="{{ font.findword }}color" size="40" value="{{ font.color }}"></p></td></tr>
+<tr class="firstalt"><td width="50%"><p>{{ font.label }}: class</p></td><td width="50%"><p><input type="text" name="{{ font.findword }}class" size="40" value="{{ font.class }}"></p></td></tr>
+{% endfor %}
+
+<tr class="tblhead"><td colspan="2" id="textareas"><font size="1"><b><span class="tblhead">Textarea Widths</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2"><p><font size="1">Due to differences in the way that different browsers
+interpret the <i>cols="xx"</i> attribute for a &lt;textarea&gt; form element, vBulletin will use a different
+width value for the three main browsers in order to produce a similarly-sized textarea box in each browser.
+You can set the values used here.</font></p></td></tr>
+{% for f in fields[31:34] %}
+<tr class="{{ 'secondalt' if loop.index0 % 2 == 0 else 'firstalt' }}"><td width="50%"><p>{{ f.label }}</p></td>
+	<td width="50%"><p><input type="text" name="{{ f.name }}" size="40" value="{{ f.value }}"></p></td></tr>
+{% endfor %}
+
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="dostyleid" value="{{ style.id }}">
+	<input type="submit" value="   Save Changes   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'remove' %}
+<form method="post" action="{{ url_for('admin.styles_remove', style_id=style.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="60%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Are you sure you want to delete this style?</p></td></tr>
+<tr class="tblhead" id="submitrow"><td align="center">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<input type="submit" value="   Yes   ">
+<input type="button" value="   Cancel   " onclick="window.location='{{ url_for('admin.styles_page') }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode in ('add', 'edit') %}
+<form method="post" action="{% if mode == 'add' %}{{ url_for('admin.styles_add') }}{% else %}{{ url_for('admin.styles_edit', style_id=style.id) }}{% endif %}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+{% if mode == 'add' %}
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add new style set</span></b></font></td></tr>
+{% else %}
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit Style Set: <i>{{ style.title }}</i></span></b></font></td></tr>
+<input type="hidden" name="editstyleid" value="{{ style.id }}">
+{% endif %}
+<tr class="firstalt"><td><p>Title</p></td><td><p><input type="text" name="title" value="{{ style.title if style else '' }}" size="30"></p></td></tr>
+<tr class="secondalt"><td><p>Replacement Set</p></td><td><p><select name="replacementsetid">
+	<option value="-1"{% if mode == 'add' %} selected{% endif %}>{{ "Create new replacement set" if mode == 'add' else "------ none ------" }}</option>
+	{% for s in choices.replacement %}<option value="{{ s.id }}"{% if style and style.replacementsetid == s.id %} selected{% endif %}>{{ s.title }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="firstalt"><td><p>Template Set</p></td><td><p><select name="templatesetid">
+	<option value="-1"{% if mode == 'add' %} selected{% endif %}>{{ "Create new template set" if mode == 'add' else "------ none ------" }}</option>
+	{% for s in choices.template %}<option value="{{ s.id }}"{% if style and style.templatesetid == s.id %} selected{% endif %}>{{ s.title }}</option>
+	{% endfor %}</select></p></td></tr>
+<tr class="secondalt"><td><p>User selectable?<br>(user can select this style in their profile?)</p></td>
+	<td><p>Yes <input type="radio" name="userselect" value="1"{% if not style or style.userselect %} checked{% endif %}> No <input type="radio" name="userselect" value="0"{% if style and not style.userselect %} checked{% endif %}></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="{{ '   Save   ' if mode == 'add' else '   Save Changes   ' }}">
+	<input type="button" value="   Reset   " onclick="window.location='{{ url_for('admin.styles_page') }}'">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Style Sets</span></b></font></td></tr>
+{% for s in styles %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}"><td><p>{{ s.title }}</p></td>
+	<td><p>
+	<a href="{{ url_for('admin.styles_properties', style_id=s.id) }}" class="lc">[fonts/colors/etc]</a>
+	<a href="{{ url_for('admin.styles_edit', style_id=s.id) }}" class="lc" title="edit style properties">[properties]</a>
+	<a href="{{ url_for('admin.styles_download', style_id=s.id) }}" class="lc">[download]</a>
+	{% if s.id != 1 %}<a href="{{ url_for('admin.styles_remove', style_id=s.id) }}" class="lc">[remove]</a>{% endif %}
+	</p></td></tr>
+{% else %}
+<tr class="firstalt"><td colspan="2"><p>No style sets defined.</p></td></tr>
+{% endfor %}
+</table>
+</td></tr></table>
+
+{% endif %}
+
+{% endblock %}

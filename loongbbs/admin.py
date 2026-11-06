@@ -24,6 +24,8 @@ from sqlalchemy import delete, func, select
 from .extensions import db
 from .models import (
     AdminLog,
+    Replacement,
+    ReplacementSet,
     Announcement,
     BBCode,
     Attachment,
@@ -51,6 +53,9 @@ from .models import (
     UserGroupPermission,
     UserProfileField,
     UserTitle,
+    StyleSet,
+    Template,
+    TemplateSet,
 )
 from .permissions import ensure_seed, permissions_for_group
 from .settings import DEFAULTS, get_settings, set_setting
@@ -139,9 +144,9 @@ NAV_GROUPS = [
         {"label": "Admin Log", "endpoint": "admin.adminlog_choose"},
     ]},
     {"title": "Styles", "links": [
-        {"label": "Add Style", "module": "Add Style"},
-        {"label": "Modify", "module": "Modify Styles"},
-        {"label": "Download/Upload", "module": "Download/Upload Style"},
+        {"label": "Add Style", "endpoint": "admin.styles_add"},
+        {"label": "Modify", "endpoint": "admin.styles_page"},
+        {"label": "Download/Upload", "endpoint": "admin.styles_download_upload"},
     ]},
     {"title": "Replacements", "links": [
         {"label": "Add", "module": "Add Replacement"},
@@ -3672,3 +3677,491 @@ def avatars_remove(avatar_id: int):
         flash("头像已删除，使用它的会员已切回没有头像。", "success")
         return redirect(url_for("admin.avatars_page"))
     return render_template("admin/avatars_remove.html", avatar=avatar)
+
+STYLE_MASTER_ROWS = [
+    ("{textareacols_IE}", "70"), ("{textareacols_NS6}", "60"), ("{textareacols_NS4}", "50"),
+    ("{tableheadbgcolor}", "#8080A6"), ("{tableheadtextcolor}", "#EEEEFF"),
+    ("{tablewidth}", "100%"), ("{contenttablewidth}", "100%"),
+    ("{tableouterborderwidth}", "0"), ("{tableinnerborderwidth}", "1"),
+    ("{tableouterextra}", ""), ("{tableinnerextra}", ""), ("{tableinvisibleextra}", ""),
+    ("{tablebordercolor}", "#555576"),
+    ("{pagebgcolor}", "#FFFFFF"), ("{pagetextcolor}", "#000000"),
+    ("{categorybackcolor}", "#606096"), ("{categoryfontcolor}", "#FFF788"),
+    ("{firstaltcolor}", "#F1F1F1"), ("{secondaltcolor}", "#DFDFDF"),
+    ("{linkcolor}", "#000020"), ("{hovercolor}", "#FF4400"), ("{timecolor}", "#666686"),
+    ("{calbgcolor}", "#DFDFDF"), ("{caltodaycolor}", "#F1F1F1"), ("{caldaycolor}", "#000088"),
+    ("{calbirthdaycolor}", "#000000"), ("{calprivatecolor}", "#880000"), ("{calpubliccolor}", "#008800"),
+    ("{imagesfolder}", "images"), ("{titleimage}", "images/vBulletin_logo.gif"),
+    ("{replyimage}", "images/reply.gif"), ("{newthreadimage}", "images/newthread.gif"),
+    ("{closedthreadimage}", "images/threadclosed.gif"),
+    ("{htmldoctype}", '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">'),
+    ("<body>", '<body bgcolor="#666696" text="#000000" id="all" leftmargin="10" topmargin="10" '
+               'marginwidth="10" marginheight="10" link="#000020" vlink="#000020" alink="#000020">'),
+    ("<largefont", '<b><font face="verdana, arial, helvetica" size="2" '),
+    ("</largefont>", "</b></font>"),
+    ("<normalfont", '<font face="verdana, arial, helvetica" size="2" '),
+    ("</normalfont>", "</font>"),
+    ("<smallfont", '<font face="verdana,arial,helvetica" size="1" '),
+    ("</smallfont>", "</font>"),
+    ("<highlight", '<font color="red"'),
+    ("</highlight>", "</font>"),
+]
+
+TEMPLATE_VERSION = "2.3.11"
+
+# (key, 显示名, 是否颜色, 额外说明)
+STYLE_FIELDS = [
+    ("htmldoctype", "HTML Doctype", 0, ""),
+    ("tablewidth", "Main Table Width", 0,
+     "This is the width applied to the main table stated in the <b>header</b> template and ended in the "
+     "<b>footer</b>. All page content is inside this table."),
+    ("contenttablewidth", "Content Table Width", 0,
+     "This is the width of all the tables inside the main table. Use a value in pixels or a percentage."),
+    ("tableouterborderwidth", "Outer Borders Width", 0, "Set to 0 to use no outer borders"),
+    ("tableinnerborderwidth", "Inner Borders Width", 0, "Set to 0 to use no inner borders"),
+    ("tableouterextra", "Outer Table Extra", 0,
+     'Use this to specify extra attributes for the outer tables - example: class="myclass"'),
+    ("tableinnerextra", "Inner Table Extra", 0,
+     'Use this to specify extra attributes for the inner tables - example: style="letter-spacing:0.1em"'),
+    ("tableinvisibleextra", "Invisible Table Extra", 0,
+     "Use this to specify extra attributes for the invisble holder tables."),
+    ("pagebgcolor", "Page Background Color", 1, ""),
+    ("pagetextcolor", "Page Text Color", 1,
+     "(This color is not used in the default templates, but it can be useful for achieving specific effects "
+     "with customized templates.)"),
+    ("tablebordercolor", "Table Border Color:", 1, ""),
+    ("categorybackcolor", "Category Strip Background Color", 1, ""),
+    ("categoryfontcolor", "Category Strip Font Color", 1, ""),
+    ("tableheadbgcolor", "Table Heading Background Color", 1, ""),
+    ("tableheadtextcolor", "Table Heading Text Color", 1, ""),
+    ("firstaltcolor", "First Alternating Table Background Color", 1,
+     "(These two 'alternating' colors are used alternately in long lists so that one row can easily be told "
+     "from the next.)"),
+    ("secondaltcolor", "Second Alternating Table Background Color", 1, ""),
+    ("linkcolor", "Link Color", 1, ""),
+    ("hovercolor", "Hover Color for Links", 1, ""),
+    ("timecolor", "Time Color", 1,
+     "(This color is used for the time field on the main forum summary page and the forum pages)"),
+    ("calbgcolor", "Background Color", 1, ""),
+    ("caltodaycolor", "Today Background Color", 1, ""),
+    ("caldaycolor", "Calendar Date Font Color", 1, ""),
+    ("calbirthdaycolor", "Birthday Font Color", 1, ""),
+    ("calprivatecolor", "Private Event Font Color", 1, ""),
+    ("calpubliccolor", "Public Event Font Color", 1, ""),
+    ("imagesfolder", "Image folder path", 0, ""),
+    ("titleimage", "Title image path", 0, ""),
+    ("replyimage", "Reply image path", 0, ""),
+    ("newthreadimage", "New thread image path", 0, ""),
+    ("closedthreadimage", "Closed thread image path", 0, ""),
+    ("textareacols_IE", "Internet Explorer 4+", 0, ""),
+    ("textareacols_NS4", "Netscape Navigator 4.x", 0, ""),
+    ("textareacols_NS6", "Netscape Navigator 6+ / Mozilla", 0, ""),
+]
+
+FONT_FIELDS = [("largefont", "Large Font"), ("normalfont", "Main Font"),
+               ("smallfont", "Small Font"), ("highlight", "Highlighted Font")]
+
+TEXT_TEMPLATES = [("phpinclude", "PHP parsed code:"), ("headinclude", "Head Insert:"),
+                  ("header", "Header:"), ("footer", "Footer:")]
+
+
+def _style_sets() -> list:
+    return db.session.execute(select(StyleSet).order_by(StyleSet.title)).scalars().all()
+
+
+def _style_choices() -> dict:
+    return {
+        "replacement": db.session.execute(select(ReplacementSet).order_by(ReplacementSet.title)).scalars().all(),
+        "template": db.session.execute(select(TemplateSet).order_by(TemplateSet.title)).scalars().all(),
+    }
+
+
+def _style_seed_defaults() -> None:
+    """照参考站原值补风格集、母版替换集（43 条，与参考站 -1 集合一致）。"""
+    if not db.session.scalar(select(func.count(ReplacementSet.id))):
+        db.session.add_all([ReplacementSet(id=1, title="Default"), ReplacementSet(id=2, title="Loongfans")])
+    if not db.session.scalar(select(func.count(TemplateSet.id))):
+        db.session.add_all([TemplateSet(id=1, title="Default"), TemplateSet(id=2, title="Loongfans")])
+    if not db.session.scalar(select(func.count(Replacement.id))):
+        db.session.add_all([Replacement(replacementsetid=-1, findword=find, replaceword=repl)
+                            for find, repl in STYLE_MASTER_ROWS])
+    if not db.session.scalar(select(func.count(StyleSet.id))):
+        db.session.add_all([
+            StyleSet(id=1, title="Default", replacementsetid=1, templatesetid=1, userselect=1),
+            StyleSet(id=2, title="Loongfans", replacementsetid=2, templatesetid=2, userselect=1),
+        ])
+    db.session.commit()
+
+
+def _replacement_rows(style: StyleSet) -> dict:
+    """返回 {findword: (replaceword, replacementsetid)}，自定义集合优先于母版（-1）。"""
+    rows = db.session.execute(
+        select(Replacement).where(Replacement.replacementsetid.in_([-1, style.replacementsetid]))
+        .order_by(Replacement.replacementsetid.desc())
+    ).scalars().all()
+    found = {}
+    for row in rows:
+        found.setdefault(row.findword, (row.replaceword, row.replacementsetid))
+    return found
+
+
+def _template_rows(style: StyleSet) -> dict:
+    rows = db.session.execute(
+        select(Template).where(Template.templatesetid.in_([-1, style.templatesetid]))
+        .order_by(Template.templatesetid.desc())
+    ).scalars().all()
+    found = {}
+    for row in rows:
+        found.setdefault(row.title, (row.template, row.templatesetid))
+    return found
+
+
+def _getprop(text: str, prop: str) -> str:
+    text, prop = (text or "").lower(), prop.lower() + '="'
+    if len(text) and text.find(prop) > 0:
+        rest = text[text.find(prop) + len(prop):]
+        return rest[:rest.find('"')]
+    return ""
+
+
+def _font_value(face: str, size: str, color: str, cls: str, findword: str) -> str:
+    if not (face or size or color or cls):
+        return ""
+    start = "<b><font" if findword == "largefont" else "<font"
+    out = start
+    if face:
+        out += f' face="{face}"'
+    if size:
+        out += f' size="{size}"'
+    if color:
+        out += f' color="{color}"'
+    if cls:
+        out += f' class="{cls}"'
+    return out
+
+
+def _style_upsert(style: StyleSet, findword: str, new_value: str, master_value: str) -> None:
+    """写替换集：空值或与母版相同表示"使用默认"（删掉自定义行），否则 upsert 到本风格的集合。"""
+    if not (new_value or "").strip():
+        new_value = master_value or ""
+    existing = db.session.execute(
+        select(Replacement).where(Replacement.replacementsetid == style.replacementsetid,
+                                  Replacement.findword == findword)
+    ).scalars().first()
+    if (new_value or "") == (master_value or ""):
+        if existing is not None:
+            db.session.delete(existing)
+        return
+    if existing is None:
+        db.session.add(Replacement(replacementsetid=style.replacementsetid,
+                                   findword=findword, replaceword=new_value or ""))
+    else:
+        existing.replaceword = new_value or ""
+
+
+def _style_template_fields(style: StyleSet) -> list:
+    rows = _template_rows(style)
+    out = []
+    for title, label in TEXT_TEMPLATES:
+        value, setid = rows.get(title, ("", -1))
+        out.append({"title": title, "label": label, "value": value,
+                    "custom": setid != -1, "has_default": title in rows})
+    return out
+
+
+def _style_property_fields(style: StyleSet) -> list:
+    rows = _replacement_rows(style)
+    out = []
+    for key, label, is_color, extra in STYLE_FIELDS:
+        value, setid = rows.get("{" + key + "}", ("", -1))
+        out.append({"name": f"replace[{key}]", "label": label, "value": value,
+                    "color": bool(is_color), "extra": extra, "custom": setid != -1})
+    body_value, body_set = rows.get("<body>", ("", -1))
+    out.append({"name": "bodytag", "label": "Body Tag", "value": body_value,
+                "color": False, "extra": "", "custom": body_set != -1})
+    return out
+
+
+def _style_font_fields(style: StyleSet) -> list:
+    rows = _replacement_rows(style)
+    out = []
+    for findword, label in FONT_FIELDS:
+        raw, setid = rows.get("<" + findword, ("", -1))
+        out.append({"findword": findword, "label": label, "custom": setid != -1,
+                    "face": _getprop(raw, "face"), "size": _getprop(raw, "size"),
+                    "color": _getprop(raw, "color"), "class": _getprop(raw, "class")})
+    return out
+
+
+def _style_pack(style: StyleSet) -> str:
+    """原版 .style 格式：||| 分隔，version / 三个标题 / 两个计数 / 替换对 / 模板对。"""
+    if style is None or style.id == -1:
+        title, rs_title, ts_title = "Master vBulletin Style Set!!!master!!!", "None", "None"
+        replacements = list(STYLE_MASTER_ROWS)
+        templates = []
+    else:
+        rows = db.session.execute(select(Replacement).where(
+            Replacement.replacementsetid == style.replacementsetid)).scalars().all()
+        replacements = [(row.findword, row.replaceword) for row in rows]
+        trows = db.session.execute(select(Template).where(
+            Template.templatesetid == style.templatesetid).order_by(Template.title)).scalars().all()
+        templates = [(row.title, row.template) for row in trows if row.title != "options"]
+        rs = db.session.get(ReplacementSet, style.replacementsetid)
+        ts = db.session.get(TemplateSet, style.templatesetid)
+        title, rs_title, ts_title = style.title, (rs.title if rs else "None"), (ts.title if ts else "None")
+
+    def esc(text: str) -> str:
+        return (text or "").replace("|||", "|| |")
+
+    parts = [TEMPLATE_VERSION, esc(title), esc(rs_title), esc(ts_title),
+             str(len(replacements)), str(len(templates))]
+    for find, repl in replacements:
+        parts += [esc(find), esc(repl)]
+    for ttitle, tpl in templates:
+        parts += [esc(ttitle), esc(tpl)]
+    return "|||".join(parts)
+
+
+@bp.route("/styles")
+@bp.route("/styles/modify")
+def styles_page():
+    """原版 action=modify：风格集清单，每行四个入口。"""
+    _style_seed_defaults()
+    return render_template("admin/styles.html", mode="list", styles=_style_sets())
+
+
+@bp.route("/styles/add", methods=["GET", "POST"])
+def styles_add():
+    """原版 action=add / insert。"""
+    _style_seed_defaults()
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        if not title:
+            flash("Title cannot be empty", "error")
+            return redirect(url_for("admin.styles_add"))
+        raw_rs = (request.form.get("replacementsetid") or "").lstrip("-")
+        raw_ts = (request.form.get("templatesetid") or "").lstrip("-")
+        replacementsetid = int(raw_rs) * (-1 if (request.form.get("replacementsetid") or "").startswith("-") else 1) if raw_rs.isdigit() else -1
+        templatesetid = int(raw_ts) * (-1 if (request.form.get("templatesetid") or "").startswith("-") else 1) if raw_ts.isdigit() else -1
+        if replacementsetid == -1:
+            new_set = ReplacementSet(title=title)
+            db.session.add(new_set)
+            db.session.flush()
+            replacementsetid = new_set.id
+        if templatesetid == -1:
+            new_set = TemplateSet(title=title)
+            db.session.add(new_set)
+            db.session.flush()
+            templatesetid = new_set.id
+        db.session.add(StyleSet(title=title, replacementsetid=replacementsetid,
+                                templatesetid=templatesetid,
+                                userselect=request.form.get("userselect") or "1"))
+        db.session.commit()
+        flash("Record added", "success")
+        return redirect(url_for("admin.styles_page"))
+    return render_template("admin/styles.html", mode="add", choices=_style_choices())
+
+
+@bp.route("/styles/edit/<int:style_id>", methods=["GET", "POST"])
+def styles_edit(style_id: int):
+    """原版 action=edit / doupdate。"""
+    style = db.session.get(StyleSet, style_id)
+    if style is None:
+        abort(404)
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        if title:
+            style.title = title
+        for field_name in ("replacementsetid", "templatesetid", "userselect"):
+            raw = request.form.get(field_name)
+            if raw is not None and raw.lstrip("-").isdigit():
+                setattr(style, field_name, int(raw))
+        db.session.commit()
+        flash("Record updated!", "success")
+        return redirect(url_for("admin.styles_page"))
+    return render_template("admin/styles.html", mode="edit", style=style, choices=_style_choices())
+
+
+@bp.route("/styles/remove/<int:style_id>", methods=["GET", "POST"])
+def styles_remove(style_id: int):
+    """原版 action=remove / kill：Default（styleid=1）不允许删除。"""
+    style = db.session.get(StyleSet, style_id)
+    if style is None:
+        abort(404)
+    if style_id == 1:
+        flash("The default style set cannot be removed.", "error")
+        return redirect(url_for("admin.styles_page"))
+    if request.method == "POST":
+        db.session.delete(style)
+        db.session.commit()
+        flash("Deleted!", "success")
+        return redirect(url_for("admin.styles_page"))
+    return render_template("admin/styles.html", mode="remove", style=style)
+
+
+@bp.route("/styles/properties/<int:style_id>", methods=["GET", "POST"])
+def styles_properties(style_id: int):
+    """原版 action=styles / dostyles：fonts/colors/etc 属性编辑器。"""
+    _style_seed_defaults()
+    style = db.session.get(StyleSet, style_id)
+    if style is None:
+        abort(404)
+    master = {find: repl for find, repl in STYLE_MASTER_ROWS}
+    if request.method == "POST":
+        for key, label, is_color, extra in STYLE_FIELDS:
+            findword = "{" + key + "}"
+            _style_upsert(style, findword, request.form.get(f"replace[{key}]", "").strip(),
+                          master.get(findword, ""))
+        body_value = (request.form.get("bodytag") or "").strip()
+        _style_upsert(style, "<body>", body_value, master.get("<body>", '<body>'))
+        for findword, label in FONT_FIELDS:
+            value = _font_value((request.form.get(f"{findword}face") or "").strip(),
+                                (request.form.get(f"{findword}size") or "").strip(),
+                                (request.form.get(f"{findword}color") or "").strip(),
+                                (request.form.get(f"{findword}class") or "").strip(), findword)
+            _style_upsert(style, "<" + findword, value, master.get("<" + findword, ""))
+        for title, label in TEXT_TEMPLATES:
+            value = request.form.get(f"temp[{title}]", "")
+            row = db.session.execute(select(Template).where(
+                Template.templatesetid == style.templatesetid, Template.title == title)).scalars().first()
+            if value.strip() == "":
+                if row is not None:
+                    db.session.delete(row)
+            elif row is None:
+                db.session.add(Template(templatesetid=style.templatesetid, title=title, template=value))
+            else:
+                row.template = value
+        db.session.commit()
+        flash("Styles updated", "success")
+        return redirect(url_for("admin.styles_properties", style_id=style_id))
+    return render_template("admin/styles.html", mode="properties", style=style,
+                           fields=_style_property_fields(style), fonts=_style_font_fields(style),
+                           text_templates=_style_template_fields(style))
+
+
+@bp.route("/styles/dodownload", methods=["POST"])
+def styles_dodownload():
+    """原版 action=dodownload：表单 POST 一个 styleid 后直接输出 .style 文本。"""
+    raw = request.form.get("styleid") or "-1"
+    style_id = int(raw) if raw.lstrip("-").isdigit() else -1
+    return styles_download(style_id)
+
+
+@bp.route("/styles/download/<int:style_id>")
+def styles_download(style_id: int):
+    """原版 action=dodownload：发展开后的 .style 文本。"""
+    _style_seed_defaults()
+    style = db.session.get(StyleSet, style_id) if style_id != -1 else None
+    if style is None and style_id != -1:
+        abort(404)
+    code = _style_pack(style)
+    return Response(code, mimetype="unknown/unknown", headers={
+        "Content-Disposition": "filename=vbulletin.style",
+        "Content-Length": str(len(code)),
+        "Pragma": "no-cache", "Expires": "0"})
+
+
+@bp.route("/styles/download")
+def styles_download_upload():
+    """原版 action=download：下载一个风格集 / 上传 .style / 导入本地 .style。"""
+    _style_seed_defaults()
+    return render_template("admin/styles.html", mode="download", styles=_style_sets())
+
+
+@bp.route("/styles/upload", methods=["POST"])
+def styles_doupload():
+    """原版 action=doupload：解析 .style 并新建或覆盖风格集。"""
+    _style_seed_defaults()
+    text = ""
+    upload = request.files.get("stylefile")
+    if upload is not None and upload.filename:
+        text = upload.read().decode("utf-8", "replace")
+    elif request.form.get("localfile"):
+        path = (request.form.get("stylefile") or "").strip()
+        if path:
+            try:
+                text = (Path(path) if Path(path).is_absolute() else Path.cwd() / path).read_text(
+                    encoding="utf-8", errors="replace")
+            except OSError:
+                text = ""
+    if not text.strip():
+        flash("Invalid style file!", "error")
+        return redirect(url_for("admin.styles_download_upload"))
+    bits = text.split("|||")
+    if len(bits) < 6:
+        flash("Invalid style file!", "error")
+        return redirect(url_for("admin.styles_download_upload"))
+    version = bits[0].strip()
+    style_title = bits[1].strip()
+    rs_title = bits[2].strip()
+    ts_title = bits[3].strip()
+    ignore_style = request.form.get("ignorestyle") == "1"
+    if version != TEMPLATE_VERSION and not ignore_style:
+        return render_template("admin/styles.html", mode="upload_error", version=version,
+                               template_version=TEMPLATE_VERSION)
+    pos = 4
+    try:
+        num_repl = int(bits[pos])
+        num_tmpl = int(bits[pos + 1])
+    except (ValueError, IndexError):
+        flash("Invalid style file!", "error")
+        return redirect(url_for("admin.styles_download_upload"))
+    pos += 2
+    replacements = []
+    for _ in range(num_repl):
+        if pos + 1 >= len(bits):
+            break
+        find, repl = bits[pos], bits[pos + 1]
+        if find.strip():
+            replacements.append((find, repl))
+        pos += 2
+    templates = []
+    for _ in range(num_tmpl):
+        if pos + 1 >= len(bits):
+            break
+        title, tpl = bits[pos], bits[pos + 1]
+        if title.strip():
+            templates.append((title, tpl))
+        pos += 2
+
+    oldstyleid = request.form.get("oldstyleid") or "-1"
+    if style_title.endswith("!!!master!!!"):
+        style_id = -1
+        for row in db.session.execute(select(Replacement).where(Replacement.replacementsetid == -1)).scalars().all():
+            db.session.delete(row)
+        for row in db.session.execute(select(Template).where(Template.templatesetid == -1)).scalars().all():
+            db.session.delete(row)
+        db.session.commit()
+        db.session.add_all([Replacement(replacementsetid=-1, findword=f, replaceword=r) for f, r in replacements])
+        db.session.commit()
+        flash(f"Style {style_title} imported correctly!", "success")
+        flash("Make sure that you upload any accompanying images too!", "info")
+        return redirect(url_for("admin.styles_page"))
+
+    style = db.session.get(StyleSet, int(oldstyleid)) if oldstyleid.lstrip("-").isdigit() and int(oldstyleid) > 0 else None
+    if style is None:
+        rs = ReplacementSet(title=rs_title or style_title)
+        ts = TemplateSet(title=ts_title or style_title)
+        db.session.add_all([rs, ts])
+        db.session.flush()
+        style = StyleSet(title=style_title, replacementsetid=rs.id, templatesetid=ts.id, userselect=1)
+        db.session.add(style)
+    else:
+        for row in db.session.execute(select(Replacement).where(
+                Replacement.replacementsetid == style.replacementsetid)).scalars().all():
+            db.session.delete(row)
+        for row in db.session.execute(select(Template).where(
+                Template.templatesetid == style.templatesetid)).scalars().all():
+            db.session.delete(row)
+        style.title = style_title
+    db.session.flush()
+    db.session.add_all([Replacement(replacementsetid=style.replacementsetid, findword=f, replaceword=r)
+                        for f, r in replacements])
+    db.session.add_all([Template(templatesetid=style.templatesetid, title=t, template=tpl)
+                        for t, tpl in templates])
+    db.session.commit()
+    flash(f"Style {style_title} imported correctly!", "success")
+    flash("Make sure that you upload any accompanying images too!", "info")
+    return redirect(url_for("admin.styles_page"))
+
+
