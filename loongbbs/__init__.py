@@ -56,6 +56,16 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(members_bp)
     app.register_blueprint(misc_bp)
 
+    # 组 23 addtemplatename：记下本次请求渲染的最外层模板名，供 after_request
+    # 在 HTML 前后插入 `<!-- template: xxx -->` 注释（原版 functions.php 的
+    # gettemplate() 在 $addtemplatename 打开时给每个模板前后加同名注释）。
+    from flask import template_rendered
+
+    def _remember_template(sender, template, context, **extra):
+        g._template_name = template.name
+
+    template_rendered.connect(_remember_template, app, weak=False)
+
     from .utils import csrf_protect, current_user_or_none
 
     app.before_request(csrf_protect)
@@ -172,6 +182,15 @@ def create_app(test_config: dict | None = None) -> Flask:
             return response
 
         is_html = (response.mimetype or "") == "text/html"
+
+        # 组 23 addtemplatename：在页面 HTML 前后标注最外层模板名（调试用）
+        if is_html and get_setting("addtemplatename") == "1":
+            name = g.get("_template_name")
+            if name:
+                body = response.get_data(as_text=True)
+                response.set_data(
+                    f"<!-- template: {name} -->\n{body}\n<!-- end template: {name} -->"
+                )
 
         # addheaders：显式发 200 OK 的文本类型（原版 header("Content-type: text/html; charset=UTF-8")）
         if is_html and get_setting("addheaders") == "1":
