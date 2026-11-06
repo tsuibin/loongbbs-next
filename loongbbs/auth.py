@@ -30,7 +30,7 @@ from .models import (
     utcnow,
 )
 from .settings import get_setting
-from .utils import clamp_page, format_dt
+from .utils import censor_text, clamp_page, format_dt
 
 bp = Blueprint("auth", __name__)
 
@@ -520,7 +520,7 @@ def edit_profile_post():
     user.icq = (form.get("icq") or "").strip()[:30]
     user.aim = (form.get("aim") or "").strip()[:30]
     user.yahoo = (form.get("yahoo") or "").strip()[:30]
-    user.signature = (form.get("signature") or "").strip()
+    user.signature = censor_text((form.get("signature") or "").strip())
     user.location = (form.get("location") or "").strip()[:100]
     user.interests = (form.get("interests") or "").strip()[:200]
     user.occupation = (form.get("occupation") or "").strip()[:100]

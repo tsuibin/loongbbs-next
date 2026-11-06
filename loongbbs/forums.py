@@ -35,7 +35,7 @@ from .models import (
     utcnow,
 )
 from .settings import get_setting
-from .utils import clamp_page, format_dt, page_args, render_body, time_ago
+from .utils import censor_text, clamp_page, format_dt, page_args, render_body, time_ago
 
 bp = Blueprint("forums", __name__)
 
@@ -499,6 +499,9 @@ def new_thread(forum_id: int):
     if len(title) > 200:
         title = title[:200]
 
+    title = censor_text(title)
+    body = censor_text(body)
+
     thread_obj = Thread(
         forum_id=forum_obj.id,
         author_id=current_user.id,
@@ -735,6 +738,9 @@ def reply(thread_id: int):
     if len(title) > 200:
         title = title[:200]
 
+    title = censor_text(title)
+    body = censor_text(body)
+
     post = Post(
         thread_id=thread_obj.id,
         author_id=current_user.id,
@@ -800,11 +806,11 @@ def edit_post(post_id: int):
         flash("内容不能为空。", "error")
         return redirect(url_for("forums.edit_post_form", post_id=post_id))
 
-    post.body = body
+    post.body = censor_text(body)
     post.iconid = _icon_id()
     title = (request.form.get("title") or "").strip()
     if title:
-        post.title = title[:200]
+        post.title = censor_text(title)[:200]
     post.updated_at = utcnow()
     save_uploads(post, request.files.getlist("files"))
     db.session.commit()

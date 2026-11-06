@@ -210,6 +210,42 @@ def _flag(options: dict[str, str], key: str, default: str = "1") -> bool:
     return str(options.get(key, default) or default).strip().lower() not in ("0", "", "no", "off")
 
 
+def censor_text(text: str) -> str:
+    """vB 的 censortext()：按后台「敏感词过滤选项」组替换入帖文字。
+
+    规则照原版（admin/functions.php）：
+    - 只有 enablecensor=1 且 censorwords 非空才生效
+    - censorwords 用空格分隔；写成 {词} 的是「整词」匹配（前后不能是英文字母）
+    - 命中部分替换成 censorchar 重复到原词长度（默认 *）
+    - 结尾把软连字符与不换行空格换成下划线
+    """
+    if not text:
+        return text
+
+    options = _posting_options()
+    if not _flag(options, "enablecensor", "0"):
+        return text
+    words = (options.get("censorwords") or "").strip()
+    if not words:
+        return text
+
+    char = (options.get("censorchar") or "*").strip()[:1] or "*"
+    for raw in words.split():
+        token = raw.strip()
+        if not token:
+            continue
+        if token.startswith("{") and token.endswith("}") and len(token) > 2:
+            core = token[1:-1]
+            pattern = r"(?<![A-Za-z])" + re.escape(core) + r"(?![A-Za-z])"
+            length = len(core)
+        else:
+            pattern = re.escape(token)
+            length = len(token)
+        text = re.sub(pattern, char * length, text, flags=re.I)
+
+    return text.replace("\u00ad", "_").replace("\u00a0", "_")
+
+
 def render_body(text: str) -> str:
     """Escape everything, then re-enable a small BBCode subset.
 
