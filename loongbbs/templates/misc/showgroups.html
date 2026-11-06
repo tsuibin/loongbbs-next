@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} Administration and Moderators{% endblock %}
+
+{% block content %}
+<!-- breadcrumb -->
+<table border="0" width="100%" cellpadding="0" cellspacing="0">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="absmiddle" alt=""> <font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; Forum Leaders</b></font></td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<hr>
+
+<table align="center" cellpadding="4">
+<tr>
+	<td>
+
+	<!-- show user groups -->
+	{% for group in groups %}
+	<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" align="center" width="100%"><tr><td>
+	<table border="0" cellpadding="4" cellspacing="1" width="100%">
+	<tr>
+		<td bgcolor="#8080A6" width="100%" colspan="5"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="absmiddle" alt=""> {{ settings.site_name }} {{ group.name }}</b></font></td>
+	</tr>
+	<tr>
+		<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">{% if ui_lang == 'en' %}Username{% else %}用户名{% endif %}</font></td>
+		<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">{% if ui_lang == 'en' %}Location{% else %}位置{% endif %}</font></td>
+		<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">{% if ui_lang == 'en' %}Contact{% else %}联系{% endif %}</font></td>
+	</tr>
+	{% for member in group.members %}
+	<tr>
+		<td bgcolor="{{ member.bg }}" nowrap><font face="verdana, arial, helvetica" size="2">{% if member.online %}<img src="{{ url_for('static', filename='images/on.gif') }}" border="0" alt="{{ member.username }} is online now" align="absmiddle">{% else %}<img src="{{ url_for('static', filename='images/off.gif') }}" border="0" alt="{{ member.username }} is offline" align="absmiddle">{% endif %}</font></td>
+		<td bgcolor="{{ member.bg }}" nowrap width="100%"><font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('auth.profile', username=member.username) }}">{{ member.username }}</a></b><br></font></td>
+		<td bgcolor="{{ member.bg }}" nowrap><font face="verdana, arial, helvetica" size="2">{% if member.location %}{{ member.location }}{% else %}&nbsp;{% endif %}</font></td>
+		<td bgcolor="{{ member.bg }}" nowrap><font face="verdana, arial, helvetica" size="2">{% if member.receivepm %}<a href="{{ url_for('pm.compose_form', to=member.username) }}"><img src="{{ url_for('static', filename='images/sendpm.gif') }}" border="0" alt="Click here to Send {{ member.username }} a Private Message"></a>{% else %}&nbsp;{% endif %}</font></td>
+	</tr>
+	{% endfor %}
+	</table>
+	</td></tr></table>
+	<br>
+	{% endfor %}
+	<!-- end show user groups -->
+
+	</td>
+</tr>
+<tr>
+	<td align="center">
+	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>
+	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
+		<option value="">请选择一项：</option>
+		<option value="">--------------------</option>
+		<option value="{{ url_for('pm.inbox') }}">私信</option>
+		<option value="{{ url_for('auth.usercp') }}">用户控制面板</option>
+		<option value="{{ url_for('online.whos_online') }}">在线用户</option>
+		<option value="{{ url_for('search.search') }}">搜索版块</option>
+		<option value="{{ url_for('forums.index') }}">论坛首页</option>
+		<option value="">--------------------</option>
+		{% for c in categories %}
+		<option value="{{ url_for('forums.index') }}#cat{{ c.id }}"> {{ c.name }}</option>
+		{% for f in c.forums %}<option value="{{ url_for('forums.forum', forum_id=f.id) }}">-- {{ f.name }}</option>{% endfor %}
+		{% endfor %}
+	</select>
+	<input type="button" value="GO" onclick="var s=document.getElementById('forumjump'); if(s.value) location.href=s.value;">
+	</td>
+</tr>
+</table>
+{% endblock %}

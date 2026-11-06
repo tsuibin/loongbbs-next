@@ -1,10 +1,15 @@
-"""misc.php 的对应页：vB 代码帮助、表情列表与常见问题（FAQ）。"""
+"""misc.php 的对应页：vB 代码帮助、表情列表、常见问题（FAQ）与版块管理人员。"""
 from __future__ import annotations
 
-from flask import Blueprint, render_template, request
+from datetime import timedelta
 
+from flask import Blueprint, render_template, request
+from sqlalchemy import func, select
+
+from .extensions import db
 from .faq_zh import translate_faq_html
 from .i18n import current_language
+from .models import Category, OnlineSession, User, UserGroup, utcnow
 from .settings import get_setting
 from .utils import SMILIES
 
@@ -16,6 +21,10 @@ FAQ_PAGES = {
     2: "misc/faq2.html",
     3: "misc/faq3.html",
 }
+
+# showgroups.php 只列 usergroup.showgroup=1 的组；vB 默认数据里就是超级版主与管理员两组
+SHOWGROUP_IDS = (6, 5)
+GROUP_DEFAULT_TITLES = {6: "Administrators", 5: "Super Moderators"}
 
 
 @bp.get("/bbcode")
@@ -51,3 +60,71 @@ def faq():
         # 参考站在中文语言下会把这些 phrase 替换进 FAQ 模板，结果是中英混排
         html_text = translate_faq_html(html_text)
     return html_text
+
+
+def _naive(value):
+    if value is not None and value.tzinfo is not None:
+        return value.replace(tzinfo=None)
+    return value
+
+
+@bp.get("/showgroups")
+def showgroups():
+    """对应 vB showgroups.php（Forum Leaders / 版块管理人员）。
+
+    原版按 usergroup.showgroup=1 的组列出成员（管理员先、超级版主次、再其他组），
+    每组一张表：在线状态 / 用户名 / 位置 / 联系（发送悄悄话）；页底是版块跳转下拉。
+    版主（moderator 表）那一段本站没有这张关联表（后台也没有设置入口），
+    参考站当前同样没有版主数据、不渲染该段，所以两边一致。
+    """
+    try:
+        timeout = int(get_setting("cookietimeout") or 900)
+    except (TypeError, ValueError):
+        timeout = 900
+    cutoff = _naive(utcnow()) - timedelta(seconds=max(60, timeout))
+
+    last_active = {
+        user_id: stamp
+        for user_id, stamp in db.session.execute(
+            select(OnlineSession.user_id, func.max(OnlineSession.last_activity)).where(
+                OnlineSession.user_id.isnot(None)
+            )
+        ).all()
+    }
+
+    groups = []
+    for index, group_id in enumerate(SHOWGROUP_IDS):
+        group = db.session.get(UserGroup, group_id)
+        members_users = [
+            user
+            for user in db.session.scalars(
+                select(User).where(User.usergroupid == group_id).order_by(User.username)
+            ).all()
+            if user.username
+        ]
+        if not members_users:
+            continue  # 原版：组里没成员就不出这张表
+        name = (group.title if group is not None and group.title else "") or GROUP_DEFAULT_TITLES[group_id]
+        if not name.endswith("s"):
+            name += "s"  # 原版直接给组名补个复数 s
+        members = []
+        for row, user in enumerate(members_users):
+            stamp = last_active.get(user.id)
+            online = bool(stamp) and _naive(stamp) > cutoff and not user.invisible
+            members.append(
+                {
+                    "username": user.username,
+                    "location": (user.location or "").strip(),
+                    "receivepm": bool(user.receivepm),
+                    "online": online,
+                    "bg": "#DFDFDF" if row % 2 == 0 else "#F1F1F1",
+                }
+            )
+        groups.append({"name": name, "members": members})
+
+    categories = (
+        db.session.execute(select(Category).order_by(Category.position))
+        .scalars()
+        .all()
+    )
+    return render_template("misc/showgroups.html", groups=groups, categories=categories)

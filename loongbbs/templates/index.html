@@ -98,10 +98,10 @@
   <td><font face="verdana,arial,helvetica" size="1">All times are GMT. The time now is {{ now_gmt() }}.</font></td>
   <td align="right">
   {% if nav_user %}
-  <font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('auth.logout') }}" onclick="document.getElementById('logoutform').submit();return false;">退出登录</a> | <a href="{{ url_for('search.search') }}">查看新帖</a> | <a href="{{ url_for('forums.mark_all_read') }}">标记全部版块为已读</a> | <a href="{{ url_for('forums.index') }}">论坛首页</a></font>
+  <font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('auth.logout') }}" onclick="document.getElementById('logoutform').submit();return false;">{% if ui_lang == 'en' %}Log Out{% else %}退出登录{% endif %}</a> | <a href="{{ url_for('forums.mark_all_read') }}">{% if ui_lang == 'en' %}Mark All Forums Read{% else %}将所有版块标记为已读{% endif %}</a> | <a href="{{ url_for('misc.showgroups') }}">{% if ui_lang == 'en' %}Forum Leaders{% else %}版块管理人员{% endif %}</a></font>
   <form id="logoutform" method="post" action="{{ url_for('auth.logout') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"></form>
   {% else %}
-  <font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.mark_all_read') }}">标记全部版块为已读</a> | <a href="{{ url_for('forums.index') }}">论坛版主</a></font>
+  <font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.mark_all_read') }}">{% if ui_lang == 'en' %}Mark All Forums Read{% else %}将所有版块标记为已读{% endif %}</a> | <a href="{{ url_for('misc.showgroups') }}">{% if ui_lang == 'en' %}Forum Leaders{% else %}版块管理人员{% endif %}</a></font>
 
   <table border="0" cellpadding="0" cellspacing="0">
   <form action="{{ url_for('auth.login') }}" method="post">
