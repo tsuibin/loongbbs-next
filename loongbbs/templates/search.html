@@ -64,7 +64,7 @@
 
 <br>
 
-{% if query %}
+{% if query or author %}
 <table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
 <table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr bgcolor="#8080A6" align="center">
@@ -84,12 +84,12 @@
 	<td bgcolor="#DFDFDF" colspan="4"><font face="verdana,arial,helvetica" size="1">{{ item.snippet|safe }}</font></td>
 </tr>
 {% else %}
-<tr><td bgcolor="#F1F1F1" colspan="4" align="center"><font face="verdana,arial,helvetica" size="1">没有找到匹配「{{ query }}」的内容。</font></td></tr>
+<tr><td bgcolor="#F1F1F1" colspan="4" align="center"><font face="verdana,arial,helvetica" size="1">没有找到匹配「{{ query or author }}」的内容。</font></td></tr>
 {% endfor %}
 </table>
 </td></tr></table>
 <br>
 <font face="verdana,arial,helvetica" size="1">共 {{ total }} 条结果，第 {{ page }} 页 / 共 {{ pages }} 页。
-{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', q=query, page=p, forum=selected_forum.id if selected_forum else None, author=author or None, startdate=startdate or None, enddate=enddate or None, sortby=sortby, sortorder=sortorder, searchin=searchin) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font>
+{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', q=query or None, page=p, forum=selected_forum.id if selected_forum else None, author=author or None, startdate=startdate or None, enddate=enddate or None, sortby=sortby, sortorder=sortorder, searchin=searchin) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font>
 {% endif %}
 {% endblock %}

@@ -1,18 +1,57 @@
 """Keyword search over thread titles and post bodies, with vB-style advanced options."""
 from __future__ import annotations
 
+import time
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, session
 from sqlalchemy import or_, select
 
 from .extensions import db
 from .models import Forum, Post, Thread, User
+from .settings import get_setting
 from .utils import clamp_page, page_args, render_body
 
 bp = Blueprint("search", __name__)
 
 SORT_FIELDS = ("lastpost", "dateline", "replycount", "views")
+
+# 与 vB 一致：只在 words 之间用空白，操作符不参与匹配
+SEARCH_OPERATORS = {"and", "or", "not"}
+
+
+def _setting_int(name: str, default: int, low: int = 0, high: int = 200) -> int:
+    try:
+        value = int(get_setting(name, str(default)) or default)
+    except (TypeError, ValueError):
+        value = default
+    return max(low, min(value, high))
+
+
+def _error(message: str):
+    return render_template("search_error.html", message=message)
+
+
+def _apply_min_length(query: str, min_len: int) -> tuple[str, str | None]:
+    """按原版 search.php 的规则处理最小词长：首个短词跳过，AND 后面的短词报错。"""
+    kept: list[str] = []
+    for index, word in enumerate(query.split()):
+        if word.lower() in SEARCH_OPERATORS:
+            kept.append(word)
+            continue
+        # 原版对含 * 的词按「去掉 * 的长度 + 1」算，中文按字节数
+        body = word.replace("*", "")
+        length = len(body.encode("utf-8")) + (1 if "*" in word else 0)
+        if min_len and length < min_len:
+            if index == 0:
+                continue
+            if kept and kept[-1].lower() == "and":
+                return query, (
+                    f"你指定的搜索词（{word}）低于最小词长（{min_len}），因此不会被搜到。请把这个词写长一些。"
+                )
+            continue
+        kept.append(word)
+    return " ".join(kept), None
 
 
 def _parse_date(raw: str | None) -> datetime | None:
@@ -36,11 +75,34 @@ def _naive(dt):
 
 @bp.get("/search")
 def search():
+    # 组 10 enablesearches：管理员关掉后照原版直接给错误页
+    if get_setting("enablesearches") != "1":
+        return _error("抱歉！管理员关闭了搜索功能。")
+
     query = (request.args.get("q") or "").strip()
+    submitted = "q" in request.args
     page = clamp_page(request.args.get("page"))
     forum_id = request.args.get("forum", type=int)
     selected_forum = db.session.get(Forum, forum_id) if forum_id else None
-    per_page = 20
+    per_page = _setting_int("searchperpage", 25, low=1)
+
+    # 组 10 searchfloodtime：两次搜索之间的最小间隔（按会话记录上次搜索时间）
+    flood = _setting_int("searchfloodtime", 0, low=0, high=3600)
+    if flood > 0 and (query or (request.args.get("author") or "").strip()):
+        last = session.get("search_last_at")
+        try:
+            last_value = float(last) if last is not None else None
+        except (TypeError, ValueError):
+            last_value = None
+        if last_value is not None and time.time() - last_value < flood:
+            return _error(f"抱歉！管理员规定每 {flood} 秒只能搜索一次。")
+
+    # 组 10 minsearchlength：短词按原版规则过滤/报错
+    min_len = _setting_int("minsearchlength", 4, low=0)
+    if query and min_len:
+        query, problem = _apply_min_length(query, min_len)
+        if problem:
+            return _error(problem)
 
     # 高级选项：对应 vB search.php 的 searchuser / startdate / enddate / sortby / sortorder / searchposts
     author = (request.args.get("author") or "").strip()
@@ -69,13 +131,22 @@ def search():
 
     results: list[dict] = []
     total = 0
-    if query and not author_missing:
-        pattern = f"%{query}%"
+    if submitted and not query and not author and not author_missing:
+        return _error("请给出要搜索的词，或一个有效的用户名。")
+    # 原版 search.php：没有关键词但给了有效用户名时，也按用户搜
+    if (query or author_user is not None) and not author_missing:
+        # 组 10 allowwildcards：打开时 * 当通配符，关闭时按普通字符处理
+        allow_wild = get_setting("allowwildcards") == "1"
+        term = query.replace("*", "%") if allow_wild else query
+        pattern = f"%{term}%"
 
-        title_query = select(Thread).where(Thread.title.ilike(pattern))
+        title_query = select(Thread)
         post_query = select(Post).join(Thread, Post.thread_id == Thread.id).where(
-            Post.body.ilike(pattern), Post.is_deleted.is_(False)
+            Post.is_deleted.is_(False)
         )
+        if query:
+            title_query = title_query.where(Thread.title.ilike(pattern))
+            post_query = post_query.where(Post.body.ilike(pattern))
         if selected_forum is not None:
             title_query = title_query.where(Thread.forum_id == selected_forum.id)
             post_query = post_query.where(Thread.forum_id == selected_forum.id)
@@ -144,6 +215,7 @@ def search():
 
         total = len(results)
         results = results[(page - 1) * per_page : page * per_page]
+        session["search_last_at"] = time.time()
 
     return render_template(
         "search.html",
