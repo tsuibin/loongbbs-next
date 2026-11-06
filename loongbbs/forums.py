@@ -18,7 +18,17 @@ from .attachments import save_uploads
 from .extensions import db
 from datetime import datetime, timedelta, timezone
 
-from .models import Category, Forum, ForumRead, Post, Thread, ThreadRating, User, utcnow
+from .models import (
+    Category,
+    Forum,
+    ForumRead,
+    Post,
+    Thread,
+    ThreadRating,
+    ThreadSubscription,
+    User,
+    utcnow,
+)
 from .settings import get_setting
 from .utils import clamp_page, format_dt, page_args, render_body, time_ago
 
@@ -142,6 +152,48 @@ def rate_thread(thread_id: int):
         existing.vote = vote
         flash("你的评分已更新。")
     db.session.commit()
+    return redirect(url_for("forums.thread", thread_id=thread_obj.id))
+
+
+@bp.post("/t/<int:thread_id>/subscribe")
+@login_required
+def subscribe_thread(thread_id: int):
+    """对应 vB subscription.php?do=addsubscription。"""
+    thread_obj = db.session.get(Thread, thread_id)
+    if thread_obj is None:
+        abort(404)
+    exists = db.session.scalar(
+        select(ThreadSubscription).where(
+            ThreadSubscription.thread_id == thread_obj.id,
+            ThreadSubscription.user_id == current_user.id,
+        )
+    )
+    if exists is None:
+        db.session.add(
+            ThreadSubscription(thread_id=thread_obj.id, user_id=current_user.id)
+        )
+        db.session.commit()
+        flash("已订阅这个主题，可以在用户控制面板里查看。")
+    return redirect(url_for("forums.thread", thread_id=thread_obj.id))
+
+
+@bp.post("/t/<int:thread_id>/unsubscribe")
+@login_required
+def unsubscribe_thread(thread_id: int):
+    """对应 vB subscription.php?do=removesubscription。"""
+    thread_obj = db.session.get(Thread, thread_id)
+    if thread_obj is None:
+        abort(404)
+    row = db.session.scalar(
+        select(ThreadSubscription).where(
+            ThreadSubscription.thread_id == thread_obj.id,
+            ThreadSubscription.user_id == current_user.id,
+        )
+    )
+    if row is not None:
+        db.session.delete(row)
+        db.session.commit()
+        flash("已取消订阅这个主题。")
     return redirect(url_for("forums.thread", thread_id=thread_obj.id))
 
 
@@ -366,6 +418,15 @@ def thread(thread_id: int):
         time_ago=time_ago,
         prev_thread=prev_thread,
         next_thread=next_thread,
+        subscribed=bool(
+            current_user.is_authenticated
+            and db.session.scalar(
+                select(ThreadSubscription.id).where(
+                    ThreadSubscription.thread_id == thread_obj.id,
+                    ThreadSubscription.user_id == current_user.id,
+                )
+            )
+        ),
     )
 
 

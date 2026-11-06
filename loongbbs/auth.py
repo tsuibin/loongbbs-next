@@ -19,7 +19,16 @@ from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import func, select
 
 from .extensions import db
-from .models import Avatar, Forum, Post, PrivateMessage, Thread, User, utcnow
+from .models import (
+    Avatar,
+    Forum,
+    Post,
+    PrivateMessage,
+    Thread,
+    ThreadSubscription,
+    User,
+    utcnow,
+)
 from .settings import get_setting
 from .utils import clamp_page, format_dt
 
@@ -351,6 +360,32 @@ def usercp():
         latest_pm=latest,
         forums=forums,
         joined=format_dt(current_user.joined_at, "%Y-%m-%d"),
+        subscriptions=_my_subscriptions(limit=10),
+    )
+
+
+def _my_subscriptions(limit: int | None = None):
+    """当前用户订阅的主题（vB 的 subscribethread），按最后发表倒序。"""
+    stmt = (
+        select(ThreadSubscription)
+        .join(Thread, ThreadSubscription.thread_id == Thread.id)
+        .where(ThreadSubscription.user_id == current_user.id)
+        .order_by(Thread.last_post_at.desc())
+    )
+    if limit:
+        stmt = stmt.limit(limit)
+    return db.session.execute(stmt).scalars().all()
+
+
+@bp.get("/usercp/subscriptions")
+@login_required
+def subscriptions():
+    """对应 vB 的 subscription.php?do=viewsubscription。"""
+    return render_template(
+        "auth/subscriptions.html",
+        cpnav_current="home",
+        forums=_forum_jump_list(),
+        rows=_my_subscriptions(),
     )
 
 

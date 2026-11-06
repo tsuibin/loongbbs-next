@@ -107,13 +107,24 @@
 		<td bgcolor="#8080A6">
 			<table width="100%" border="0" cellpadding="0" cellspacing="0"><tr>
 				<td align="left"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>订阅的主题</b></font></td>
-				<td align="right"><a href="{{ url_for('search.search') }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">查看所有订阅主题</font></a></td>
+				<td align="right"><a href="{{ url_for('auth.subscriptions') }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">查看所有订阅主题</font></a></td>
 			</tr></table>
 		</td>
 	</tr>
+	{% if subscriptions %}
+	{% for sub in subscriptions %}
 	<tr>
-		<td bgcolor="#FFFFFF"><font face="verdana, arial, helvetica" size="2">最近 1 天里你订阅的主题没有新帖子。</font></td>
+		<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}"><font face="verdana, arial, helvetica" size="2">
+		<a href="{{ url_for('forums.thread', thread_id=sub.thread.id) }}">{{ sub.thread.title }}</a>
+		<font size="1">— {{ sub.thread.forum.name }}，最后发表 {{ sub.thread.last_post_at|dt('%m-%d-%Y %I:%M %p') }}</font>
+		</font></td>
 	</tr>
+	{% endfor %}
+	{% else %}
+	<tr>
+		<td bgcolor="#FFFFFF"><font face="verdana, arial, helvetica" size="2">你目前没有订阅任何主题。</font></td>
+	</tr>
+	{% endif %}
 	<tr>
 		<td bgcolor="#8080A6">
 			<table width="100%" border="0" cellpadding="0" cellspacing="0"><tr>

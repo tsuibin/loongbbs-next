@@ -311,6 +311,23 @@ class ForumRead(db.Model):
         return f"<ForumRead user={self.user_id} forum={self.forum_id}>"
 
 
+class ThreadSubscription(db.Model):
+    """vB 的 ``subscribethread`` 表：用户订阅某个主题，UCP 中可列出来。"""
+
+    __tablename__ = "thread_subscriptions"
+    __table_args__ = (db.UniqueConstraint("thread_id", "user_id", name="uq_thread_subscription"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(db.Integer, db.ForeignKey("threads.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    thread = db.relationship("Thread")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<ThreadSubscription thread={self.thread_id} user={self.user_id}>"
+
+
 class ThreadRating(db.Model):
     """vB 的 ``threadrate`` 表：一个用户对一个主题只能有一票，再投即改票。"""
 

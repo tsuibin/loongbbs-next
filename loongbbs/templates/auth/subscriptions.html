@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 订阅的主题{% endblock %}
+{% block content %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	<a href="{{ url_for('auth.usercp') }}">用户控制面板：{{ nav_user.username }}</a> &gt; 订阅的主题</b></font></td>
+	<td align="right">
+	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>
+	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
+		<option value="">请选择一项：</option>
+		<option value="{{ url_for('auth.usercp') }}">用户控制面板</option>
+		<option value="{{ url_for('search.search') }}">搜索版块</option>
+		<option value="{{ url_for('forums.index') }}">论坛首页</option>
+		<option value="">--------------------</option>
+		{% for f in forums %}<option value="{{ url_for('forums.forum', forum_id=f.id) }}">-- {{ f.name }}</option>{% endfor %}
+	</select>
+	<input type="button" value="GO" onclick="var s=document.getElementById('forumjump'); if(s.value) location.href=s.value;">
+	</td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<br>
+{% include "auth/_cpnav.html" %}
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#606096"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>订阅的主题（共 {{ rows|length }} 个）</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>主题</b></font></td>
+</tr>
+{% for sub in rows %}
+<tr>
+	<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}">
+	<table width="100%" border="0" cellpadding="0" cellspacing="0"><tr>
+	<td align="left"><font face="verdana, arial, helvetica" size="2">
+		<a href="{{ url_for('forums.thread', thread_id=sub.thread.id) }}">{{ sub.thread.title }}</a><br>
+		<font size="1">版块：<a href="{{ url_for('forums.forum', forum_id=sub.thread.forum.id) }}">{{ sub.thread.forum.name }}</a>
+		· 作者：<a href="{{ url_for('auth.profile', username=sub.thread.author.username) }}">{{ sub.thread.author.username }}</a>
+		· 最后发表 {{ sub.thread.last_post_at|dt('%m-%d-%Y %I:%M %p') }}
+		· 订阅于 {{ sub.created_at|dt('%m-%d-%Y') }}</font>
+	</font></td>
+	<td align="right" nowrap>
+		<form method="post" action="{{ url_for('forums.unsubscribe_thread', thread_id=sub.thread.id) }}" style="display:inline">
+			<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+			<input type="submit" class="bginput" value="取消订阅">
+		</form>
+	</td>
+	</tr></table>
+	</td>
+</tr>
+{% else %}
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">你目前没有订阅任何主题。在主题页点「订阅这个主题」即可加入这里。</font></td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+{% endblock %}
