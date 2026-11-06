@@ -34,6 +34,7 @@
 
 {% for thread in threads %}
 {% set hot = thread.reply_count - 1 > 15 %}
+{% set r_avg, r_cnt = thread.rating_stats %}
 <tr align="center">
 	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/' ~ ('lockfolder.gif' if thread.is_closed else ('newhotfolder.gif' if thread.has_new and hot else ('newfolder.gif' if thread.has_new else ('hotfolder.gif' if hot else 'folder.gif'))))) }}" border="0" alt=""></td>
 	<td bgcolor="#DFDFDF">&nbsp;</td>
@@ -48,7 +49,7 @@
 	<td bgcolor="#DFDFDF" width="30%" nowrap><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a></font></td>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ thread.views }}</font></td>
-	<td bgcolor="#F1F1F1" align="center"><img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" alt="0 票 - 平均 0.0000"></td>
+	<td bgcolor="#F1F1F1" align="center"><img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" alt="{{ r_cnt }} 票 - 平均 {{ '%.4f'|format(r_avg) }}"></td>
 	<td bgcolor="#DFDFDF">
 		<table cellpadding="0" cellspacing="0" border="0" width="100%" id="ltlink"><tr align="right">
 			<td nowrap><font face="verdana,arial,helvetica" size="1">{{ thread.last_post_at|dt('%m-%d-%Y') }} <font color="#666686">{{ thread.last_post_at|dt('%I:%M %p') }}</font><br>

@@ -18,7 +18,7 @@ from .attachments import save_uploads
 from .extensions import db
 from datetime import datetime, timedelta, timezone
 
-from .models import Category, Forum, ForumRead, Post, Thread, User, utcnow
+from .models import Category, Forum, ForumRead, Post, Thread, ThreadRating, User, utcnow
 from .settings import get_setting
 from .utils import clamp_page, format_dt, page_args, render_body, time_ago
 
@@ -112,6 +112,39 @@ def print_thread(thread_id: int):
     )
 
 
+@bp.post("/t/<int:thread_id>/rate")
+@login_required
+def rate_thread(thread_id: int):
+    """对应 vB 的 threadrate.php：一人一票，改投覆盖旧票。"""
+    thread_obj = db.session.get(Thread, thread_id)
+    if thread_obj is None:
+        abort(404)
+    try:
+        vote = int(request.form.get("vote", "-1"))
+    except (TypeError, ValueError):
+        vote = -1
+    if vote < 1 or vote > 5:
+        flash("请选择 1 到 5 之间的评分。")
+        return redirect(url_for("forums.thread", thread_id=thread_obj.id))
+
+    existing = db.session.scalar(
+        select(ThreadRating).where(
+            ThreadRating.thread_id == thread_obj.id,
+            ThreadRating.user_id == current_user.id,
+        )
+    )
+    if existing is None:
+        db.session.add(
+            ThreadRating(thread_id=thread_obj.id, user_id=current_user.id, vote=vote)
+        )
+        flash("感谢评分。")
+    else:
+        existing.vote = vote
+        flash("你的评分已更新。")
+    db.session.commit()
+    return redirect(url_for("forums.thread", thread_id=thread_obj.id))
+
+
 @bp.get("/f/<int:forum_id>/markread")
 def mark_forum_read(forum_id: int):
     forum_obj = db.session.get(Forum, forum_id)
@@ -195,6 +228,20 @@ def forum(forum_id: int):
     for thread_obj in threads:
         last_at = _naive(thread_obj.last_post_at)
         thread_obj.has_new = bool(cutoff and last_at and last_at > cutoff)
+
+    # 评分一次聚合，避免模板里每行查一次
+    rating_rows = db.session.execute(
+        select(
+            ThreadRating.thread_id,
+            func.avg(ThreadRating.vote),
+            func.count(ThreadRating.id),
+        )
+        .where(ThreadRating.thread_id.in_([t.id for t in threads] or [-1]))
+        .group_by(ThreadRating.thread_id)
+    ).all()
+    ratings = {row[0]: (float(row[1] or 0), int(row[2] or 0)) for row in rating_rows}
+    for thread_obj in threads:
+        thread_obj._rating_cache = ratings.get(thread_obj.id, (0.0, 0))
 
     return render_template(
         "forum.html",

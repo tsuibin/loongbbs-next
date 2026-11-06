@@ -186,8 +186,9 @@
 	<td align="right"><font face="verdana,arial,helvetica" size="1">
 	{% if nav_user %}
 	<table cellpadding="0" cellspacing="0" border="0">
-	<form action="{{ url_for('forums.thread', thread_id=thread.id) }}" method="get"><tr><td>
-	<b>评价本主题:</b><br>
+	<form action="{{ url_for('forums.rate_thread', thread_id=thread.id) }}" method="post"><tr><td>
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<b>评价本主题:</b>{% set r_avg, r_cnt = thread.rating_stats %}{% if r_cnt %}<font face="verdana,arial,helvetica" size="1"> 当前 {{ '%.2f'|format(r_avg) }} 分（{{ r_cnt }} 票）</font>{% endif %}<br>
 	<select name="vote">
 		<option value="-1" selected>选择评分…</option>
 		<option value="5">5 .. 最好</option>

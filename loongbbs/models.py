@@ -193,6 +193,19 @@ class Thread(db.Model):
             .limit(1)
         )
 
+    @property
+    def rating_stats(self) -> tuple[float, int]:
+        """(平均分, 票数)。vB 的 threadrate 聚合；列表页由路由预先填 _rating_cache。"""
+        cached = getattr(self, "_rating_cache", None)
+        if cached is not None:
+            return cached
+        avg, count = db.session.execute(
+            select(func.avg(ThreadRating.vote), func.count(ThreadRating.id)).where(
+                ThreadRating.thread_id == self.id
+            )
+        ).one()
+        return (float(avg or 0), int(count or 0))
+
 
 class Post(db.Model):
     __tablename__ = "posts"
@@ -296,3 +309,19 @@ class ForumRead(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<ForumRead user={self.user_id} forum={self.forum_id}>"
+
+
+class ThreadRating(db.Model):
+    """vB 的 ``threadrate`` 表：一个用户对一个主题只能有一票，再投即改票。"""
+
+    __tablename__ = "thread_ratings"
+    __table_args__ = (db.UniqueConstraint("thread_id", "user_id", name="uq_thread_rating"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(db.Integer, db.ForeignKey("threads.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    vote = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<ThreadRating thread={self.thread_id} user={self.user_id} vote={self.vote}>"
