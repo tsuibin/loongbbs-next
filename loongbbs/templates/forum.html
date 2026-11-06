@@ -32,6 +32,19 @@
 	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id, sortfield='lastpost', sortorder=('asc' if sortfield == 'lastpost' and sortorder == 'desc' else 'desc' if sortfield == 'lastpost' else 'asc'), daysprune=daysprune) }}"><font color="#EEEEFF"><b>最后发表</b></font></a> {% if sortfield == 'lastpost' %}<img src="{{ url_for('static', filename='images/sort' ~ sortorder ~ '.gif') }}" border="0" alt="">{% endif %}</font></td>
 </tr>
 
+{% if announcement %}
+<tr align="center">
+	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/' ~ ('newannounce.gif' if announcement._new else 'announce.gif')) }}" border="0" alt="Announcement"></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">&nbsp;</font></td>
+	<td bgcolor="#F1F1F1" align="left" width="70%"><font face="verdana, arial, helvetica" size="2">Announcement: <a href="{{ url_for('forums.announcements', forum_id=forum.id) }}">{{ announcement.title }}</a></font></td>
+	<td bgcolor="#DFDFDF" nowrap align="left"><font face="verdana, arial, helvetica" size="2">{% if announcement.author %}<a href="{{ url_for('auth.profile', username=announcement.author.username) }}" target="_blank">{{ announcement.author.username }}</a>{% endif %}</font><font face="verdana,arial,helvetica" size="1"><br>({{ announcement.author.usertitle if announcement.author and announcement.author.usertitle else '' }})</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">-</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">-</font></td>
+	<td bgcolor="#F1F1F1">&nbsp;</td>
+	<td bgcolor="#DFDFDF" align="right"><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.announcements', forum_id=forum.id) }}">{{ announcement.start_date|dt('%Y-%m-%d %I:%M %p') }}</a> <a href="{{ url_for('forums.announcements', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/lastpost.gif') }}" border="0" alt="Read this announcement"></a></font></td>
+</tr>
+{% endif %}
+
 {% for thread in threads %}
 {% set hot = thread._hot %}
 {% set r_avg, r_cnt = thread.rating_stats %}

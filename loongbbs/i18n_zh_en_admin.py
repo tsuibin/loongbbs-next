@@ -32,10 +32,16 @@ MAP = {
         "entries of the original control panel: ported features work directly, entries that are "
         "not ported open an explanation page."
     ),
-    "已移植的后台功能：站点选项（Options）、版块与分类（Forums &amp; Moderators → Modify）、主题批量移动与删除（Threads &amp; Posts → Mass Move / Mass Prune）、会员查找与封禁（Users → Find）、统计（Statistics &amp; Logs → Statistics）。": (
+    "已移植的后台功能：站点选项（Options）、版块与分类（Forums &amp; Moderators → Modify）、公告（Announcements → Add / Modify）、主题批量移动与删除（Threads &amp; Posts → Mass Move / Mass Prune）、会员查找与封禁（Users → Find）、统计（Statistics &amp; Logs → Statistics）。": (
         "Admin features already ported: site Options; Forums &amp; Moderators → Modify; "
-        "Threads &amp; Posts → Mass Move / Mass Prune; Users → Find; Statistics &amp; Logs → Statistics."
+        "Announcements → Add / Modify; Threads &amp; Posts → Mass Move / Mass Prune; "
+        "Users → Find; Statistics &amp; Logs → Statistics."
     ),
+    # —— 公告（Announcements）——
+    "公告管理": "Announcements",
+    "添加公告": "Add Announcement",
+    "编辑公告": "Edit Announcement",
+    "删除公告": "Delete Announcement",
     "「moderators」是 vBulletin 2.3.11 后台的一个模块，LoongBBS Next 还没有对应的实现。": (
         "\"moderators\" is a module of the vBulletin 2.3.11 control panel. LoongBBS Next has no "
         "equivalent implementation yet."

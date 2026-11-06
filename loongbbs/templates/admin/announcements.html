@@ -1,0 +1,49 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}公告管理{% endblock %}
+{% block content %}
+<p><b>Announcements &rsaquo; Modify</b></p>
+<p>[<a href="{{ url_for('admin.announcement_add') }}">add announcement to all forums</a>]</p>
+
+{% if global_rows %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="4"><font size="1"><b><span class="tblhead">Global Announcements</span></b></font></td></tr>
+<tr class="secondalt" align="center">
+	<td align="left" width="100%"><font size="1"><b>Title</b></font></td>
+	<td><font size="1"><b>Start Date</b></font></td>
+	<td><font size="1"><b>End Date</b></font></td>
+	<td><font size="1"><b>Modify</b></font></td>
+</tr>
+{% for row in global_rows %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+	<td width="100%">{{ row.title }}</td>
+	<td nowrap>{{ row.start_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+	<td nowrap>{{ row.end_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+	<td nowrap>[<a href="{{ url_for('admin.announcement_edit', announcement_id=row.id) }}">edit</a>] [<a href="{{ url_for('admin.announcement_remove', announcement_id=row.id) }}">remove</a>]</td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+<br>
+{% endif %}
+
+<ul>
+{% for block in blocks %}
+	<li><b>{{ block.category.name }}</b>
+	<ul>
+{% for item in block.forums %}
+		<li><b>{{ item.forum.name }}</b> [<a href="{{ url_for('admin.announcement_add', forum_id=item.forum.id) }}">add announcement</a>]
+{% if item.rows %}
+		<ul>Announcements:<ul>
+{% for row in item.rows %}
+			<li>{{ row.title }} [<a href="{{ url_for('admin.announcement_edit', announcement_id=row.id) }}">edit</a>] [<a href="{{ url_for('admin.announcement_remove', announcement_id=row.id) }}">remove</a>]</li>
+{% endfor %}
+		</ul></ul>
+{% endif %}
+		</li>
+{% endfor %}
+	</ul>
+	</li>
+{% endfor %}
+</ul>
+{% endblock %}

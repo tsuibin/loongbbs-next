@@ -1,0 +1,65 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{{ '添加公告' if mode == 'add' else '编辑公告' }}{% endblock %}
+{% block content %}
+<form method="post">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">{% if mode == 'add' %}Add Announcement{% else %}Edit Announcement: <i>{{ announcement.title }}</i>{% endif %}</span></b></font></td></tr>
+
+<tr class="firstalt" valign="top">
+	<td width="220"><p>Title</p></td>
+	<td><p><input type="text" name="title" size="40" value="{{ announcement.title if announcement else '' }}"></p></td>
+</tr>
+
+<tr class="secondalt" valign="top">
+	<td><p>Start Date<br>(Format: yyyy-mm-dd hh:mm:ss)<br>The date that the announcement will run from</p></td>
+	<td><p><input type="text" name="startdate" size="30" value="{{ startdate }}"></p></td>
+</tr>
+
+<tr class="firstalt" valign="top">
+	<td><p>End Date<br>(Format: yyyy-mm-dd hh:mm:ss)<br>The date that the announcement will run until</p></td>
+	<td><p><input type="text" name="enddate" size="30" value="{{ enddate }}"></p></td>
+</tr>
+
+<tr class="secondalt" valign="top">
+	<td><p>Announcement</p></td>
+	<td><p><textarea name="pagetext" rows="10" cols="50">{{ announcement.pagetext if announcement else '' }}</textarea></p></td>
+</tr>
+
+<tr class="firstalt" valign="top">
+	<td><p>Allow HTML code</p></td>
+	<td><p>Yes<input type="radio" name="annc_allowhtmlcode" value="1"{% if mode == 'edit' %} checked{% endif %}> No <input type="radio" name="annc_allowhtmlcode" value="0"{% if mode != 'edit' %} checked{% endif %}></p></td>
+</tr>
+<tr class="secondalt" valign="top">
+	<td><p>Allow vB code</p></td>
+	<td><p>Yes<input type="radio" name="annc_allowvbcode" value="1"{% if mode != 'edit' %} checked{% endif %}> No <input type="radio" name="annc_allowvbcode" value="0"{% if mode == 'edit' %} checked{% endif %}></p></td>
+</tr>
+<tr class="firstalt" valign="top">
+	<td><p>Allow smilies</p></td>
+	<td><p>Yes<input type="radio" name="annc_allowsmilies" value="1"{% if mode != 'edit' %} checked{% endif %}> No <input type="radio" name="annc_allowsmilies" value="0"{% if mode == 'edit' %} checked{% endif %}></p></td>
+</tr>
+
+<tr class="secondalt" valign="top">
+	<td><p>Visible In</p></td>
+	<td><p>
+		<select name="forum_id">
+			<option value="-1"{% if selected_forum == -1 %} selected{% endif %}>All Forums</option>
+{% for block in blocks %}
+			<option value="-2" disabled>{{ block.category.name }}</option>
+{% for forum in block.forums %}
+			<option value="{{ forum.id }}"{% if selected_forum == forum.id %} selected{% endif %}>&nbsp;&nbsp;-- {{ forum.name }}</option>
+{% endfor %}
+{% endfor %}
+		</select>
+	</p></td>
+</tr>
+
+<tr class="tblhead"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="{{ 'Save' if mode == 'add' else 'Save Changes' }}">
+	<input type="button" value="Reset" onclick="this.form.reset()">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endblock %}

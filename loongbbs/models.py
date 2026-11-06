@@ -576,3 +576,30 @@ class OnlineSession(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<OnlineSession {self.session_hash[:8]} user={self.user_id}>"
+
+
+class Announcement(db.Model):
+    """vB 的 announcement 表（后台 Announcements → Add / Modify）。
+
+    参考站表结构：announcementid, title, userid, startdate, enddate, pagetext, forumid，
+    其中 forumid=-1 表示「全站公告」，否则只在那个版块显示。
+    原版把 allowhtml / allowvbcode / allowsmilies 只在提交时用于解析正文，不落库，
+    所以这里同样不存那三个开关。
+    """
+
+    __tablename__ = "announcements"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False, default="")
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    # -1 表示全站公告；其它值等于版块 id
+    forum_id = db.Column(db.Integer, nullable=False, default=-1, server_default="-1", index=True)
+    start_date = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    end_date = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    pagetext = db.Column(db.Text, nullable=False, default="")
+
+    author = db.relationship("User")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Announcement {self.id} forum={self.forum_id} {self.title}>"
+

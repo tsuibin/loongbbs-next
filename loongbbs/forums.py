@@ -19,6 +19,7 @@ from .extensions import db
 from datetime import datetime, timedelta, timezone
 
 from .models import (
+    Announcement,
     Category,
     EmailLog,
     Forum,
@@ -700,9 +701,28 @@ def forum(forum_id: int):
                 thread_obj._page_nav = nav
                 thread_obj._page_last = page_count
 
+    # 生效中的公告：本版块公告 + 全站公告（forumid=-1），只取最新一条（原版 LIMIT 1）
+    announcement = db.session.scalar(
+        select(Announcement)
+        .where(
+            Announcement.forum_id.in_([-1, forum_obj.id]),
+            Announcement.start_date <= utcnow(),
+            Announcement.end_date >= utcnow(),
+        )
+        .order_by(Announcement.start_date.desc())
+        .limit(1)
+    )
+    if announcement is not None:
+        # 原版：startdate 晚于上次访问时间就显示 newannounce.gif
+        last_visit = getattr(current_user, "last_visit", None) if current_user.is_authenticated else None
+        announcement._new = bool(
+            last_visit and _naive(announcement.start_date) > _naive(last_visit)
+        )
+
     return render_template(
         "forum.html",
         forum=forum_obj,
+        announcement=announcement,
         forums_all=forums_all,
         threads=threads,
         page=page,
@@ -715,6 +735,52 @@ def forum(forum_id: int):
         sortorder=sortorder,
         daysprune=daysprune,
         inverse_order=("asc" if sortorder == "desc" else "desc"),
+    )
+
+
+@bp.get("/announcements")
+@bp.get("/announcements/<int:forum_id>")
+def announcements(forum_id: int = -1):
+    """公告页（原版 announcement.php?forumid=N）：列出该版块内所有生效中的公告。"""
+    forum_obj = None
+    if forum_id and forum_id != -1:
+        forum_obj = db.session.get(Forum, forum_id)
+        if forum_obj is None:
+            abort(404)
+        if not can("canview", forum_obj.id):
+            abort(403)
+
+    forum_ids = [-1] if forum_obj is None else [-1, forum_obj.id]
+    rows = db.session.execute(
+        select(Announcement)
+        .where(
+            Announcement.forum_id.in_(forum_ids),
+            Announcement.start_date <= utcnow(),
+            Announcement.end_date >= utcnow(),
+        )
+        .order_by(Announcement.start_date.desc())
+    ).scalars().all()
+
+    posts = []
+    for index, row in enumerate(rows):
+        posts.append(
+            {
+                "row": row,
+                "author": row.author,
+                "body_html": render_body(row.pagetext),
+                "bgcolor": "#F1F1F1" if index % 2 == 0 else "#DFDFDF",
+            }
+        )
+
+    categories = db.session.execute(
+        select(Category).order_by(Category.position, Category.id)
+    ).scalars().all()
+    return render_template(
+        "announcements.html",
+        forum=forum_obj,
+        posts=posts,
+        count=len(posts),
+        categories=categories,
     )
 
 

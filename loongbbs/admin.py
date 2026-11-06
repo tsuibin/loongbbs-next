@@ -1,6 +1,7 @@
 """Admin control panel: settings, forums, users, avatars, threads, stats."""
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import (
@@ -18,6 +19,7 @@ from sqlalchemy import func, select
 
 from .extensions import db
 from .models import (
+    Announcement,
     Attachment,
     Avatar,
     Category,
@@ -46,8 +48,8 @@ NAV_GROUPS = [
         {"label": "vBulletin Options", "endpoint": "admin.settings_page"},
     ]},
     {"title": "Announcements", "links": [
-        {"label": "Add", "module": "Add Announcement"},
-        {"label": "Modify", "module": "Modify Announcements"},
+        {"label": "Add", "endpoint": "admin.announcement_add"},
+        {"label": "Modify", "endpoint": "admin.announcements_page"},
     ]},
     {"title": "Forums & Moderators", "links": [
         {"label": "Add", "module": "Add Forum"},
@@ -256,10 +258,144 @@ def settings_page():
     )
 
 
+def _parse_announcement_date(raw: str, fallback: datetime) -> datetime:
+    """照原版 yyyy-mm-dd hh:mm:ss 的日期输入；解析不了就用 fallback。"""
+    text = (raw or "").strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return fallback
+
+
+def _announcement_forums() -> list[dict]:
+    """后台「Visible In」下拉和列表页共用的分类 → 版块结构。"""
+    categories = db.session.execute(
+        select(Category).order_by(Category.position, Category.id)
+    ).scalars().all()
+    return [
+        {
+            "category": category,
+            "forums": sorted(category.forums, key=lambda f: (f.position, f.id)),
+        }
+        for category in categories
+    ]
+
+
+@bp.get("/announcements")
+def announcements_page():
+    """照 vB admin/announcement.php?action=modify：全站公告表 + 版块树。"""
+    global_rows = db.session.execute(
+        select(Announcement)
+        .where(Announcement.forum_id == -1)
+        .order_by(Announcement.start_date.desc())
+    ).scalars().all()
+
+    blocks = []
+    for block in _announcement_forums():
+        forums = []
+        for forum_obj in block["forums"]:
+            rows = db.session.execute(
+                select(Announcement)
+                .where(Announcement.forum_id == forum_obj.id)
+                .order_by(Announcement.start_date.desc())
+            ).scalars().all()
+            forums.append({"forum": forum_obj, "rows": rows})
+        blocks.append({"category": block["category"], "forums": forums})
+
+    return render_template("admin/announcements.html", global_rows=global_rows, blocks=blocks)
+
+
+@bp.route("/announcements/add", methods=["GET", "POST"])
+def announcement_add():
+    forum_id_raw = request.values.get("forum_id")
+    forum_id = int(forum_id_raw) if (forum_id_raw or "").lstrip("-").isdigit() else -1
+
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip() or "Announcement"
+        start = _parse_announcement_date(request.form.get("startdate"), datetime.now(timezone.utc))
+        end = _parse_announcement_date(
+            request.form.get("enddate"), datetime.now(timezone.utc) + timedelta(days=31)
+        )
+        posted_forum = request.form.get("forum_id")
+        target_forum = int(posted_forum) if (posted_forum or "").lstrip("-").isdigit() else -1
+        db.session.add(
+            Announcement(
+                title=title[:200],
+                user_id=current_user.id,
+                forum_id=target_forum,
+                start_date=start,
+                end_date=end,
+                pagetext=request.form.get("pagetext") or "",
+            )
+        )
+        db.session.commit()
+        flash("Record added", "success")
+        return redirect(url_for("admin.announcements_page"))
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    later = (datetime.now(timezone.utc) + timedelta(days=31)).strftime("%Y-%m-%d")
+    return render_template(
+        "admin/announcement_form.html",
+        mode="add",
+        announcement=None,
+        blocks=_announcement_forums(),
+        selected_forum=forum_id,
+        startdate=today,
+        enddate=later,
+    )
+
+
+@bp.route("/announcements/edit/<int:announcement_id>", methods=["GET", "POST"])
+def announcement_edit(announcement_id: int):
+    instance = db.session.get(Announcement, announcement_id)
+    if instance is None:
+        abort(404)
+
+    if request.method == "POST":
+        instance.title = ((request.form.get("title") or "").strip() or "Announcement")[:200]
+        instance.pagetext = request.form.get("pagetext") or ""
+        instance.start_date = _parse_announcement_date(
+            request.form.get("startdate"), instance.start_date
+        )
+        instance.end_date = _parse_announcement_date(request.form.get("enddate"), instance.end_date)
+        posted_forum = request.form.get("forum_id")
+        if (posted_forum or "").lstrip("-").isdigit():
+            instance.forum_id = int(posted_forum)
+        db.session.commit()
+        flash("Record updated!", "success")
+        return redirect(url_for("admin.announcements_page"))
+
+    return render_template(
+        "admin/announcement_form.html",
+        mode="edit",
+        announcement=instance,
+        blocks=_announcement_forums(),
+        selected_forum=instance.forum_id,
+        startdate=instance.start_date.strftime("%Y-%m-%d %H:%M:%S"),
+        enddate=instance.end_date.strftime("%Y-%m-%d %H:%M:%S"),
+    )
+
+
+@bp.route("/announcements/remove/<int:announcement_id>", methods=["GET", "POST"])
+def announcement_remove(announcement_id: int):
+    instance = db.session.get(Announcement, announcement_id)
+    if instance is None:
+        abort(404)
+
+    if request.method == "POST":
+        db.session.delete(instance)
+        db.session.commit()
+        flash("Deleted!", "success")
+        return redirect(url_for("admin.announcements_page"))
+
+    return render_template("admin/announcement_remove.html", announcement=instance)
+
+
 @bp.get("/permissions")
 def permissions_page():
     """照 vB admin/forumpermission.php?action=modify：按版块列出各个用户组。
-
     参考站里「分类」本身也是 forum 表里 parentid=-1 的一条记录，所以分类层也能
     单设权限并由子版块继承（列表里的蓝字行）。本站分类是独立表、没有继承链，
     因此分类层没有可设置对象，只列到版块层。
