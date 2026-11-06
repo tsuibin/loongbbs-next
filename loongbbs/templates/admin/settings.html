@@ -1,48 +1,88 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}站点设置{% endblock %}
+{% block title %}vBulletin Options{% endblock %}
 {% block content %}
+<script type="text/javascript">
+<!--
+function go_group(gid) {
+	window.location = '{{ url_for('admin.settings_page') }}?groupid=' + gid;
+}
+//-->
+</script>
+
 <p><b>vBulletin Options</b></p>
-<p><font size="1">这些值保存在 setting 表，保存后前台即时生效。</font></p>
+<p><font size="1">这些值保存在 settings 表，保存后前台即时生效。分组与字段照原版 vB 后台的 Options 页面。</font></p>
+
+<p><font size="1">
+<a href="{{ url_for('admin.settings_page') }}">全部设置</a> |
+{% for group in groups %}
+<a href="{{ url_for('admin.settings_page') }}?groupid={{ group.id }}">{{ group.title }}</a>{% if not loop.last %} | {% endif %}
+{% endfor %}
+</font></p>
 
 <form method="post" action="{{ url_for('admin.settings_page') }}">
-<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+{% if current_group_id %}<input type="hidden" name="groupid" value="{{ current_group_id }}">{% endif %}
+
+{% if not current_group_id %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="95%" class="tblborder"><tr><td>
 <table cellpadding="4" cellspacing="0" border="0" width="100%">
-<tr class="tblhead"><td colspan="3"><font size="1"><b><span class="tblhead">基本设置</span></b></font></td></tr>
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">本站设置</span></b></font></td></tr>
 {% for key, meta in editable.items() %}
   {% set label = meta[0] %}
   {% set kind = meta[1] %}
 <tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
-	<td width="220">{{ label }}</td>
+	<td width="230"><font size="1"><b>{{ label }}</b></font></td>
 	<td>
 		{% if kind == 'bool' %}
 			<input type="checkbox" name="{{ key }}" value="1" {% if values[key] == '1' %}checked{% endif %}> 启用
 		{% elif kind == 'number' %}
-			<input type="text" name="{{ key }}" size="8" value="{{ values[key] }}">
+			<input type="text" name="{{ key }}" size="8" value="{{ values[key] }}" class="bginput">
 		{% else %}
-			<input type="text" name="{{ key }}" size="45" value="{{ values[key] }}">
+			<input type="text" name="{{ key }}" size="45" value="{{ values[key] }}" class="bginput">
 		{% endif %}
+		<font size="1">　变量名：{{ key }}　默认值：{{ defaults.get(key, '') }}</font>
 	</td>
-	<td width="300"><font size="1">变量名：{{ key }}　默认值：{{ defaults.get(key, '') }}</font></td>
 </tr>
 {% endfor %}
-<tr id="submitrow"><td colspan="3" align="center">
-	<p id="submitrow">
-	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-	<input type="submit" value="   Save   ">
-	<input type="reset" value="   Reset   ">
-	</p>
-</td></tr>
 </table>
 </td></tr></table>
-</form>
+{% endif %}
+
+{% for group in shown_groups %}
+<br>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="95%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">{{ group.title }}</span></b></font></td></tr>
+{% for setting in group.settings %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td width="230"><font size="1"><b>{{ setting.title }}</b></font>
+	{% if setting.description %}<br><font size="1">{{ setting.description|safe }}</font>{% endif %}</td>
+	<td>
+	{% if setting.kind == 'select' %}
+		<select name="{{ setting.varname }}" class="bginput">
+		{% for value, label in setting.choices %}
+			<option value="{{ value }}"{% if setting.value == value %} selected{% endif %}>{{ label }}</option>
+		{% endfor %}
+		</select>
+	{% elif setting.kind == 'textarea' %}
+		<textarea name="{{ setting.varname }}" rows="3" cols="45" class="bginput">{{ setting.value }}</textarea>
+	{% else %}
+		<input type="text" name="{{ setting.varname }}" size="40" value="{{ setting.value }}" class="bginput">
+	{% endif %}
+		<font size="1">　变量名：{{ setting.varname }}</font>
+	</td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+{% endfor %}
 
 <br>
-
-<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
-<table cellpadding="4" cellspacing="0" border="0" width="100%">
-<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">说明</span></b></font></td></tr>
-<tr class="firstalt" valign="top"><td width="220">附件缩略图</td><td>开启后，帖子里的图片附件按「最大宽度/高度」等比缩小显示，点击可看原图；关闭则按原图显示。最大宽或高填 0 表示不限。</td></tr>
-<tr class="secondalt" valign="top"><td>每页数量</td><td>主题列表与帖子分页使用，改动后立即生效。</td></tr>
+<table cellpadding="4" cellspacing="0" border="0" align="center" width="95%">
+<tr><td align="center">
+	<input type="submit" value="   Save   " class="bginput">
+	<input type="reset" value="   Reset   " class="bginput">
+</td></tr>
 </table>
-</td></tr></table>
+</form>
 {% endblock %}

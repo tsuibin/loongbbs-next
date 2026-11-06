@@ -29,6 +29,7 @@ from .models import (
     User,
 )
 from .settings import DEFAULTS, get_settings, set_setting
+from .admin_settings import SETTING_DEFAULTS, SETTING_GROUPS
 from .utils import format_dt, human_size
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -205,7 +206,11 @@ def dashboard():
 
 @bp.route("/settings", methods=["GET", "POST"])
 def settings_page():
+    groupid_raw = request.values.get("groupid") or ""
+    current_group_id = int(groupid_raw) if groupid_raw.isdigit() else None
+
     if request.method == "POST":
+        # 本项目自有设置（网站名称等）
         for key, (_, kind) in EDITABLE_SETTINGS.items():
             if kind == "bool":
                 value = "1" if request.form.get(key) == "1" else "0"
@@ -221,12 +226,40 @@ def settings_page():
                     if key in ("thumb_width", "thumb_height") and int(value) < 0:
                         value = "0"
             set_setting(key, value)
+
+        # vB 后台 Options 的字段：只认表里定义过的变量名
+        allowed = set(SETTING_DEFAULTS)
+        for varname, value in request.form.items():
+            if varname not in allowed:
+                continue
+            text = (value or "").strip()
+            limit = 2000 if len(SETTING_DEFAULTS.get(varname, "")) > 200 else 200
+            set_setting(varname, text[:limit])
         db.session.commit()
         flash("设置已保存。", "success")
-        return redirect(url_for("admin.settings_page"))
+        target = url_for("admin.settings_page")
+        if current_group_id:
+            target += f"?groupid={current_group_id}"
+        return redirect(target)
+
+    values = dict(SETTING_DEFAULTS)
+    values.update(get_settings())
+
+    shown_groups = []
+    for group in SETTING_GROUPS:
+        if current_group_id and group["id"] != current_group_id:
+            continue
+        rows = [dict(setting, value=values.get(setting["varname"], setting["default"])) for setting in group["settings"]]
+        shown_groups.append({"id": group["id"], "title": group["title"], "settings": rows})
 
     return render_template(
-        "admin/settings.html", values=get_settings(), editable=EDITABLE_SETTINGS, defaults=DEFAULTS
+        "admin/settings.html",
+        values=values,
+        editable=EDITABLE_SETTINGS,
+        defaults=DEFAULTS,
+        groups=SETTING_GROUPS,
+        shown_groups=shown_groups,
+        current_group_id=current_group_id,
     )
 
 
