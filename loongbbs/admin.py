@@ -130,7 +130,7 @@ NAV_GROUPS = [
     {"title": "Import & Maintenance", "links": [
         {"label": "Back-up Database", "endpoint": "admin.backup_choose"},
         {"label": "Database Settings", "endpoint": "admin.dbsettings"},
-        {"label": "BB Import Systems", "module": "BB Import Systems"},
+        {"label": "BB Import Systems", "endpoint": "admin.bbimport"},
         {"label": "Update Counters", "module": "Update Counters"},
     ]},
     {"title": "Statistics & Logs", "links": [
@@ -1760,6 +1760,20 @@ def _db_test(uri: str):
     except Exception as exc:
         details.append(f"连接失败：{exc}")
         return False, details
+
+
+@bp.route("/bbimport", methods=["GET", "POST"])
+def bbimport():
+    """Import & Maintenance → BB Import Systems：照原版 bbimport.php 的导入系统选择页。
+
+    原版从 ../importers/ 目录里扫 bbimport_*.php 导入脚本，把脚本第二行的系统名列进下拉框；
+    参考站没有 importers 目录，因此原版页面本身就是"没有可用导入脚本"的三个兜底选项。
+    本项目同样不内建任何外部论坛导入器，页面按同一状态输出。
+    """
+    started = None
+    if request.method == "POST" and request.form.get("action") == "choosebb":
+        started = request.form.get("importbb") or "membersarea"
+    return render_template("admin/bbimport.html", started=started)
 
 
 @bp.route("/dbsettings", methods=["GET", "POST"])

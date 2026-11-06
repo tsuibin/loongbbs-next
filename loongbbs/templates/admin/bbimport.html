@@ -1,0 +1,42 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}vBulletin 2 Import Systems{% else %}论坛导入系统{% endif %}{% endblock %}
+{% block content %}
+
+<p>Please choose a bulletin board system from which to import from the list below.</p>
+<p>Once you have chosen a system, proceed through the import routine. <b>Do not</b> press your browser's 'back' button, or refresh any pages, as this can lead to items being imported twice, which would be bad...</p>
+
+{% if started %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Import could not start</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2"><p>You do not currently have any import scripts to use.</p>
+<p><font size="1">{% if ui_lang == 'en' %}No importer for the selected system ({{ started }}) is installed on this board. Importers are optional add-on scripts, not part of the board itself; install one before importing.{% else %}本站没有安装所选系统（{{ started }}）对应的导入脚本。导入器是可选的附加脚本，不属于论坛本体，需先安装再导入。{% endif %}</font></p>
+<p><font size="1">{% if ui_lang == 'en' %}It is highly recommended the you back up your database before proceeding with this process.{% else %}It is highly recommended the you back up your database before proceeding with this process.{% endif %}</font></p></td></tr>
+</table>
+</td></tr></table>
+{% endif %}
+
+<form method="post" action="{{ url_for('admin.bbimport') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">vBulletin 2 Bulletin Board Import System</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="45%"><p>Choose a bulletin board system to import from.</p>
+	<p><font size="1"><a href="http://vbulletin.com/members/" class="lc">[get more import scripts]</a></font></p></td>
+	<td><select name="importbb" size="5">
+		<option value="membersarea">You do not currently have any import scripts to use.</option>
+		<option value="membersarea">A full list of the currently available import scripts</option>
+		<option value="membersarea">can be found in the vBulletin Members' area.</option>
+	</select></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="choosebb">
+	<input type="submit" value="   Begin Import   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<p>It is highly recommended the you <b>back up your database</b> before proceeding with this process.</p>
+
+{% endblock %}
