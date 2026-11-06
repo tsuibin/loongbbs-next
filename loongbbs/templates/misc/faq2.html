@@ -130,9 +130,9 @@
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
-	<p>There are three types of events on the <a href="{{ url_for('forums.index') }}">calendar</a>: public events, private events and birthdays.</p>
+	<p>There are three types of events on the <a href="{{ url_for('calendar.calendar_view') }}">calendar</a>: public events, private events and birthdays.</p>
 	<p><b>Public events</b> are entered by the administrator or moderators, and are viewable by anybody. The administrator <i>may</i> have enabled registered members  to post public events, but usually this is not the case.</p>
-	<p><b>Private events</b> can be entered and edited by any registered member, and are viewable only to the user who entered the event on the calendar. Private events enable you to  use the calendar as your own personal online diary, entering engagements and events for any date you like. If you are a registered member, you can enter a new private event on the calendar <a href="{{ url_for('forums.index') }}">here</a>.</p>
+	<p><b>Private events</b> can be entered and edited by any registered member, and are viewable only to the user who entered the event on the calendar. Private events enable you to  use the calendar as your own personal online diary, entering engagements and events for any date you like. If you are a registered member, you can enter a new private event on the calendar <a href="{{ url_for('calendar.calendar_view') }}">here</a>.</p>
 	<p><b>Birthdays</b> may be shown on the calendar if the administrator has enabled this feature. Your birthday will automatically be shown on the calendar if you have entered the date of your birthday in your <a href="{{ url_for('auth.edit_profile') }}">profile</a>. Note: if you do not enter the year of your birth when you edit your profile, your age will not be shown on the calendar.</p>
 	<p>If you enter your birthday, your name will also appear on the <a href="{{ url_for('forums.index') }}">main forum page</a> when it is your birthday.</p>
 	</font></td>

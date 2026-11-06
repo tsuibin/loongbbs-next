@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% set en = ui_lang == 'en' %}
+{% block title %}{{ settings.site_name }} - {% if en %}Calendar {{ month_name_en }} {{ year }}{% else %}日历 {{ month }}月 {{ year }}{% endif %}{% endblock %}
+{% block content %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="absmiddle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; Calendar &gt; {% if en %}{{ month_name_en }} {{ year }}{% else %}{{ month }}月 {{ year }}{% endif %}</b></font></td>
+	<td valign="bottom" align="right" nowrap>&nbsp;</td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<br>
+
+<!-- calendar -->
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#8080A6" colspan="7"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>{{ settings.site_name }} {% if en %}Calendar{% else %}日历{% endif %}</b></font></td>
+</tr>
+<tr align="center">
+	{% for name in (weekday_names_en if en else weekday_names) %}
+	<td bgcolor="#8080A6" width="14%"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>{{ name }}</b></font></td>
+	{% endfor %}
+</tr>
+{% for week in weeks %}
+<tr valign="top">
+	{% for cell in week %}
+	<td bgcolor="#F1F1F1" height="80" valign="top">
+		{% if cell.day %}
+		<font face="verdana,arial,helvetica" size="1">{% if cell.day == today %}<b>{{ cell.day }}</b>{% else %}{{ cell.day }}{% endif %}</font><br>
+		{% for name in cell.birthdays %}
+		<font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('members.memberlist') }}">{{ name }}</a></font><br>
+		{% endfor %}
+		{% else %}<font face="verdana,arial,helvetica" size="1">&nbsp;</font>{% endif %}
+	</td>
+	{% endfor %}
+</tr>
+{% endfor %}
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2" align="center" nowrap><font face="verdana,arial,helvetica" size="1">&nbsp;</font></td>
+	<td bgcolor="#F1F1F1" colspan="3" align="center" nowrap>
+		<form action="{{ url_for('calendar.calendar_view') }}" method="get">
+		<font face="verdana,arial,helvetica" size="1">
+		<select name="month" class="bginput">
+			{% for m, label in (month_names_en if en else month_names) %}<option value="{{ m }}"{% if m == month %} selected{% endif %}>{{ label }}</option>{% endfor %}
+		</select>
+		<select name="year" class="bginput">
+			{% for y in years %}<option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>{% endfor %}
+		</select>
+		<input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom" alt="Go">
+		</font>
+		</form>
+	</td>
+	<td bgcolor="#F1F1F1" colspan="2" align="right" nowrap><font face="verdana,arial,helvetica" size="1">
+		&nbsp;<a href="{{ url_for('calendar.calendar_view', month=prev_month, year=prev_year) }}">&lt; {% if en %}{{ prev_month_en }} {{ prev_year }}{% else %}{{ prev_month }}月 {{ prev_year }}{% endif %}</a> |
+		<a href="{{ url_for('calendar.calendar_view', month=next_month, year=next_year) }}">{% if en %}{{ next_month_en }} {{ next_year }}{% else %}{{ next_month }}月 {{ next_year }}{% endif %} &gt;</a>&nbsp;</font></td>
+</tr>
+</table>
+</td></tr></table>
+<!-- /calendar -->
+{% endblock %}

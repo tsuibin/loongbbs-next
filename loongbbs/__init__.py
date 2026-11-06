@@ -244,6 +244,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     from .members import bp as members_bp
     from .misc import bp as misc_bp
     from .online import bp as online_bp
+    from .calendar import bp as calendar_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(forums_bp)
@@ -254,6 +255,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(members_bp)
     app.register_blueprint(misc_bp)
     app.register_blueprint(online_bp)
+    app.register_blueprint(calendar_bp)
 
     # 组 23 addtemplatename：记下本次请求渲染的最外层模板名，供 after_request
     # 在 HTML 前后插入 `<!-- template: xxx -->` 注释（原版 functions.php 的
