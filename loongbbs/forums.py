@@ -175,6 +175,20 @@ def thread(thread_id: int):
     thread_obj.views = (thread_obj.views or 0) + 1
     db.session.commit()
 
+    # vB 2.x 的 Last Thread / Next Thread 按 threadid 顺序取相邻主题
+    prev_thread = db.session.scalar(
+        select(Thread)
+        .where(Thread.forum_id == thread_obj.forum_id, Thread.id < thread_obj.id)
+        .order_by(Thread.id.desc())
+        .limit(1)
+    )
+    next_thread = db.session.scalar(
+        select(Thread)
+        .where(Thread.forum_id == thread_obj.forum_id, Thread.id > thread_obj.id)
+        .order_by(Thread.id)
+        .limit(1)
+    )
+
     return render_template(
         "thread.html",
         thread=thread_obj,
@@ -187,6 +201,22 @@ def thread(thread_id: int):
         render_body=render_body,
         format_dt=format_dt,
         time_ago=time_ago,
+        prev_thread=prev_thread,
+        next_thread=next_thread,
+    )
+
+
+@bp.get("/t/<int:thread_id>/reply")
+@login_required
+def reply_form(thread_id: int):
+    thread_obj = db.session.get(Thread, thread_id)
+    if thread_obj is None:
+        abort(404)
+    if thread_obj.is_closed:
+        flash("这个主题已关闭，不能回复。", "error")
+        return redirect(url_for("forums.thread", thread_id=thread_id))
+    return render_template(
+        "post_form.html", forum=thread_obj.forum, mode="reply", thread=thread_obj, post=None
     )
 
 

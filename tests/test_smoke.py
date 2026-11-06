@@ -113,7 +113,7 @@ def main() -> int:
     ok("发主题并渲染 BBCode")
 
     # ---- reply with an image attachment -----------------------------------
-    tok = fresh_token(client, f"/t/{thread_id}")
+    tok = fresh_token(client, f"/t/{thread_id}/reply")
     response = client.post(
         f"/t/{thread_id}/reply",
         data={

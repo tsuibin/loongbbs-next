@@ -1,6 +1,7 @@
 """Registration, login, logout, avatar editing and public profiles."""
 from __future__ import annotations
 
+import io
 import re
 import secrets
 from pathlib import Path
@@ -134,6 +135,52 @@ def _custom_avatar_dir() -> Path:
     return path
 
 
+def _store_uploaded_avatar(storage, user_id: int, max_dim: int, max_kb: int) -> tuple[str, str]:
+    """把上传的图片等比缩到上限再落盘。返回 (相对 static 的路径, 错误信息)。
+
+    vB 2.x 只认 50×50 / 20000 字节这种小图，现代照片直接拒绝；这里先缩放再存，
+    保证用户上传任何常见格式都能得到一个可用的小头像。
+    """
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    try:
+        image = Image.open(storage.stream)
+        image.load()
+    except (UnidentifiedImageError, OSError):
+        return "", "上传的文件不是可识别的图片。"
+
+    image = ImageOps.exif_transpose(image)
+    if max(image.size) > max_dim:
+        image.thumbnail((max_dim, max_dim), Image.LANCZOS)
+
+    limit = max(1, max_kb) * 1024
+    payload = b""
+    suffix = ".png"
+    for scale in (1.0, 0.8, 0.65, 0.5, 0.35):
+        frame = image
+        if scale != 1.0:
+            frame = image.resize(
+                (max(1, int(image.width * scale)), max(1, int(image.height * scale))),
+                Image.LANCZOS,
+            )
+        buffer = io.BytesIO()
+        if frame.mode in ("RGBA", "LA", "P"):
+            frame.convert("RGBA").save(buffer, "PNG", optimize=True)
+            suffix = ".png"
+        else:
+            frame.convert("RGB").save(buffer, "JPEG", quality=85, optimize=True)
+            suffix = ".jpg"
+        if buffer.tell() <= limit:
+            payload = buffer.getvalue()
+            break
+    if not payload:
+        return "", f"图片缩到 {max_dim} 像素后仍超过 {max_kb} KB，请换一张内容更简单的图片。"
+
+    name = f"u{user_id}-{secrets.token_hex(8)}{suffix}"
+    (_custom_avatar_dir() / name).write_bytes(payload)
+    return f"{CUSTOM_AVATAR_DIR}/{name}", ""
+
+
 @bp.route("/avatar", methods=["GET", "POST"])
 @login_required
 def edit_avatar():
@@ -205,13 +252,15 @@ def _apply_avatar_choice(choice: int, storage, selected_url: str) -> tuple[str, 
         if user.post_count < required:
             return f"至少需要 {required} 个帖子才能使用自定义头像。", False
 
-        name = f"u{user.id}-{secrets.token_hex(8)}{ext}"
-        target = _custom_avatar_dir() / name
-        storage.save(target)
-        if target.stat().st_size > int(get_setting("avatarmaxsize") or 60) * 1024:
-            target.unlink(missing_ok=True)
-            return "图片超过体积上限，已放弃上传。", False
-        user.custom_avatar = f"{CUSTOM_AVATAR_DIR}/{name}"
+        rel_path, error = _store_uploaded_avatar(
+            storage,
+            user.id,
+            int(get_setting("avatarmaxdimension") or 100),
+            int(get_setting("avatarmaxsize") or 1024),
+        )
+        if error:
+            return error, False
+        user.custom_avatar = rel_path
         user.avatar_id = 0
         db.session.commit()
         return "自定义头像已上传。", True
