@@ -128,7 +128,7 @@ NAV_GROUPS = [
         {"label": "Modify", "endpoint": "admin.bbcodes"},
     ]},
     {"title": "Import & Maintenance", "links": [
-        {"label": "Back-up Database", "module": "Back-up Database"},
+        {"label": "Back-up Database", "endpoint": "admin.backup_choose"},
         {"label": "Database Settings", "module": "Database Settings"},
         {"label": "BB Import Systems", "module": "BB Import Systems"},
         {"label": "Update Counters", "module": "Update Counters"},
@@ -1576,6 +1576,118 @@ def _apply_bbcodes(text: str) -> str:
     for row in rows:
         out = _bbcode_html(row.bbcodetag, row.bbcodereplacement, row.twoparams, out)
     return out
+
+
+def _sqlite_tables() -> list:
+    """等价原版 SHOW tables：列出本地 sqlite 库里的用户表。"""
+    rows = db.session.execute(
+        db.text("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+    ).all()
+    return [r[0] for r in rows]
+
+
+def _sqlite_dump(tables: list) -> str:
+    """生成 sqlite 的 SQL dump（表结构 + INSERT），等价原版 sqldumptable/dump_header。"""
+    import sqlite3
+
+    uri = current_app.config["SQLALCHEMY_DATABASE_URI"].replace("sqlite:///", "", 1)
+    path = Path(uri) if Path(uri).is_absolute() else Path(current_app.root_path).parent / uri
+    conn = sqlite3.connect(str(path))
+    out = ["-- vBulletin Next database dump", "-- SQLite format", ""]
+    for name in tables:
+        row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone()
+        if not row:
+            continue
+        out.append(f"DROP TABLE IF EXISTS {name};")
+        out.append(f"{row[0]};")
+        cols = [c[1] for c in conn.execute(f"PRAGMA table_info({name})").fetchall()]
+        for rec in conn.execute(f"SELECT * FROM {name}").fetchall():
+            values = []
+            for v in rec:
+                if v is None:
+                    values.append("NULL")
+                elif isinstance(v, (int, float)):
+                    values.append(str(v))
+                else:
+                    values.append("'" + str(v).replace("'", "''") + "'")
+            out.append(f"INSERT INTO {name} ({', '.join(cols)}) VALUES ({', '.join(values)});")
+        out.append("")
+    conn.close()
+    return "\n".join(out)
+
+
+def _search_backup_path(raw: str):
+    """只允许写到应用根目录内的相对路径（原版允许任意路径；这里做安全收敛）。"""
+    base = Path(current_app.root_path).parent
+    raw = (raw or "").strip().lstrip("./")
+    if not raw:
+        return None
+    candidate = (base / raw).resolve()
+    if base.resolve() not in candidate.parents:
+        return None
+    return candidate
+
+
+@bp.route("/backup")
+def backup_choose():
+    """Import & Maintenance → Back-up Database：照原版 backup.php?action=choose 的三块表单。"""
+    tables = _sqlite_tables()
+    default_name = "./forumbackup-" + datetime.now().strftime("%m-%d-%Y") + ".sql"
+    return render_template("admin/backup.html", tables=tables, default_name=default_name)
+
+
+@bp.route("/backup/sql", methods=["POST"])
+def backup_sql():
+    """原版 action=sqltable：把所有勾选的表 dump 成一个 vbulletin.sql 下载。"""
+    chosen = [t for t in _sqlite_tables() if request.form.get(f"table[{t}]") in ("1", "on")]
+    body = _sqlite_dump(chosen)
+    return Response(body, mimetype="application/octet-stream",
+                    headers={"Content-disposition": "filename=vbulletin.sql"})
+
+
+@bp.route("/backup/file", methods=["POST"])
+def backup_file():
+    """原版 action=sqlfile：把 dump 写到服务器上指定路径的 .sql 文件。"""
+    filename = request.form.get("filename") or ""
+    target = _search_backup_path(filename)
+    if target is None:
+        flash("Invalid path - backup must be written inside the board directory", "error")
+        return redirect(url_for("admin.backup_choose"))
+    body = _sqlite_dump(_sqlite_tables())
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(body, encoding="utf-8")
+    lines = "".join(f"<p>Dumping {t}</p>" for t in _sqlite_tables())
+    return render_template("admin/backup.html", mode="done", tables=_sqlite_tables(),
+                           dumped=lines, target=filename)
+
+
+@bp.route("/backup/csv", methods=["POST"])
+def backup_csv():
+    """原版 action=csvtable：把单表 dump 成 CSV 下载。"""
+    import sqlite3
+
+    table = request.form.get("table") or ""
+    if table not in _sqlite_tables():
+        flash("Table not found", "error")
+        return redirect(url_for("admin.backup_choose"))
+    separator = request.form.get("separator") or ","
+    quotes = request.form.get("quotes") or "'"
+    showhead = _yn(request.form, "showhead", 1)
+    uri = current_app.config["SQLALCHEMY_DATABASE_URI"].replace("sqlite:///", "", 1)
+    path = Path(uri) if Path(uri).is_absolute() else Path(current_app.root_path).parent / uri
+    conn = sqlite3.connect(str(path))
+    out = []
+    if showhead:
+        cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+        out.append(separator.join(quotes + c + quotes for c in cols))
+    for rec in conn.execute(f"SELECT * FROM {table}").fetchall():
+        out.append(separator.join(
+            "NULL" if v is None else (quotes + str(v).replace(quotes, quotes + quotes) + quotes)
+            for v in rec))
+    conn.close()
+    body = "\n".join(out) + "\n"
+    return Response(body, mimetype="text/csv",
+                    headers={"Content-disposition": f"filename={table}.csv"})
 
 
 @bp.route("/bbcodes", methods=["GET", "POST"])

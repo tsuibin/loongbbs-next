@@ -1,0 +1,72 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Back-up Database{% else %}数据库备份{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'done' %}
+{{ dumped|safe }}
+<p>Data dumped sucessfully!</p>
+
+{% else %}
+<p>From here, you can back up your vBulletin database.</p>
+<p><b>Dump format:</b> SQLite (matches the database this board is running on).</p>
+
+<P><b>SQL Dump of data:</b></p>
+<form method="post" action="{{ url_for('admin.backup_sql') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Database tables to include in backup</span></b></font></td></tr>
+{% for name in tables %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top"><td><p>{{ name }}</p></td>
+	<td><p>Yes<input type="radio" name="table[{{ name }}]" value="1" checked> No <input type="radio" name="table[{{ name }}]" value="0"></p></td></tr>
+{% endfor %}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Do Backup   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.backup_file') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Save data to file on server:</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Path and filename on server</p></td>
+	<td><p><input type="text" size="60" name="filename" value="{{ default_name }}"></p></td></tr>
+<tr class="firstalt"><td colspan="2"><p><b>PHP must have access to write in this directory</b> (usually chmod 0777)</p></td></tr>
+<tr class="firstalt"><td colspan="2"><p><b>Warning:</b> Do not place your backup in an Internet-accessible directory. Place it outside of your root website directory if possible!</p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save File   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="post" action="{{ url_for('admin.backup_csv') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">CSV Dump of data:</span></b></font></td></tr>
+<tr class="firstalt"><td><p>Choose table:</p></td>
+	<td><p><select name="table" size="1">
+	{% for name in tables %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+	</select></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>separator</p></td>
+	<td><p><input type="text" size="35" name="separator" value=","></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Quotes</p></td>
+	<td><p><input type="text" size="35" name="quotes" value="'"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Show column names</p></td>
+	<td><p>Yes<input type="radio" name="showhead" value="1" checked> No <input type="radio" name="showhead" value="0"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Generate   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}
