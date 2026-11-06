@@ -43,6 +43,7 @@ from .models import (
     ThreadSubscription,
     User,
     UserGroup,
+    UserTitle,
 )
 from .permissions import ensure_seed, permissions_for_group
 from .settings import DEFAULTS, get_settings, set_setting
@@ -89,8 +90,8 @@ NAV_GROUPS = [
         {"label": "Build Mailing List", "endpoint": "admin.users_email_genlist"},
     ]},
     {"title": "User Titles", "links": [
-        {"label": "Add", "module": "Add User Title"},
-        {"label": "Modify", "module": "Modify User Titles"},
+        {"label": "Add", "endpoint": "admin.usertitles_add"},
+        {"label": "Modify", "endpoint": "admin.usertitles"},
     ]},
     {"title": "User Profile Fields", "links": [
         {"label": "Add", "module": "Add Profile Field"},
@@ -1142,6 +1143,59 @@ def users_referrals_detail():
     return render_template("admin/referrals.html", mode="detail", rows=rows,
                            referrer=referrer, referrerid=referrerid,
                            startdate=start_raw, enddate=end_raw)
+
+
+@bp.route("/usertitles")
+def usertitles():
+    """User Titles → Modify：照原版 usertitle.php 的 modify。"""
+    rows = db.session.execute(select(UserTitle).order_by(UserTitle.minposts)).scalars().all()
+    return render_template("admin/usertitles.html", mode="list", rows=rows)
+
+
+@bp.route("/usertitles/add", methods=["GET", "POST"])
+def usertitles_add():
+    """User Titles → Add：原版 add / insert。"""
+    if request.method == "GET":
+        return render_template("admin/usertitles.html", mode="add")
+    title = (request.form.get("title") or "").strip()
+    minposts = request.form.get("minposts", type=int) or 0
+    db.session.add(UserTitle(title=title, minposts=minposts))
+    db.session.commit()
+    flash("Record added", "success")
+    return redirect(url_for("admin.usertitles"))
+
+
+@bp.route("/usertitles/edit", methods=["GET", "POST"])
+def usertitles_edit():
+    """User Titles → Modify 的编辑分支：原版 edit / doupdate。"""
+    uid = request.values.get("usertitleid", type=int) or 0
+    row = db.session.get(UserTitle, uid) if uid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.usertitles"))
+    if request.method == "GET":
+        return render_template("admin/usertitles.html", mode="edit", row=row)
+    row.title = (request.form.get("title") or "").strip()
+    row.minposts = request.form.get("minposts", type=int) or 0
+    db.session.commit()
+    flash("Record updated!", "success")
+    return redirect(url_for("admin.usertitles"))
+
+
+@bp.route("/usertitles/remove", methods=["GET", "POST"])
+def usertitles_remove():
+    """User Titles → Modify 的删除分支：原版 remove / kill。"""
+    uid = request.values.get("usertitleid", type=int) or 0
+    row = db.session.get(UserTitle, uid) if uid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.usertitles"))
+    if request.method == "GET":
+        return render_template("admin/usertitles.html", mode="remove", row=row)
+    db.session.execute(delete(UserTitle).where(UserTitle.id == row.id))
+    db.session.commit()
+    flash("User title removed", "success")
+    return redirect(url_for("admin.usertitles"))
 
 
 @bp.route("/users/pmstats")

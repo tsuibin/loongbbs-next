@@ -12,6 +12,23 @@ from flask_login import current_user
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _ensure_usertitles() -> None:
+    """User Titles 表为空时补上参考站的默认三档（Junior/Member/Senior Member）。"""
+    from sqlalchemy import func, select
+
+    from .extensions import db
+    from .models import UserTitle
+
+    if db.session.scalar(select(func.count(UserTitle.id))):
+        return
+    db.session.add_all([
+        UserTitle(title="Junior Member", minposts=0),
+        UserTitle(title="Member", minposts=30),
+        UserTitle(title="Senior Member", minposts=100),
+    ])
+    db.session.commit()
+
+
 def _ensure_columns() -> None:
     """后加的列在既有 sqlite 库上补一次（create_all 不会改已存在的表）。"""
     from sqlalchemy import text
@@ -416,5 +433,6 @@ def create_app(test_config: dict | None = None) -> Flask:
         db.create_all()
         _ensure_columns()
         ensure_seed()
+        _ensure_usertitles()
 
     return app

@@ -114,6 +114,16 @@ def load_user(user_id: str) -> User | None:
     return db.session.get(User, int(user_id))
 
 
+class UserTitle(db.Model):
+    """User Titles：按发帖数分档的头衔（对应原版 usertitle 表）。"""
+
+    __tablename__ = "usertitles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False, default="", server_default="")
+    minposts = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+
+
 class Category(db.Model):
     __tablename__ = "categories"
 

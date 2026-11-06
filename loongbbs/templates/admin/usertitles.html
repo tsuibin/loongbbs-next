@@ -1,0 +1,67 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}User Titles{% else %}用户头衔{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'list' %}
+<ul>
+{% for r in rows %}
+	<li>{{ r.title }} (Minimum Posts: {{ r.minposts }}) <a href="{{ url_for('admin.usertitles_edit', usertitleid=r.id) }}" class="lc">[edit]</a> <a href="{{ url_for('admin.usertitles_remove', usertitleid=r.id) }}" class="lc">[remove]</a></li>
+{% endfor %}
+</ul>
+<p>That's all folks</p>
+
+{% elif mode == 'add' %}
+<form method="post" action="{{ url_for('admin.usertitles_add') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add New User Title</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Title</p></td>
+	<td><p><input type="text" size="35" name="title" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Minimum posts required</p></td>
+	<td><p><input type="text" size="35" name="minposts" value=""></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'edit' %}
+<form method="post" action="{{ url_for('admin.usertitles_edit') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit User Title:</b> <i>{{ row.title }}</i></span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Title</p></td>
+	<td><p><input type="text" size="35" name="title" value="{{ row.title }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Minimum posts required</p></td>
+	<td><p><input type="text" size="35" name="minposts" value="{{ row.minposts }}"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="usertitleid" value="{{ row.id }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<form method="post" action="{{ url_for('admin.usertitles_remove') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2" align="center">Are you sure you want to delete this user title?</td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="usertitleid" value="{{ row.id }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="history.back()">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}
