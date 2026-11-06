@@ -345,6 +345,13 @@ def _minutes_since(value: datetime | None) -> float:
     return (utcnow() - value).total_seconds() / 60
 
 
+def _log_ip() -> str | None:
+    """组 15 logip：1/2 才记录发帖 IP（原版 newthread.php / newreply.php 的写法）。"""
+    if get_setting("logip", "0") not in ("1", "2"):
+        return None
+    return (request.remote_addr or "")[:45] or None
+
+
 def _thread_per_page() -> int:
     """组 8 maxposts / usermaxposts：每页帖数。
 
@@ -718,6 +725,7 @@ def new_thread(forum_id: int):
         title=title,
         body=body,
         iconid=_icon_id(),
+        ipaddress=_log_ip(),
     )
     db.session.add(post)
     db.session.flush()
@@ -964,6 +972,7 @@ def reply(thread_id: int):
         title=title,
         body=body,
         iconid=_icon_id(),
+        ipaddress=_log_ip(),
     )
     db.session.add(post)
     db.session.flush()
@@ -982,6 +991,18 @@ def _last_page(thread_obj: Thread) -> int:
         )
     ) or 1
     return max(1, (count + per_page - 1) // per_page)
+
+
+@bp.get("/post/<int:post_id>/ip")
+@login_required
+def post_ip(post_id: int):
+    """对应 vB postings.php?action=getip：只有管理员/版主能看真实 IP。"""
+    post = db.session.get(Post, post_id)
+    if post is None:
+        abort(404)
+    if not (current_user.is_admin or _can_moderate(post.thread)):
+        abort(403)
+    return render_template("post_ip.html", post=post)
 
 
 @bp.get("/post/<int:post_id>/edit")

@@ -222,6 +222,8 @@ class Post(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
     # vB 的 edituserid：组 14 showeditedby 决定是否落这一列，用于「本帖最后由 X 修改」
     edit_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    # vB 的 post.ipaddress：组 15 logip 决定发帖时是否记录
+    ipaddress = db.Column(db.String(45), nullable=True)
     is_deleted = db.Column(db.Boolean, nullable=False, default=False)
     # vB 的 iconid：发帖时选的帖子图标 1-14，0 = 不使用图标
     iconid = db.Column(db.Integer, nullable=False, default=0, server_default="0")

@@ -139,7 +139,7 @@
 	{% endif %}
 	{% if settings.get('allowsignatures', '1') != '0' and (not nav_user or nav_user.showsignatures) %}<p><font face="verdana,arial,helvetica" size="1">{% if post.author.signature %}{{ post.author.signature }}{% endif %}</font></p>{% endif %}
 	<p><font face="verdana,arial,helvetica" size="1">{% if post.updated_at %}（本帖最后由 {{ (post.edit_user or post.author).username }} 于 {{ post.updated_at|datetimefmt }} 修改过）{% endif %}</font></p>
-	<p align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}<a href="{{ url_for('forums.report_form', post_id=post.id) }}">向版主举报本帖</a>{% else %}<a href="{{ url_for('auth.login_form') }}">向版主举报本帖</a>{% endif %} | IP: {% if nav_user %}已登录{% else %}未登录{% endif %}</font></p>
+	<p align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}<a href="{{ url_for('forums.report_form', post_id=post.id) }}">向版主举报本帖</a>{% else %}<a href="{{ url_for('auth.login_form') }}">向版主举报本帖</a>{% endif %}{% if post.ipaddress and settings.get('logip', '1') != '0' %} | IP: {% if settings.get('logip', '1') == '2' %}{{ post.ipaddress }}{% elif nav_user and nav_user.is_admin %}<a href="{{ url_for('forums.post_ip', post_id=post.id) }}">Logged</a>{% else %}Logged{% endif %}{% endif %}</font></p>
 	{% if nav_user and nav_user.is_admin %}
 	<form id="delpost{{ post.id }}" method="post" action="{{ url_for('forums.delete_post', post_id=post.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"></form>
 	{% endif %}
