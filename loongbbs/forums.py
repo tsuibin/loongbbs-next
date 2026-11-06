@@ -336,6 +336,15 @@ def _setting_int(name: str, default: int, low: int = 0, high: int = 200) -> int:
     return max(low, min(value, high))
 
 
+def _minutes_since(value: datetime | None) -> float:
+    """距某个 UTC 时间点过了多少分钟（库里取回的是 naive 时间）。"""
+    if value is None:
+        return 0.0
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return (utcnow() - value).total_seconds() / 60
+
+
 def _thread_per_page() -> int:
     """组 8 maxposts / usermaxposts：每页帖数。
 
@@ -983,6 +992,14 @@ def edit_post_form(post_id: int):
         abort(404)
     if post.author_id != current_user.id and not current_user.is_admin:
         abort(403)
+    limit = _setting_int("edittimelimit", 0, high=100000)
+    if (
+        limit
+        and not current_user.is_admin
+        and _minutes_since(post.created_at) > limit
+    ):
+        flash(f"发帖 {limit} 分钟后就不能再自行编辑了，请联系版主。", "error")
+        return redirect(url_for("forums.thread", thread_id=post.thread_id))
     return render_template(
         "post_form.html", forum=post.thread.forum, mode="edit", thread=post.thread, post=post
     )
@@ -996,6 +1013,12 @@ def edit_post(post_id: int):
         abort(404)
     if post.author_id != current_user.id and not current_user.is_admin:
         abort(403)
+
+    # 组 14 edittimelimit：超过 N 分钟作者就不能再自己改（管理员不受限）
+    limit = _setting_int("edittimelimit", 0, high=100000)
+    if limit and not current_user.is_admin and _minutes_since(post.created_at) > limit:
+        flash(f"发帖 {limit} 分钟后就不能再自行编辑了，请联系版主。", "error")
+        return redirect(url_for("forums.thread", thread_id=post.thread_id))
 
     body = (request.form.get("body") or "").strip()
     if request.form.get("preview"):
@@ -1022,7 +1045,26 @@ def edit_post(post_id: int):
     title = (request.form.get("title") or "").strip()
     if title:
         post.title = _stop_shouting(censor_text(title))[:200]
-    post.updated_at = utcnow()
+        # 组 14 editthreadtitlelimit：首帖在发帖后 N 分钟内编辑才同步主题标题
+        first_post_id = db.session.scalar(
+            select(Post.id)
+            .where(Post.thread_id == post.thread_id, Post.is_deleted.is_(False))
+            .order_by(Post.created_at)
+            .limit(1)
+        )
+        title_limit = _setting_int("editthreadtitlelimit", 5, high=100000)
+        if post.id == first_post_id and _minutes_since(post.created_at) <= title_limit:
+            post.thread.title = post.title
+
+    # 组 14 showeditedby / showeditedbyadmin / noeditedbytime：
+    # 原版只有在「距发帖超过 noeditedbytime 分钟」时才记 edituserid/editdate；
+    # 管理员编辑且 showeditedbyadmin=0 时也不记。
+    if get_setting("showeditedby", "1") == "1":
+        if current_user.is_admin and get_setting("showeditedbyadmin", "0") != "1":
+            pass
+        elif _minutes_since(post.created_at) > _setting_int("noeditedbytime", 0, high=100000):
+            post.updated_at = utcnow()
+            post.edit_user_id = current_user.id
     save_uploads(post, request.files.getlist("files"))
     db.session.commit()
 

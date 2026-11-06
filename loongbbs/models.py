@@ -67,7 +67,9 @@ class User(UserMixin, db.Model):
     ignorelist = db.Column(db.String(255), nullable=False, default="", server_default="")
 
     threads = db.relationship("Thread", back_populates="author", lazy="dynamic")
-    posts = db.relationship("Post", back_populates="author", lazy="dynamic")
+    posts = db.relationship(
+        "Post", back_populates="author", lazy="dynamic", foreign_keys="Post.author_id"
+    )
     # vB 用 avatar_id=0 表示「没有头像」，所以这里不加外键，改成显式 join
     avatar = db.relationship(
         "Avatar",
@@ -218,12 +220,15 @@ class Post(db.Model):
     body = db.Column(db.Text, nullable=False, default="")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, index=True)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    # vB 的 edituserid：组 14 showeditedby 决定是否落这一列，用于「本帖最后由 X 修改」
+    edit_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     is_deleted = db.Column(db.Boolean, nullable=False, default=False)
     # vB 的 iconid：发帖时选的帖子图标 1-14，0 = 不使用图标
     iconid = db.Column(db.Integer, nullable=False, default=0, server_default="0")
 
     thread = db.relationship("Thread", back_populates="posts")
-    author = db.relationship("User", back_populates="posts")
+    author = db.relationship("User", back_populates="posts", foreign_keys=[author_id])
+    edit_user = db.relationship("User", foreign_keys=[edit_user_id])
     attachments = db.relationship(
         "Attachment", back_populates="post", cascade="all, delete-orphan", lazy="selectin"
     )
