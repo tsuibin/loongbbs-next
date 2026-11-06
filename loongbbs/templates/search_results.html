@@ -13,7 +13,7 @@ function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999
 </tr>
 <tr>
 	<td><font face="verdana,arial,helvetica" size="1">Displaying Topics {{ limitlower }} to {{ limitupper }} of {{ total }}</font></td>
-	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, action='finduser' if finduser else None, userid=finduser_id if finduser else None, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
 </tr>
 </table>
 <!-- /display and pagenav -->
@@ -59,7 +59,7 @@ function who(threadid) { window.open("{{ url_for('misc.whoposted', thread_id=999
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
 	<td><font face="verdana,arial,helvetica" size="1">Displaying Topics {{ limitlower }} to {{ limitupper }} of {{ total }}</font></td>
-	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">&nbsp;{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', query=query or None, searchuser=author or None, exactname='yes' if exactname else 'no', forumchoice=forumchoice or -1, titleonly='yes' if titleonly else '', showposts='1' if showposts else '', searchdate=searchdate, beforeafter=beforeafter, sortby=sortparam, sortorder=orderparam, action='finduser' if finduser else None, userid=finduser_id if finduser else None, page=p) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font></td>
 </tr>
 <tr>
 	<td><font face="verdana,arial,helvetica" size="1"><b>All times are GMT. The time now is {{ now_gmt() }}.</b></font></td>

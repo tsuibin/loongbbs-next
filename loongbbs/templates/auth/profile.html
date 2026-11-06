@@ -10,7 +10,7 @@
 		<table width="100%" border="0" cellpadding="0" cellspacing="0">
 		<tr id="cat">
 			<td align="left"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>{% if ui_lang == 'en' %}{{ profile_user.username }}'s Profile{% else %}{{ profile_user.username }} 的资料{% endif %}</b></font></td>
-			<td align="right"><a href="{{ url_for('search.search', q=profile_user.username) }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF" class="thtcolor">{% if ui_lang == 'en' %}Find all posts by this user.{% else %}搜索这个用户发表的全部帖子。{% endif %}</font></a></td>
+			<td align="right"><a href="{{ url_for('search.search', action='finduser', userid=profile_user.id) }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF" class="thtcolor">{% if ui_lang == 'en' %}Find all posts by this user.{% else %}搜索这个用户发表的全部帖子。{% endif %}</font></a></td>
 		</tr>
 		</table>
 	</td>
@@ -69,7 +69,7 @@
 </tr>
 <tr>
 	<td bgcolor="#8080A6" align="center" colspan="2"><font face="verdana,arial,helvetica" size="1">
-	<a href="{{ url_for('search.search', q=profile_user.username) }}"><font color="#EEEEFF">{% if ui_lang == 'en' %}View all posts by {{ profile_user.username }}{% else %}查看 {{ profile_user.username }} 发表的全部帖子{% endif %}</font></a>
+	<a href="{{ url_for('search.search', action='finduser', userid=profile_user.id) }}"><font color="#EEEEFF">{% if ui_lang == 'en' %}View all posts by {{ profile_user.username }}{% else %}查看 {{ profile_user.username }} 发表的全部帖子{% endif %}</font></a>
 	&nbsp; &nbsp;
 	{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}"><font color="#EEEEFF">{% if ui_lang == 'en' %}Send a private message to {{ profile_user.username }}{% else %}给 {{ profile_user.username }} 发悄悄话{% endif %}</font></a>{% endif %}
 	</font></td>

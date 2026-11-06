@@ -101,6 +101,14 @@ def search():
     args = request.args
     query = (args.get("query") or args.get("q") or "").strip()
     searchuser = (args.get("searchuser") or args.get("author") or "").strip()
+    # 参考站 search.php?action=finduser&userid=N：资料页、帖子工具条的「查找该用户更多帖子」
+    # 直接按 userid 精确列出这个人的帖子，不支持关键词（与 finduser 分支一致）
+    finduser = (args.get("action") or "").strip().lower() == "finduser"
+    finduser_id = None
+    if finduser:
+        raw_id = (args.get("userid") or "").strip()
+        if raw_id.isdigit():
+            finduser_id = int(raw_id)
     # 参考站 exactname: yes=精确匹配用户名，no=部分匹配
     exactname = (args.get("exactname") or "yes").lower() != "no"
     titleonly = (args.get("titleonly") or "").lower() == "yes"
@@ -116,7 +124,7 @@ def search():
 
     # 组 10 searchfloodtime：两次搜索之间的最小间隔（按会话记录上次搜索时间）
     flood = _setting_int("searchfloodtime", 0, low=0, high=3600)
-    if flood > 0 and (query or searchuser):
+    if flood > 0 and (query or searchuser) and not finduser:
         last = session.get("search_last_at")
         try:
             last_value = float(last) if last is not None else None
@@ -168,7 +176,16 @@ def search():
 
     author_ids: list[int] = []
     author_missing = False
-    if searchuser:
+    if finduser:
+        found_by_id = db.session.get(User, finduser_id) if finduser_id else None
+        if found_by_id is None and searchuser:
+            found_by_id = db.session.scalar(
+                select(User).where(func.lower(User.username) == searchuser.lower())
+            )
+        if found_by_id is None:
+            return _error("没有找到这个会员。")
+        author_ids = [found_by_id.id]
+    elif searchuser:
         if exactname:
             found = db.session.scalar(select(User).where(func.lower(User.username) == searchuser.lower()))
             if found is None:
@@ -312,6 +329,8 @@ def search():
             beforeafter=beforeafter,
             exactname=exactname,
             titleonly=titleonly,
+            finduser=finduser,
+            finduser_id=finduser_id,
         )
 
     categories = db.session.execute(select(Category).order_by(Category.position)).scalars().all()

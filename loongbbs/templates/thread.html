@@ -155,7 +155,7 @@
 			<td><font face="verdana,arial,helvetica" size="1">{% if nav_user and post.author.id == nav_user.id %}<b>在线</b>{% endif %}
 			<a href="{{ url_for('auth.profile', username=post.author.username) }}"><img src="{{ url_for('static', filename='images/profile.gif') }}" border="0" alt="查看公开资料"></a>
 			<a href="{{ url_for('pm.compose_form', to=post.author.username) }}"><img src="{{ url_for('static', filename='images/pm.gif') }}" border="0" alt="发送悄悄话"></a>
-			<a href="{{ url_for('search.search', q=post.author.username) }}"><img src="{{ url_for('static', filename='images/find.gif') }}" border="0" alt="查找该用户更多帖子"></a>
+			<a href="{{ url_for('search.search', action='finduser', userid=post.author_id) }}"><img src="{{ url_for('static', filename='images/find.gif') }}" border="0" alt="查找该用户更多帖子"></a>
 			<a href="{{ url_for('auth.buddy_list') }}"><img src="{{ url_for('static', filename='images/buddy.gif') }}" border="0" alt="加为好友"></a>
 			</font></td>
 			<td align="right" nowrap><font face="verdana,arial,helvetica" size="1">
