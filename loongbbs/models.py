@@ -48,6 +48,9 @@ class User(UserMixin, db.Model):
     startofweek = db.Column(db.Integer, nullable=False, default=1, server_default="1")
     # vB 的时区偏移带半小时（-3.5 / +5.5），这里存分钟数：480 表示 +8:00
     timezoneoffset = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    # 用户组：vB 用 usergroupid 指向 usergroup 表，usertitle 为空时取组的 usertitle
+    usergroupid = db.Column(db.Integer, nullable=False, default=2, server_default="2")
+    usertitle = db.Column(db.String(100), nullable=False, default="", server_default="")
     newstyleset = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     buddylist = db.Column(db.String(255), nullable=False, default="", server_default="")
     ignorelist = db.Column(db.String(255), nullable=False, default="", server_default="")
@@ -61,6 +64,20 @@ class User(UserMixin, db.Model):
         viewonly=True,
         lazy="select",
     )
+    usergroup = db.relationship(
+        "UserGroup",
+        primaryjoin="foreign(User.usergroupid) == UserGroup.id",
+        viewonly=True,
+        lazy="select",
+    )
+
+    @property
+    def usertitle_text(self) -> str:
+        """vB 的 ``$post[usertitle]``：用户自填优先，否则取用户组的头衔。"""
+        if self.usertitle:
+            return self.usertitle
+        group = self.usergroup
+        return group.usertitle if group else ""
 
     def set_password(self, raw: str) -> None:
         self.password_hash = generate_password_hash(raw)
@@ -172,6 +189,8 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     thread_id = db.Column(db.Integer, db.ForeignKey("threads.id"), nullable=False, index=True)
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    # vB 的 post.title：每条帖子有自己的标题，回复默认是 "Re: 主题标题"
+    title = db.Column(db.String(200), nullable=False, default="", server_default="")
     body = db.Column(db.Text, nullable=False, default="")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, index=True)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -236,3 +255,16 @@ class Avatar(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Avatar {self.id} {self.title}>"
+
+
+class UserGroup(db.Model):
+    """vB 2.3.11 的 ``usergroup`` 表（只保留显示身份要用到的两列）。"""
+
+    __tablename__ = "usergroups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False, default="")
+    usertitle = db.Column(db.String(100), nullable=False, default="")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<UserGroup {self.id} {self.title}>"

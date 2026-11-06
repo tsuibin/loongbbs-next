@@ -132,7 +132,7 @@ def new_thread(forum_id: int):
     db.session.add(thread_obj)
     db.session.flush()
 
-    post = Post(thread_id=thread_obj.id, author_id=current_user.id, body=body)
+    post = Post(thread_id=thread_obj.id, author_id=current_user.id, title=title, body=body)
     db.session.add(post)
     db.session.flush()
 
@@ -235,7 +235,13 @@ def reply(thread_id: int):
         flash("回复内容不能为空。", "error")
         return redirect(url_for("forums.thread", thread_id=thread_id, page="last"))
 
-    post = Post(thread_id=thread_obj.id, author_id=current_user.id, body=body)
+    title = (request.form.get("title") or "").strip() or f"Re: {thread_obj.title}"
+    if len(title) > 200:
+        title = title[:200]
+
+    post = Post(
+        thread_id=thread_obj.id, author_id=current_user.id, title=title, body=body
+    )
     db.session.add(post)
     db.session.flush()
     save_uploads(post, request.files.getlist("files"))
@@ -283,6 +289,9 @@ def edit_post(post_id: int):
         return redirect(url_for("forums.edit_post_form", post_id=post_id))
 
     post.body = body
+    title = (request.form.get("title") or "").strip()
+    if title:
+        post.title = title[:200]
     post.updated_at = utcnow()
     save_uploads(post, request.files.getlist("files"))
     db.session.commit()

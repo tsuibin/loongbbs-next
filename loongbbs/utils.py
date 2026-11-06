@@ -38,19 +38,26 @@ def current_user_or_none():
 # ---------------------------------------------------------------- formatting
 
 
+# vB 2.3.11 的页脚固定写 ``All times are GMT``，访客的时区偏移是 0，
+# 所以默认按 UTC 显示（与参考站一致）。需要本地时区时用环境变量覆盖。
 try:
-    LOCAL_TZ = ZoneInfo(os.environ.get("LOONG_BBS_TIMEZONE", "Asia/Shanghai"))
+    LOCAL_TZ = ZoneInfo(os.environ.get("LOONG_BBS_TIMEZONE", "UTC"))
 except Exception:  # 缺少 tz 数据时退回 UTC，不至于渲染报错
     LOCAL_TZ = timezone.utc
 
 
 def format_dt(value: datetime | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
-    """数据库里存 UTC，展示时换成站点时区。"""
+    """数据库里存 UTC，展示时按站点时区（默认 GMT）渲染。"""
     if value is None:
         return "—"
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(LOCAL_TZ).strftime(fmt)
+
+
+def now_gmt(fmt: str = "%I:%M %p") -> str:
+    """页脚那一行 ``The time now is ...`` 用的当前站点时间。"""
+    return datetime.now(timezone.utc).astimezone(LOCAL_TZ).strftime(fmt)
 
 
 def avatar_src(user) -> str:

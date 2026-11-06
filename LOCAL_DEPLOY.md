@@ -208,13 +208,21 @@ Start-Process "$rt\php\php.exe" -ArgumentList @("-c","$rt\php\php.ini","-S","127
   `Forum Rules` 从一行说明改成原版的两列小表格（权限四项 + `HTML/vB/表情/[IMG]` 四项），筛选行 `colspan` 改 8。
 - 首页分类条合并回单格 `colspan=6`（原版标题与描述同格），删掉原版没有的「悄悄话」分组块；
   版块 on/off 图标改为按「最后发表晚于上次访问」判断，游客统一 `off.gif`（原来按有帖数判断，永远是「有新帖」）。
-- 主题页的 `Forum Rules` 同样改成两列小表格，顶部与底部导航补上「前往第一个未读的帖子」。
+- 主题页按 `showthread.html` / `postbit.html` 逐块复刻：面包屑补分类层、`◀ 上一个主题 / 下一个主题 ▶`（
+  新增 `prev_thread`/`next_thread`）、表头只写「主题」、作者栏 `注册于 / 位置 / 帖子数`、
+  `向版主举报本帖 | IP: 已登录`、`profile`/`pm`/`find`/`buddy` 图标行、论坛跳转首项 `-- 版块名 --`、
+  右侧「评价本主题」与「管理选项」两个下拉（含 GO），并删掉原版 2.3.11 没有的快速回复块；
+  回复统一走新页 `GET /t/<id>/reply`（`post_form.html` 的 `mode='reply'`）。
+- 时间基准回到 GMT：`utils.LOCAL_TZ` 默认 `UTC`，页脚统一 `All times are GMT. The time now is …`；
+  seed 里按本地时刻写入的时间戳已减 8 小时，post 2 显示 `11-05-2026 01:06 AM` 与参考站一致。
+- 用户头衔改为按 `usergroups.usertitle` 取（新增 `usergroups` 表与 `users.usergroupid/usertitle`），
+  admin 显示 `Administrator`、注册会员显示空 —— 取代原来写死的「管理员 / 注册会员 / 楼主」。
+- 每条帖子有自己的标题（`posts.title`），回复页「主题:」默认 `Re: <主题标题>`。
 
-`DIFF-REPORT.md` 第二节列出了还没对齐的项（时间基准 GMT vs GMT+8、作者栏的 Guest/Registered 文案、
-`Report | IP: Logged`、`Last Thread / Next Thread` 跳转、主题页常驻快速回复、版权与语言切换），
-以及**还没取基准的页面清单**（newthread / newreply / editpost / member / private / search / memberlist / misc /
-online / calendar / poll / printthread / showgroups / report / sendtofriend / attachment / avatar /
-注册页 / 错误页，后台除 home 外全部模块页）。
+`DIFF-REPORT.md` 第二、七、八节记录了逐页对照结果与仍然存在的差异（版权行、语言切换、
+`移动/复制 / 合并 / 拆分主题` 仅占位），以及**还没取基准的页面清单**（newthread / newreply / editpost / member /
+private / search / memberlist / misc / online / calendar / poll / printthread / showgroups / report / sendtofriend /
+attachment / avatar / 注册页 / 错误页，后台除 home 外全部模块页）。
 
 ### 用户控制面板（UCP）的 1:1 还原
 

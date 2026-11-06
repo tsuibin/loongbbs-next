@@ -59,7 +59,7 @@
 	<td bgcolor="{{ bg }}" width="175" valign="top" nowrap>
 	<a name="post{{ post.id }}"></a>
 	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('auth.profile', username=post.author.username) }}">{{ post.author.username }}</a></b></font><br>
-	<font face="verdana,arial,helvetica" size="1">{% if post.author.is_admin %}管理员{% else %}注册会员{% endif %}</font><br>
+	<font face="verdana,arial,helvetica" size="1">{{ post.author.usertitle_text }}</font><br>
 	{% set asrc = avatar_src(post.author) %}
 	<a href="{{ url_for('auth.profile', username=post.author.username) }}"><img src="{{ asrc or url_for('static', filename='images/clear_avatar.gif') }}" width="65" height="65" border="0" alt="头像"></a><p>
 	<font face="verdana,arial,helvetica" size="1">注册于: {{ post.author.joined_at|dt('%m月 %Y') }}<br>
@@ -67,7 +67,7 @@
 	帖子数: {{ post.author.post_count }}</font></td>
 
 	<td bgcolor="{{ bg }}" width="100%" valign="top">
-	<font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/posticon.gif') }}" border="0" alt=""> <b>{{ thread.title }}</b></font>
+	<font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/posticon.gif') }}" border="0" alt=""> <b>{{ post.title or thread.title }}</b></font>
 	<p><font face="verdana, arial, helvetica" size="2">{{ post.body|body|safe }}</font></p>
 	{% if post.attachments %}
 	{% for attachment in post.attachments %}
@@ -129,7 +129,7 @@
 	<td bgcolor="#8080A6" width="100%">
 	<table border="0" cellspacing="0" cellpadding="0" bgcolor="#8080A6">
 	<tr>
-		<td width="100%"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>所有时间均为北京时间（GMT+8）</b></font></td>
+		<td width="100%"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>All times are GMT. The time now is {{ now_gmt() }}.</b></font></td>
 		<td>{% if nav_user and not forum.is_closed %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a>{% endif %}</td>
 		<td><font face="verdana, arial, helvetica" size="2">&nbsp;&nbsp;</font></td>
 		<td>{% if not thread.is_closed %}<a href="{{ url_for('forums.reply_form', thread_id=thread.id) }}"><img src="{{ url_for('static', filename='images/reply.gif') }}" border="0" alt="回复主题"></a>{% else %}<img src="{{ url_for('static', filename='images/threadclosed.gif') }}" border="0" alt="主题已关闭">{% endif %}</td>

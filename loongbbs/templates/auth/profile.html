@@ -21,7 +21,7 @@
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>状态:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ '管理员' if profile_user.is_admin else '注册会员' }}{% if profile_user.is_banned %} · 已封禁{% endif %}&nbsp;<img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" align="middle"></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ profile_user.usertitle_text }}{% if profile_user.is_banned %} · 已封禁{% endif %}&nbsp;<img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" align="middle"></font></td>
 </tr>
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>帖子总数:</b></font></td>

@@ -28,7 +28,7 @@
 	</font></td>
 	<td align="right"><font face="verdana,arial,helvetica" size="1">
 	现在时间是 {{ server_time }}.<br>
-	{% if nav_user %}你上次访问: {{ nav_user.last_seen|dt('%m-%d-%Y %I:%M %p') }}.{% else %}所有时间均为北京时间（GMT+8）.{% endif %}
+	{% if nav_user %}你上次访问: {{ nav_user.last_seen|dt('%m-%d-%Y %I:%M %p') }}.{% else %}All times are GMT. The time now is {{ now_gmt() }}.{% endif %}
 	</font></td>
 </tr>
 </table>
@@ -90,7 +90,7 @@
 <!-- timezone/login-->
 <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr valign="top">
-  <td><font face="verdana,arial,helvetica" size="1">所有时间均为北京时间（GMT+8）</font></td>
+  <td><font face="verdana,arial,helvetica" size="1">All times are GMT. The time now is {{ now_gmt() }}.</font></td>
   <td align="right">
   {% if nav_user %}
   <font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('auth.logout') }}" onclick="document.getElementById('logoutform').submit();return false;">退出登录</a> | <a href="{{ url_for('search.search') }}">查看新帖</a> | <a href="{{ url_for('forums.index') }}">论坛首页</a></font>

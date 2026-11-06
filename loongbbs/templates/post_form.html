@@ -33,10 +33,19 @@
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>主题:</b></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="title" value="{{ request.form.get('title', '') }}" size="40" maxlength="85"></font></td>
 </tr>
+{% elif mode == 'reply' %}
+<tr bgcolor="#DFDFDF">
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>主题:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="title" value="{{ request.form.get('title', 'Re: ' ~ thread.title) }}" size="40" maxlength="85"></font></td>
+</tr>
 {% else %}
 <tr bgcolor="#DFDFDF">
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>主题:</b></font></td>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ thread.title }}</font></td>
+</tr>
+<tr bgcolor="#F1F1F1">
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>帖子标题:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="title" value="{{ request.form.get('title', post.title if post else '') }}" size="40" maxlength="85"></font></td>
 </tr>
 {% endif %}
 
