@@ -15,7 +15,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from .extensions import db
 from .models import (
@@ -27,10 +27,14 @@ from .models import (
     ForumPermission,
     PERMISSION_FIELDS,
     PERMISSION_LABELS,
+    Poll,
+    PollVote,
     Post,
     PostReport,
     PrivateMessage,
     Thread,
+    ThreadRating,
+    ThreadSubscription,
     User,
     UserGroup,
 )
@@ -57,7 +61,7 @@ NAV_GROUPS = [
         {"label": "Permissions", "endpoint": "admin.permissions_page"},
     ]},
     {"title": "Threads & Posts", "links": [
-        {"label": "Mass Prune", "module": "Mass Prune"},
+        {"label": "Mass Prune", "endpoint": "admin.threads_prune"},
         {"label": "Mass Move", "endpoint": "admin.threads_page"},
         {"label": "Unsubscribe Thread", "module": "Unsubscribe Thread"},
         {"label": "Strip Poll", "module": "Strip Poll"},
@@ -555,6 +559,214 @@ def toggle_forum(forum_id: int):
     return redirect(url_for("admin.forums_page"))
 
 
+def _purge_threads(thread_ids: list[int]) -> int:
+    """彻底删主题：帖子、投票、订阅、评分、举报记录一起清掉（对应原版 deletethread）。"""
+    removed = 0
+    for tid in thread_ids:
+        thread_obj = db.session.get(Thread, tid)
+        if thread_obj is None:
+            continue
+        poll_obj = db.session.scalar(select(Poll).where(Poll.thread_id == tid))
+        if poll_obj is not None:
+            db.session.execute(delete(PollVote).where(PollVote.poll_id == poll_obj.id))
+            db.session.delete(poll_obj)
+        db.session.execute(delete(ThreadSubscription).where(ThreadSubscription.thread_id == tid))
+        db.session.execute(delete(ThreadRating).where(ThreadRating.thread_id == tid))
+        post_ids = db.session.scalars(select(Post.id).where(Post.thread_id == tid)).all()
+        if post_ids:
+            db.session.execute(delete(PostReport).where(PostReport.post_id.in_(post_ids)))
+            db.session.execute(delete(Post).where(Post.thread_id == tid))
+        db.session.delete(thread_obj)
+        removed += 1
+    db.session.commit()
+    return removed
+
+
+def _checked_ids(form, prefix: str) -> list[int]:
+    """原版用 delete[threadid]=1/0 的成对单选按钮；这里取勾起 Yes 的那批 id。"""
+    ids: list[int] = []
+    for key, value in form.items():
+        if key.startswith(prefix) and value == "1":
+            tail = key[len(prefix):]
+            if tail.isdigit():
+                ids.append(int(tail))
+    return ids
+
+
+def _forum_label(forum_id: int) -> str:
+    """原版确认页里的论坛说法：all forums / the "xxx" forum。"""
+    if not forum_id or forum_id < 0:
+        return "all forums"
+    forum_obj = db.session.get(Forum, forum_id)
+    return f'the "{forum_obj.name}" forum' if forum_obj else "all forums"
+
+
+@bp.route("/threads/prune", methods=["GET", "POST"])
+def threads_prune():
+    """Threads & Posts → Mass Prune（原版 thread.php 的 prune / prunedate / pruneuser 系列）。"""
+    forums = db.session.execute(
+        select(Forum).order_by(Forum.position, Forum.id)
+    ).scalars().all()
+    categories = (
+        db.session.execute(select(Category).order_by(Category.position, Category.id))
+        .scalars()
+        .all()
+    )
+    step = (request.form.get("step") or "").strip()
+
+    if request.method == "GET" or not step:
+        return render_template("admin/thread_prune.html", mode="form", forums=forums, categories=categories)
+
+    days = request.form.get("daysdelete", type=int) or 0
+    forum_id = request.form.get("forumid", type=int) or -1
+    username = (request.form.get("username") or "").strip()
+
+    def _scope(stmt):
+        return stmt.where(Thread.forum_id == forum_id) if forum_id > 0 else stmt
+
+    if step == "by_date":
+        if days <= 0:
+            flash("Please enter an age of post to delete", "error")
+            return render_template("admin/thread_prune.html", mode="form", forums=forums, categories=categories)
+        return render_template(
+            "admin/thread_prune.html",
+            mode="confirm_date",
+            forums=forums,
+            categories=categories,
+            days=days,
+            forum_id=forum_id,
+            forum_label=_forum_label(forum_id),
+        )
+
+    if step == "date_select":
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        rows = db.session.execute(
+            _scope(select(Thread).where(Thread.last_post_at <= cutoff))
+            .order_by(Thread.last_post_at.desc())
+        ).scalars().all()
+        return render_template(
+            "admin/thread_prune.html",
+            mode="select_date",
+            forums=forums,
+            categories=categories,
+            rows=rows,
+            days=days,
+            forum_id=forum_id,
+        )
+
+    if step == "date_all":
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        ids = db.session.scalars(
+            _scope(
+                select(Thread.id).where(
+                    Thread.last_post_at <= cutoff, Thread.is_sticky.is_(False)
+                )
+            )
+        ).all()
+        removed = _purge_threads(list(ids))
+        flash(f"Posts deleted successfully! {removed} thread(s) deleted. It is recommended that you update counters now.", "success")
+        return redirect(url_for("admin.threads_prune"))
+
+    if step == "date_do":
+        ids = _checked_ids(request.form, "delete_")
+        removed = _purge_threads(ids)
+        flash(f"Threads deleted successfully! {removed} thread(s) deleted. It is recommended that you update counters now.", "success")
+        return redirect(url_for("admin.threads_prune"))
+
+    if step == "by_user":
+        if not username:
+            flash("Please enter a username to search for", "error")
+            return render_template("admin/thread_prune.html", mode="form", forums=forums, categories=categories)
+        users = db.session.execute(
+            select(User).where(User.username.ilike(f"%{username}%")).order_by(User.username)
+        ).scalars().all()
+        return render_template(
+            "admin/thread_prune.html",
+            mode="confirm_user",
+            forums=forums,
+            categories=categories,
+            users=users,
+            username=username,
+            forum_id=forum_id,
+            forum_label=_forum_label(forum_id),
+        )
+
+    if step == "user_all":
+        user_obj = db.session.get(User, request.form.get("userid", type=int))
+        if user_obj is None:
+            flash("No such user found.", "error")
+            return redirect(url_for("admin.threads_prune"))
+        posts_stmt = select(Post).where(Post.author_id == user_obj.id)
+        threads_stmt = select(Thread.id).where(Thread.author_id == user_obj.id)
+        if forum_id > 0:
+            posts_stmt = posts_stmt.join(Thread, Thread.id == Post.thread_id).where(
+                Thread.forum_id == forum_id
+            )
+            threads_stmt = threads_stmt.where(Thread.forum_id == forum_id)
+        posts = db.session.execute(posts_stmt).scalars().all()
+        post_ids = [p.id for p in posts]
+        if post_ids:
+            db.session.execute(delete(PostReport).where(PostReport.post_id.in_(post_ids)))
+            db.session.execute(delete(Post).where(Post.id.in_(post_ids)))
+        removed = _purge_threads(list(db.session.scalars(threads_stmt).all()))
+        flash(
+            f"Posts deleted successfully! {len(post_ids)} post(s) and {removed} thread(s) deleted."
+            " It is recommended that you update counters now.",
+            "success",
+        )
+        return redirect(url_for("admin.threads_prune"))
+
+    if step == "user_select":
+        user_obj = db.session.get(User, request.form.get("userid", type=int))
+        if user_obj is None:
+            flash("No such user found.", "error")
+            return redirect(url_for("admin.threads_prune"))
+        threads_stmt = select(Thread).where(Thread.author_id == user_obj.id)
+        posts_stmt = (
+            select(Post)
+            .join(Thread, Thread.id == Post.thread_id)
+            .where(Post.author_id == user_obj.id)
+        )
+        if forum_id > 0:
+            threads_stmt = threads_stmt.where(Thread.forum_id == forum_id)
+            posts_stmt = posts_stmt.where(Thread.forum_id == forum_id)
+        rows = db.session.execute(threads_stmt.order_by(Thread.last_post_at.desc())).scalars().all()
+        posts = db.session.execute(
+            posts_stmt.order_by(Post.thread_id.desc(), Post.created_at.desc())
+        ).scalars().all()
+        return render_template(
+            "admin/thread_prune.html",
+            mode="select_user",
+            forums=forums,
+            categories=categories,
+            user_obj=user_obj,
+            rows=rows,
+            posts=posts,
+            forum_id=forum_id,
+        )
+
+    if step == "user_do":
+        user_obj = db.session.get(User, request.form.get("userid", type=int))
+        if user_obj is None:
+            flash("No such user found.", "error")
+            return redirect(url_for("admin.threads_prune"))
+        thread_ids = _checked_ids(request.form, "deletethread_")
+        post_ids = _checked_ids(request.form, "deletepost_")
+        if post_ids:
+            db.session.execute(delete(PostReport).where(PostReport.post_id.in_(post_ids)))
+            db.session.execute(delete(Post).where(Post.id.in_(post_ids)))
+            db.session.commit()
+        removed = _purge_threads(thread_ids)
+        flash(
+            f"Threads and posts deleted successfully! {len(post_ids)} post(s) and {removed} thread(s) deleted."
+            " It is recommended that you update counters now.",
+            "success",
+        )
+        return redirect(url_for("admin.threads_prune"))
+
+    return redirect(url_for("admin.threads_prune"))
+
+
 @bp.route("/threads", methods=["GET", "POST"])
 def threads_page():
     """Threads & Posts → Mass Move / Mass Prune（原版 thread.php 的两个动作）。"""
@@ -579,16 +791,7 @@ def threads_page():
                 db.session.commit()
                 flash(f"{moved} 个主题已移动到「{forum_obj.name}」。", "success")
         elif action == "delete":
-            deleted = 0
-            for tid in ids:
-                thread_obj = db.session.get(Thread, tid)
-                if thread_obj is None:
-                    continue
-                for post in thread_obj.posts:
-                    db.session.delete(post)
-                db.session.delete(thread_obj)
-                deleted += 1
-            db.session.commit()
+            deleted = _purge_threads(ids)
             flash(f"{deleted} 个主题已删除（含其全部回复）。", "success")
         return redirect(url_for("admin.threads_page"))
 
