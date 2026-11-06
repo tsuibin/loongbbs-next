@@ -10,6 +10,14 @@
 </tr>
 </table>
 
+<!-- forum jump（原版 private.php 的每个 action 都会调 makeforumjump） -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr><td align="right">
+{% set page_key = 'pm' %}
+{% include "_forumjump.html" %}
+</td></tr>
+</table>
+
 <br>
 
 <form method="post" action="{{ url_for('pm.compose') }}">
