@@ -68,7 +68,7 @@ A:hover {
    <a href="{{ url_for('auth.usercp') if nav_user else url_for('auth.login_form') }}"><img src="{{ url_for('static', filename='images/top_profile.gif') }}" alt="个人资料、悄悄话与设置" border="0"></a>
    <a href="{{ url_for('auth.register_form') }}"><img src="{{ url_for('static', filename='images/top_register.gif') }}" alt="免费注册" border="0"></a>
    <a href="{{ url_for('forums.index') }}"><img src="{{ url_for('static', filename='images/top_calendar.gif') }}" alt="日历" border="0"></a>
-   <a href="{{ url_for('forums.index') }}"><img src="{{ url_for('static', filename='images/top_members.gif') }}" alt="会员列表" border="0"></a>
+   <a href="{{ url_for('members.memberlist') }}"><img src="{{ url_for('static', filename='images/top_members.gif') }}" alt="会员列表" border="0"></a>
    <a href="{{ url_for('forums.index') }}"><img src="{{ url_for('static', filename='images/top_faq.gif') }}" alt="常见问题" border="0"></a>
    <a href="{{ url_for('search.search') }}"><img src="{{ url_for('static', filename='images/top_search.gif') }}" alt="搜索" border="0"></a>
    <a href="{{ url_for('forums.index') }}"><img src="{{ url_for('static', filename='images/top_home.gif') }}" alt="论坛首页" border="0"></a>

@@ -23,7 +23,7 @@
 {% endif %}
 <tr valign="bottom">
 	<td><font face="verdana,arial,helvetica" size="1">
-	会员: {{ stats.users }}, 主题: {{ stats.threads }}, 帖子: {{ stats.posts }}<br>
+	会员: <a href="{{ url_for('members.memberlist') }}">{{ stats.users }}</a>, 主题: {{ stats.threads }}, 帖子: {{ stats.posts }}<br>
 	{% if stats.newest_user %}欢迎最新会员, <a href="{{ url_for('auth.profile', username=stats.newest_user.username) }}">{{ stats.newest_user.username }}</a>{% endif %}
 	</font></td>
 	<td align="right"><font face="verdana,arial,helvetica" size="1">

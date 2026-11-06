@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 会员列表{% endblock %}
+{% block content %}
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" alt="" border="0" align="absmiddle">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 会员列表</b></font></td>
+</tr>
+</table>
+
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr align="center">
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('search.search') }}"><b>高级搜索</b></a></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('members.memberlist', what='topposters') }}"><b>帖子数前 {{ topcount }} 名</b></a></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('members.memberlist') }}"><b>按用户名排列</b></a></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('members.memberlist', what='datejoined') }}"><b>按注册日期排列</b></a></font></td>
+</tr>
+</table>
+</td></tr></table>
+
+<font face="verdana,arial,helvetica" size="1"><br></font>
+
+<table cellpadding="1" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="2" cellspacing="0" border="0" width="100%">
+<tr align="center">
+{% for l in letters %}
+	<td bgcolor="{{ '#8080A6' if l == letter else '#F1F1F1' }}"><font face="verdana,arial,helvetica" size="1"{% if l == letter %} color="#EEEEFF"{% endif %}><b>{% if l == letter %}{{ '0-9' if l == '0-9' else ('其他' if l == 'OTHER' else l) }}{% else %}<a href="{{ url_for('members.memberlist', letter=l, what=('all' if what == 'all' else what)) }}">{{ '0-9' if l == '0-9' else ('其他' if l == 'OTHER' else l) }}</a>{% endif %}</b></font></td>
+{% endfor %}
+</tr>
+</table>
+</td></tr></table>
+
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#606096" colspan="6"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>{{ settings.site_name }} 会员列表</b>（共 {{ total }} 位{% if letter %}，首字符 {{ '0-9' if letter == '0-9' else ('其他' if letter == 'OTHER' else letter) }}{% endif %}{% if what == 'topposters' %}，按帖子数排序{% elif what == 'datejoined' %}，按注册日期排序{% endif %}）</font></td>
+</tr>
+<tr>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>用户名</b></font></td>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>邮箱</b></font></td>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>主页</b></font></td>
+	<td bgcolor="#8080A6" align="center" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>查找帖子</b></font></td>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>注册日期</b></font></td>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>帖子</b></font></td>
+</tr>
+{% for user in users %}
+<tr align="center">
+	<td bgcolor="#F1F1F1" align="left"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{% if user.showemail %}<a href="mailto:{{ user.email }}">{{ user.email }}</a>{% else %}N/A{% endif %}</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{% if user.homepage %}<a href="{{ user.homepage }}" target="_blank">主页</a>{% else %}&nbsp;{% endif %}</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('search.search', q=user.username) }}">查找</a></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ user.joined_at|dt('%m-%d-%Y') }}</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ user.post_count }}</font></td>
+</tr>
+{% else %}
+<tr>
+	<td bgcolor="#F1F1F1" colspan="6" align="center"><font face="verdana, arial, helvetica" size="2">没有符合条件的会员。</font></td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+
+<br><center><font face="verdana,arial,helvetica" size="1">
+{% if pages > 1 %}
+	{% for p in range(1, pages + 1) %}
+		{% if p == page %}<b>{{ p }}</b>{% else %}<a href="{{ url_for('members.memberlist', page=p, letter=(letter or None), what=what) }}">{{ p }}</a>{% endif %}
+		{% if not loop.last %}&nbsp;{% endif %}
+	{% endfor %}
+{% endif %}
+</font></center>
+{% endblock %}
