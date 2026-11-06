@@ -19,6 +19,8 @@ form { font-size: 11px; }
 
 /* vB 用 font size=1/2 区分 10px 正文与 13px 标题 */
 .smallfont { font-size: 10px; }
+/* bbcode 表里 [quote] 的 replacement 输出的是 <smallfont> 元素（原版写法） */
+smallfont { font-size: 10px; }
 .normalfont { font-size: 13px; }
 .bigfont { font-size: 15px; }
 .bold { font-weight: bold; }

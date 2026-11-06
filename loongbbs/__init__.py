@@ -67,7 +67,7 @@ def _ensure_bbcodes() -> None:
     if db.session.scalar(select(func.count(BBCode.id))):
         return
     rows = [
-        ("b", "<b>\4</b>", "[b]Bold[/b]", 0),
+        ("b", "<b>\\4</b>", "[b]Bold[/b]", 0),
         ("i", "<i>\\4</i>", "[i]Italics[/i]", 0),
         ("email", '<a href="mailto:\\4">\\4</a>', "[email]support@vbulletin.com[/email]", 0),
         ("email", '<a href="mailto:\\5">\\7</a>', "[email=support@vbulletin.com]vBulletin Support[/email]", 1),

@@ -180,13 +180,8 @@ _URL_OK = re.compile(r"^(https?://|mailto:)", re.I)
 _CODE_BLOCK = re.compile(r"\[code\](.*?)\[/code\]", re.I | re.S)
 _PHP_BLOCK = re.compile(r"\[php\](.*?)\[/php\]", re.I | re.S)
 # [size=3] [font=arial] [color=red] 的属性值：只允许字母、数字、空格、# 和 _
-_TAG_VALUE_OK = re.compile(r"^[A-Za-z0-9#_\s\-]{1,40}$")
-
-
-def _attr_value(raw: str, default: str) -> str:
-    """属性值白名单校验，非法值直接回落，避免把用户文本塞进标签属性。"""
-    value = (raw or "").strip()
-    return value if _TAG_VALUE_OK.match(value) else default
+# 标签参数会落进 <font size="…"> 之类属性，只允许不含引号/尖括号/换行的值
+_TAG_VALUE_OK = re.compile(r"^[^<>\"'\r\n]{1,60}$")
 
 
 def _url_tagged(match: re.Match) -> str:
@@ -205,30 +200,6 @@ def _url_plain(match: re.Match) -> str:
     return (
         f'<a href="{url}" rel="noopener noreferrer nofollow" target="_blank">{url}</a>'
     )
-
-
-def _img_tag(match: re.Match) -> str:
-    url = match.group(1).strip()
-    if not _URL_OK.match(url):
-        return url
-    return f'<img src="{url}" border="0" alt="">'
-
-
-def _size_tag(match: re.Match) -> str:
-    size = (match.group(1) or "").strip()
-    if not size.isdigit() or not 1 <= int(size) <= 7:
-        return match.group(2)
-    return f'<font size="{int(size)}">{match.group(2)}</font>'
-
-
-def _font_tag(match: re.Match) -> str:
-    face = _attr_value(match.group(1), "arial")
-    return f'<font face="{face}">{match.group(2)}</font>'
-
-
-def _color_tag(match: re.Match) -> str:
-    color = _attr_value(match.group(1), "black")
-    return f'<font color="{color}">{match.group(2)}</font>'
 
 
 def _list_tag(match: re.Match) -> str:
@@ -328,6 +299,116 @@ def dowordwrap(text: str) -> str:
     return pattern.sub(lambda match: " " + match.group(1) + "\n", text)
 
 
+_BBCODE_RULES: list[tuple[str, int, str]] | None = None
+
+# vBulletin 2.3.11 安装包自带的 9 条 bbcode 定义（bbcodes 表为空时的兜底，
+# 也让新建的空库在没有 seed 的情况下仍能渲染基本代码）
+DEFAULT_BBCODES: list[tuple[str, int, str]] = [
+    ("b", 0, "<b>\\4</b>"),
+    ("i", 0, "<i>\\4</i>"),
+    ("email", 0, '<a href="mailto:\\4">\\4</a>'),
+    ("email", 1, '<a href="mailto:\\5">\\7</a>'),
+    ("size", 1, '<font size="\\5">\\7</font>'),
+    ("quote", 0, "<blockquote><smallfont>quote:</smallfont><hr>\\4<hr></blockquote>"),
+    ("u", 0, "<u>\\4</u>"),
+    ("color", 1, '<font color="\\5">\\7</font>'),
+    ("font", 1, '<font face="\\5">\\7</font>'),
+]
+
+
+def _load_bbcode_rules() -> list[tuple[str, int, str]]:
+    rows = []
+    try:
+        from sqlalchemy import select
+
+        from .extensions import db
+        from .models import BBCode
+
+        rows = db.session.execute(select(BBCode).order_by(BBCode.id)).scalars().all()
+    except Exception:  # pragma: no cover - 没有 app context / 表还没建
+        return []
+    return [
+        ((row.bbcodetag or "").strip(), int(row.twoparams or 0), row.bbcodereplacement or "")
+        for row in rows
+        if (row.bbcodetag or "").strip()
+    ]
+
+
+def _bbcode_rules() -> list[tuple[str, int, str]]:
+    """读 bbcodes 表得到 (tag, twoparams, replacement)，对应原版的 $bbcodecache。
+
+    有 app context 时按请求缓存（后台改一条 Custom vB Code 后立即影响下一次渲染），
+    脚本 / 无请求的场景退回进程级缓存。表里缺的 tag 用 DEFAULT_BBCODES 兜底，
+    同 (tag, twoparams) 以表里的为准。
+    """
+    global _BBCODE_RULES
+    try:
+        from flask import g, has_app_context
+
+        if has_app_context():
+            cached = g.get("_bbcode_rules")
+            if cached is not None:
+                return cached
+            rules = _merge_bbcode_rules(_load_bbcode_rules())
+            g._bbcode_rules = rules
+            return rules
+    except Exception:  # pragma: no cover
+        pass
+    if _BBCODE_RULES is None:
+        _BBCODE_RULES = _merge_bbcode_rules(_load_bbcode_rules())
+    return _BBCODE_RULES
+
+
+def _merge_bbcode_rules(
+    rows: list[tuple[str, int, str]],
+) -> list[tuple[str, int, str]]:
+    """表里有数据就完全以表为准（原版 bbcodecache 就是这么用的）；
+    表为空（新库还没 seed、或测试库）才退回安装包自带的 9 条默认定义。"""
+    if rows:
+        return rows
+    return list(DEFAULT_BBCODES)
+
+
+def _bbcode_fill(replacement: str, content: str, param: str | None) -> str:
+    """把原版 replacement 里的 \\4（内容）/\\5（参数）/\\7（双参数的内容）填上。
+
+    \\5 会落进 ``<font size="…">`` 这类 HTML 属性里，所以先过白名单，
+    非法（含引号、尖括号等）一律丢弃，防止用户借标签参数注入标记。
+    """
+    out = replacement.replace("\\4", content).replace("\\7", content)
+    if param is not None:
+        value = (param or "").strip()
+        out = out.replace("\\5", value if _TAG_VALUE_OK.match(value) else "")
+    return out
+
+
+def _apply_bbcode_table(text: str) -> str:
+    """按 bbcodes 表逐条替换：先双参数 [tag=param]…[/tag]，再单参数 [tag]…[/tag]。"""
+    for tag, twoparams, replacement in _bbcode_rules():
+        escaped_tag = re.escape(tag)
+        if twoparams:
+            def two(match: re.Match, replacement: str = replacement) -> str:
+                return _bbcode_fill(replacement, match.group(2), match.group(1))
+
+            text = re.sub(
+                rf"\[{escaped_tag}=(.+?)\](.*?)\[/{escaped_tag}\]",
+                two,
+                text,
+                flags=re.I | re.S,
+            )
+        else:
+            def one(match: re.Match, replacement: str = replacement) -> str:
+                return _bbcode_fill(replacement, match.group(1), None)
+
+            text = re.sub(
+                rf"\[{escaped_tag}\](.*?)\[/{escaped_tag}\]",
+                one,
+                text,
+                flags=re.I | re.S,
+            )
+    return text
+
+
 def render_body(text: str, prefix: str = "") -> str:
     """Escape everything, then re-enable a small BBCode subset.
 
@@ -373,12 +454,6 @@ def render_body(text: str, prefix: str = "") -> str:
 
     escaped = re.sub(r"\[url=([^\]\s]+)\](.*?)\[/url\]", _url_tagged, escaped, flags=re.I | re.S)
     escaped = re.sub(r"\[url\](.*?)\[/url\]", _url_plain, escaped, flags=re.I | re.S)
-    escaped = re.sub(
-        r"\[email\](.*?)\[/email\]",
-        r"<a href='mailto:\1'>\1</a>",
-        escaped,
-        flags=re.I | re.S,
-    )
 
     drawn_images = 0
 
@@ -395,28 +470,13 @@ def render_body(text: str, prefix: str = "") -> str:
         return f'<img src="{url}" border="0" alt="">'
 
     escaped = re.sub(r"\[img\](.*?)\[/img\]", img_replace, escaped, flags=re.I | re.S)
-    for tag in ("b", "i", "u", "s"):
-        escaped = re.sub(
-            rf"\[{tag}\](.*?)\[/{tag}\]", rf"<{tag}>\1</{tag}>", escaped, flags=re.I | re.S
-        )
-    # [size=3] / [font=arial] / [color=red] 与 vB 一样落到 <font> 上
-    escaped = re.sub(
-        r"\[size=(.+?)\](.*?)\[/size\]", _size_tag, escaped, flags=re.I | re.S
-    )
-    escaped = re.sub(
-        r"\[font=(.+?)\](.*?)\[/font\]", _font_tag, escaped, flags=re.I | re.S
-    )
-    escaped = re.sub(
-        r"\[color=(.+?)\](.*?)\[/color\]", _color_tag, escaped, flags=re.I | re.S
-    )
-    # [list][*]项目[/list]：vB 的有序/无序列表
+    # b / i / u / email / size / color / font / quote 一律由后台 bbcodes 表驱动
+    # （原版就是读 bbcodecache，所以后台 Custom vB Codes 改一条就立即影响前台渲染）
+    escaped = _apply_bbcode_table(escaped)
+    # [s] 原版 2.3.11 的 bbcode 表里没有，属于本板补齐的删除线写法
+    escaped = re.sub(r"\[s\](.*?)\[/s\]", r"<s>\1</s>", escaped, flags=re.I | re.S)
+    # [list][*]项目[/list]：vB 的有序/无序列表（表里没有，仍由这里处理）
     escaped = re.sub(r"\[list\](.*?)\[/list\]", _list_tag, escaped, flags=re.I | re.S)
-    escaped = re.sub(
-        r"\[quote\](.*?)\[/quote\]",
-        r"<blockquote class='quote'>\1</blockquote>",
-        escaped,
-        flags=re.I | re.S,
-    )
     escaped = escaped.replace("\n", "<br>")
 
     # 表情：和 vB 一样在解析完 BBCode 后按代码替换（[code] 块已被暂存，不会被替换）
