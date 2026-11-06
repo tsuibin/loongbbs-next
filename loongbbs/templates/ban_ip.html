@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.get('bbtitle') or settings.site_name }} - IP 被封禁{% endblock %}
+{% block content %}
+
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="70%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#8080A6" align="center"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF" class="thtcolor"><b>{{ settings.get('bbtitle') or settings.site_name }}</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" align="center"><font face="verdana, arial, helvetica" size="2">
+	<p>抱歉！管理员封禁了你的 IP 地址。</p>
+	<p>如需联系管理员，请来信 <a href="mailto:{{ settings.get('webmasteremail') or settings.get('bbtitleemail') or '' }}">{{ settings.get('webmasteremail') or '管理员' }}</a>。</p>
+	</font></td>
+</tr>
+</table>
+</td></tr></table>
+
+<br>
+{% endblock %}

@@ -114,6 +114,29 @@ def create_app(test_config: dict | None = None) -> Flask:
         return render_template("board_closed.html", reason=reason), 503
 
     @app.before_request
+    def _ip_ban_guard():
+        """vB 组 17 的 checkipban()：enablebanning 打开时按 banip 前缀封禁来访 IP。"""
+        from .settings import get_settings
+
+        current = get_settings()
+        if current.get("enablebanning", "0") != "1":
+            return None
+        banlist = (current.get("banip") or "").strip()
+        if not banlist:
+            return None
+        path = request.path or "/"
+        if path.startswith("/static"):
+            return None
+        ip = (request.remote_addr or "").strip()
+        if not ip:
+            return None
+        # 原版 `strstr(" ".$ipaddress, " ".$val)`：从 IP 开头匹配，支持部分 IP
+        for entry in banlist.split():
+            if entry and ip.startswith(entry):
+                return render_template("ban_ip.html"), 403
+        return None
+
+    @app.before_request
     def _apply_cookie_timeout():
         """vB 组 6 的 cookietimeout（秒）：会话 cookie 的有效期。"""
         from flask import session

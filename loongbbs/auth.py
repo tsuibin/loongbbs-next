@@ -76,12 +76,31 @@ def register_form():
     return render_template("auth/register.html", min_user=low, max_user=high)
 
 
+def _banned_email(email: str) -> bool:
+    """vB 组 17 的 banemail：列表按空格分隔，可填完整邮箱或整个域名。
+
+    原版用 `stristr(" ".$banemail." ", " ".$email." ")`，即空格包裹后的精确片段匹配，
+    域名匹配则拿 @ 后面的部分再比对一次。
+    """
+    if get_setting("enablebanning", "0") != "1":
+        return False
+    ban = " ".join((get_setting("banemail") or "").split()).lower()
+    if not ban:
+        return False
+    email = (email or "").strip().lower()
+    if not email:
+        return False
+    if f" {email} " in f" {ban} ":
+        return True
+    domain = email.rsplit("@", 1)[-1]
+    return bool(domain) and f" {domain} " in f" {ban} "
+
+
 @bp.post("/register")
 def register():
     if get_setting("allowregistration") != "1":
         flash("本站暂未开放注册。", "error")
         return redirect(url_for("forums.index"))
-
     username = (request.form.get("username") or "").strip()
     email = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
@@ -95,6 +114,9 @@ def register():
         errors.append("这个用户名不被允许。")
     if not EMAIL_RE.match(email):
         errors.append("请填写有效的邮箱地址。")
+    elif _banned_email(email):
+        # 组 17 banemail：注册时命中封禁列表（整页错误，对应 error_banemail）
+        return render_template("ban_email.html"), 403
     if len(password) < 8:
         errors.append("密码至少 8 位。")
     if password != password2:
@@ -549,6 +571,12 @@ def edit_profile_post():
         )
         if taken is not None:
             flash("这个邮箱地址已经被其他会员使用。")
+            ok = False
+        elif _banned_email(email) and not (
+            get_setting("allowkeepbannedemail", "1") == "1" and email == user.email
+        ):
+            # 组 17：allowkeepbannedemail=1 且邮箱没变时放行（原版 member.php:388）
+            flash("这个邮箱地址已被管理员封禁。")
             ok = False
 
     if not ok:
