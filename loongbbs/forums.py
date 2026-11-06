@@ -352,6 +352,30 @@ def _log_ip() -> str | None:
     return (request.remote_addr or "")[:45] or None
 
 
+def _flood_wait() -> int:
+    """组 16 enablefloodcheck / floodchecktime：返回还需等待的秒数（0 = 放行）。
+
+    原版：`time()-$bbuserinfo[lastpost] <= $floodchecktime and !ismoderator(...)`。
+    本站用该用户最后一条帖子的发表时间代替 user.lastpost，管理员豁免。
+    """
+    if get_setting("enablefloodcheck", "0") != "1":
+        return 0
+    if current_user.is_admin:
+        return 0
+    seconds = _setting_int("floodchecktime", 30, low=0, high=86400)
+    if not seconds:
+        return 0
+    last = db.session.scalar(
+        select(func.max(Post.created_at)).where(Post.author_id == current_user.id)
+    )
+    if last is None:
+        return 0
+    elapsed = _minutes_since(last) * 60
+    if elapsed <= seconds:
+        return max(1, int(seconds - elapsed) + 1)
+    return 0
+
+
 def _thread_per_page() -> int:
     """组 8 maxposts / usermaxposts：每页帖数。
 
@@ -703,6 +727,9 @@ def new_thread(forum_id: int):
     if _post_too_long(body):
         flash(f"帖子正文超过 {_postmaxchars()} 字节的上限，请精简后再发。", "error")
         return render_template("post_form.html", forum=forum_obj, mode="new", thread=None, post=None), 400
+    wait = _flood_wait()
+    if wait:
+        return render_template("floodcheck.html", wait=wait), 429
     if len(title) > 200:
         title = title[:200]
 
@@ -959,6 +986,9 @@ def reply(thread_id: int):
     if _post_too_long(body):
         flash(f"回复正文超过 {_postmaxchars()} 字节的上限，请精简后再发。", "error")
         return redirect(url_for("forums.thread", thread_id=thread_id, page="last"))
+    wait = _flood_wait()
+    if wait:
+        return render_template("floodcheck.html", wait=wait), 429
 
     if len(title) > 200:
         title = title[:200]

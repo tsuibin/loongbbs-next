@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from loongbbs import create_app  # noqa: E402
 from loongbbs.extensions import db  # noqa: E402
 from loongbbs.models import Category, Forum, Post, Thread, User  # noqa: E402
+from loongbbs.settings import set_setting  # noqa: E402
 
 CSRF_RE = re.compile(r'name="_csrf" value="([^"]+)"')
 
@@ -77,6 +78,8 @@ def main() -> int:
         admin = User(username="root", email="root@test.local", is_admin=True)
         admin.set_password("root12345")
         db.session.add(admin)
+        # 冒烟要连发主题+回复，跳过组 16 的「30 秒只能发一条」限制（产品行为不变）
+        set_setting("enablefloodcheck", "0")
         db.session.commit()
         forum_id = forum.id
 
