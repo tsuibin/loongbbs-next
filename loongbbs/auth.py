@@ -9,6 +9,7 @@ from pathlib import Path
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     redirect,
@@ -982,6 +983,32 @@ def _update_list(kind: str):
 @login_required
 def buddy_list_post():
     return _update_list("buddy")
+
+
+@bp.get("/member/lists/<kind>/<int:user_id>")
+@login_required
+def add_to_list(kind: str, user_id: int):
+    """对应 vB member2.php?action=addlist&userlist=buddy|ignore&userid=N。
+
+    原版是资料页底部两个链接，点一下直接把这个人加进好友/忽略列表，
+    然后 standardredirect 回原页面；userlist 不是 buddy 时一律当 ignore。
+    这里沿用本站既有的存储格式（用户名、逗号分隔），列表里已有的不重复加。
+    """
+    field = "buddylist" if kind == "buddy" else "ignorelist"
+    target = db.session.get(User, user_id)
+    if target is None:
+        abort(404)
+    if target.id == current_user.id:
+        return render_template("auth/list_error.html", message="抱歉，你不能把自己加入自己的列表。")
+    names = _list_names(getattr(current_user, field))
+    if target.username not in names:
+        names.append(target.username)
+        setattr(current_user, field, ",".join(names))
+        db.session.commit()
+        flash(
+            f"{target.username} 已经加入你的「{'好友' if kind == 'buddy' else '忽略'}」列表。"
+        )
+    return redirect(url_for("auth.profile", username=target.username))
 
 
 @bp.post("/usercp/ignore")

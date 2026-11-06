@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 论坛提示{% endblock %}
+{% block content %}
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="70%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#8080A6" width="100%"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="absmiddle" alt="" border="0">
+	<b>论坛提示</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" width="100%"><font face="verdana, arial, helvetica" size="2">{{ message }}<br><br>
+	<a href="{{ url_for('forums.index') }}">返回论坛首页</a></font></td>
+</tr>
+</table>
+</td></tr></table>
+{% endblock %}
