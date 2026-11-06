@@ -146,7 +146,7 @@
 <tr>
 	<td bgcolor="#F1F1F1" align="center"><font face="verdana,arial,helvetica" size="1">
 	<img src="{{ url_for('static', filename='images/printer.gif') }}" alt="" border="0" align="absmiddle">
-	<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">显示可打印版本</a> |
+	<a href="{{ url_for('forums.print_thread', thread_id=thread.id) }}">显示可打印版本</a> |
 	<img src="{{ url_for('static', filename='images/sendtofriend.gif') }}" alt="" border="0" align="absmiddle">
 	<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">用邮件推荐这个页面</a> |
 	<img src="{{ url_for('static', filename='images/subscribe.gif') }}" alt="" border="0" align="absmiddle">

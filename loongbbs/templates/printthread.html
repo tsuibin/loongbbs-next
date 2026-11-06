@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ settings.site_name }} - {{ thread.title }}</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body bgcolor="#FFFFFF" text="#000000" link="#000020" vlink="#000020" alink="#000020">
+
+<table cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr valign="bottom">
+	<td><a href="{{ url_for('forums.index') }}"><img src="{{ url_for('static', filename='images/vBulletin_logo.gif') }}" border="0" alt="{{ settings.site_name }}"></a></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="2">第 {{ page }} 页，共 {{ pages }} 页</font><br>
+	<font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.print_thread', thread_id=thread.id, perpage=posts_count) }}">Show {{ posts_count }} posts from this thread on one page</a></font></td>
+</tr>
+</table>
+
+<font face="verdana,arial,helvetica" size="2">
+<p><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a></b> ({{ request.host_url }})<br>
+- <b><a href="{{ url_for('forums.forum', forum_id=thread.forum.id) }}">{{ thread.forum.name }}</a></b> ({{ url_for('forums.forum', forum_id=thread.forum.id, _external=True) }})<br>
+-- <b><a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a></b> ({{ url_for('forums.thread', thread_id=thread.id, _external=True) }})</p>
+
+{% for post in posts %}
+<hr>
+<i>Posted by <a href="{{ url_for('auth.profile', username=post.author.username) }}">{{ post.author.username }}</a> on {{ post.created_at|dt('%m-%d-%Y') }} {{ post.created_at|dt('%I:%M %p') }}:</i>
+
+<p><b>{{ post.title or thread.title }}</b></p>
+
+<p>{{ post.body|body|safe }}</p>
+{% endfor %}
+
+<hr>
+</font>
+
+<table cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr valign="top">
+	<td><font face="verdana,arial,helvetica" size="2">All times are GMT. The time now is {{ now_gmt() }}.</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="2">第 {{ page }} 页，共 {{ pages }} 页</font><br>
+	<font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.print_thread', thread_id=thread.id, perpage=posts_count) }}">Show {{ posts_count }} posts from this thread on one page</a></font></td>
+</tr>
+</table>
+
+<p align="center"><font face="verdana,arial,helvetica" size="1">
+  Powered by: {{ settings.site_name }} — Flask + SQLAlchemy 重制版<br>
+  界面参照 vBulletin 2.3.11 默认风格<br>
+  <a href="{{ url_for('forums.thread', thread_id=thread.id) }}">返回主题</a>
+</font></p>
+
+</body>
+</html>

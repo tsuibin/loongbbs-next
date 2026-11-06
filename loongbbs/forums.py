@@ -77,6 +77,41 @@ def _read_cutoff(forum_id: int | None = None):
     return max(candidates) if candidates else None
 
 
+@bp.get("/t/<int:thread_id>/print")
+def print_thread(thread_id: int):
+    """vB 的 printthread.php：不带样式的一页纯文本版，供打印/存档。"""
+    thread_obj = db.session.get(Thread, thread_id)
+    if thread_obj is None:
+        abort(404)
+
+    total = db.session.scalar(
+        select(func.count(Post.id)).where(
+            Post.thread_id == thread_obj.id, Post.is_deleted.is_(False)
+        )
+    ) or 0
+    perpage = max(1, min(request.args.get("perpage", type=int) or 40, 200))
+    page = max(1, request.args.get("pagenumber", type=int) or 1)
+    pages = max(1, (total + perpage - 1) // perpage)
+    posts = db.session.execute(
+        select(Post)
+        .where(Post.thread_id == thread_obj.id, Post.is_deleted.is_(False))
+        .order_by(Post.created_at)
+        .offset((page - 1) * perpage)
+        .limit(perpage)
+    ).scalars().all()
+
+    return render_template(
+        "printthread.html",
+        thread=thread_obj,
+        posts=posts,
+        total=total,
+        perpage=perpage,
+        page=page,
+        pages=pages,
+        posts_count=total,
+    )
+
+
 @bp.get("/f/<int:forum_id>/markread")
 def mark_forum_read(forum_id: int):
     forum_obj = db.session.get(Forum, forum_id)
