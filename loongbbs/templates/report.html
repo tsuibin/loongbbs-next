@@ -23,7 +23,7 @@
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">
 	<b>作者:</b> <a href="{{ url_for('auth.profile', username=post.author.username) }}">{{ post.author.username }}</a>
-	&nbsp;·&nbsp;<b>发表时间:</b> {{ post.created_at|dt('%m-%d-%Y %I:%M %p') }}<br>
+	&nbsp;·&nbsp;<b>发表时间:</b> {{ post.created_at|datetimefmt }}<br>
 	<b>标题:</b> {{ post.title or post.thread.title }}<br>
 	<div style="margin-top:6px;padding:6px;background:#FFFFFF;border:1px solid #555576;max-height:180px;overflow:auto;white-space:pre-wrap;">{{ post.body }}</div>
 	</font></td>

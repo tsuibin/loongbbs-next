@@ -61,10 +61,30 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.before_request(csrf_protect)
 
     from .attachments import attachment_css, thumb_limits
-    from .utils import avatar_src, dowordwrap, format_dt, human_size, now_gmt, render_body, time_ago
+    from .utils import (
+        avatar_src,
+        dowordwrap,
+        format_date,
+        format_datetime,
+        format_dt,
+        format_joined,
+        format_time,
+        human_size,
+        now_gmt,
+        render_body,
+        time_ago,
+    )
 
     app.jinja_env.filters.update(
-        dt=format_dt, ago=time_ago, size=human_size, body=render_body, wordwrap=dowordwrap
+        dt=format_dt,
+        ago=time_ago,
+        size=human_size,
+        body=render_body,
+        wordwrap=dowordwrap,
+        datefmt=format_date,
+        timefmt=format_time,
+        datetimefmt=format_datetime,
+        joinedfmt=format_joined,
     )
     app.jinja_env.globals["avatar_src"] = avatar_src
     app.jinja_env.globals["now_gmt"] = now_gmt
@@ -134,9 +154,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "nav_user": current_user_or_none(),
             "attachment_css": attachment_css,
             "thumb_limits": thumb_limits(),
-            "server_time": format_dt(
-                datetime.now(timezone.utc), "%m-%d-%Y %I:%M %p"
-            ),
+            "server_time": format_datetime(datetime.now(timezone.utc)),
             "generation_time": "%.4f" % (time.perf_counter() - g.get("_t0", time.perf_counter())),
         }
 

@@ -43,8 +43,8 @@
 		<a href="{{ url_for('forums.thread', thread_id=sub.thread.id) }}">{{ sub.thread.title }}</a><br>
 		<font size="1">版块：<a href="{{ url_for('forums.forum', forum_id=sub.thread.forum.id) }}">{{ sub.thread.forum.name }}</a>
 		· 作者：<a href="{{ url_for('auth.profile', username=sub.thread.author.username) }}">{{ sub.thread.author.username }}</a>
-		· 最后发表 {{ sub.thread.last_post_at|dt('%m-%d-%Y %I:%M %p') }}
-		· 订阅于 {{ sub.created_at|dt('%m-%d-%Y') }}</font>
+		· 最后发表 {{ sub.thread.last_post_at|datetimefmt }}
+		· 订阅于 {{ sub.created_at|datefmt }}</font>
 	</font></td>
 	<td align="right" nowrap>
 		<form method="post" action="{{ url_for('forums.unsubscribe_thread', thread_id=sub.thread.id) }}" style="display:inline">

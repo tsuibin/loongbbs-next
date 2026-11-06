@@ -55,8 +55,60 @@ def format_dt(value: datetime | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
     return value.astimezone(LOCAL_TZ).strftime(fmt)
 
 
-def now_gmt(fmt: str = "%I:%M %p") -> str:
+# ------------------------------------------------ 组 12：vB 的 PHP 日期格式
+# vB 后台存的是 PHP date() 的格式串（dateformat=m-d-Y、timeformat=h:i A、
+# registereddateformat=M Y），这里逐字符翻译成 strftime，供页面使用。
+_PHP_DATE_TOKENS = {
+    "d": "%d", "j": "%d", "m": "%m", "n": "%m",
+    "Y": "%Y", "y": "%y",
+    "M": "%b", "F": "%B", "D": "%a", "l": "%A",
+    "h": "%I", "H": "%H", "g": "%I", "G": "%H",
+    "i": "%M", "s": "%S",
+    "A": "%p", "a": "%p",
+    "S": "", "U": "",
+}
+
+
+def php_to_strftime(fmt: str) -> str:
+    """把 PHP date() 格式串翻成 strftime 格式串（未知字符原样保留）。"""
+    out: list[str] = []
+    for char in fmt or "":
+        if char == "%":
+            out.append("%%")
+        elif char in _PHP_DATE_TOKENS:
+            out.append(_PHP_DATE_TOKENS[char])
+        elif char == "\\":
+            continue
+        else:
+            out.append(char)
+    return "".join(out)
+
+
+def _site_fmt(key: str, default: str) -> str:
+    from .settings import get_setting
+
+    return php_to_strftime(get_setting(key, default) or default)
+
+
+def format_date(value: datetime | None) -> str:
+    return format_dt(value, _site_fmt("dateformat", "m-d-Y"))
+
+
+def format_time(value: datetime | None) -> str:
+    return format_dt(value, _site_fmt("timeformat", "h:i A"))
+
+
+def format_datetime(value: datetime | None) -> str:
+    return f"{format_date(value)} {format_time(value)}"
+
+
+def format_joined(value: datetime | None) -> str:
+    return format_dt(value, _site_fmt("registereddateformat", "M Y"))
+
+
+def now_gmt(fmt: str | None = None) -> str:
     """页脚那一行 ``The time now is ...`` 用的当前站点时间。"""
+    fmt = fmt or _site_fmt("timeformat", "h:i A")
     return datetime.now(timezone.utc).astimezone(LOCAL_TZ).strftime(fmt)
 
 

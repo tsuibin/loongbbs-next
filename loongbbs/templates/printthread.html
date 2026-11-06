@@ -21,7 +21,7 @@
 
 {% for post in posts %}
 <hr>
-<i>Posted by <a href="{{ url_for('auth.profile', username=post.author.username) }}">{{ post.author.username }}</a> on {{ post.created_at|dt('%m-%d-%Y') }} {{ post.created_at|dt('%I:%M %p') }}:</i>
+<i>Posted by <a href="{{ url_for('auth.profile', username=post.author.username) }}">{{ post.author.username }}</a> on {{ post.created_at|datefmt }} {{ post.created_at|timefmt }}:</i>
 
 <p>{% if post.iconid %}<img src="{{ url_for('static', filename='images/icons/icon' ~ post.iconid ~ '.gif') }}" width="15" height="15" border="0" alt=""> {% endif %}<b>{{ post.title or thread.title }}</b></p>
 

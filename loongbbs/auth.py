@@ -30,7 +30,7 @@ from .models import (
     utcnow,
 )
 from .settings import get_setting
-from .utils import censor_text, clamp_page, format_dt
+from .utils import censor_text, clamp_page, format_dt, now_gmt
 
 bp = Blueprint("auth", __name__)
 
@@ -465,7 +465,7 @@ def edit_options():
         "auth/options.html",
         cpnav_current="options",
         forums=_forum_jump_list(),
-        now_gmt=format_dt(utcnow(), "%I:%M %p").lstrip("0"),
+        now_gmt=now_gmt(),
         style_sets=[("1", "默认风格")],
     )
 

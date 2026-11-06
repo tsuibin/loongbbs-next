@@ -50,7 +50,7 @@
 	<td bgcolor="#F1F1F1" align="center">{% set show_votes = settings.get('showvotes', '2')|int %}{% if r_cnt >= show_votes and r_cnt > 0 %}<img src="{{ url_for('static', filename='images/' ~ ('%.0f'|format(r_avg)) ~ 'stars.gif') }}" border="0" alt="{{ r_cnt }} 票 - 平均 {{ '%.4f'|format(r_avg) }}">{% else %}<img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" alt="">{% endif %}</td>
 	<td bgcolor="#DFDFDF">
 		<table cellpadding="0" cellspacing="0" border="0" width="100%" id="ltlink"><tr align="right">
-			<td nowrap><font face="verdana,arial,helvetica" size="1">{{ thread.last_post_at|dt('%m-%d-%Y') }} <font color="#666686">{{ thread.last_post_at|dt('%I:%M %p') }}</font><br>
+			<td nowrap><font face="verdana,arial,helvetica" size="1">{{ thread.last_post_at|datefmt }} <font color="#666686">{{ thread.last_post_at|timefmt }}</font><br>
 			by <a href="{{ url_for('auth.profile', username=thread.author.username) }}"><b>{{ thread.author.username }}</b></a></font></td>
 			<td nowrap>&nbsp;<a href="{{ url_for('forums.thread', thread_id=thread.id, goto='lastpost') }}"><img src="{{ url_for('static', filename='images/lastpost.gif') }}" border="0" alt="前往最后一帖"></a></td>
 		</tr></table>

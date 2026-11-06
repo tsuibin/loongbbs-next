@@ -116,7 +116,7 @@
 	<tr>
 		<td bgcolor="{{ '#F1F1F1' if loop.index0 % 2 == 0 else '#DFDFDF' }}"><font face="verdana, arial, helvetica" size="2">
 		<a href="{{ url_for('forums.thread', thread_id=sub.thread.id) }}">{{ sub.thread.title }}</a>
-		<font size="1">— {{ sub.thread.forum.name }}，最后发表 {{ sub.thread.last_post_at|dt('%m-%d-%Y %I:%M %p') }}</font>
+		<font size="1">— {{ sub.thread.forum.name }}，最后发表 {{ sub.thread.last_post_at|datetimefmt }}</font>
 		</font></td>
 	</tr>
 	{% endfor %}

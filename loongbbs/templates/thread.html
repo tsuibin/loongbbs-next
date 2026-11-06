@@ -111,7 +111,7 @@
 	<font face="verdana,arial,helvetica" size="1">{{ post.author.usertitle_text }}</font><br>
 	{% set asrc = avatar_src(post.author) %}
 	<a href="{{ url_for('auth.profile', username=post.author.username) }}"><img src="{{ asrc or url_for('static', filename='images/clear_avatar.gif') }}" width="65" height="65" border="0" alt="头像"></a><p>
-	<font face="verdana,arial,helvetica" size="1">注册于: {{ post.author.joined_at|dt('%m月 %Y') }}<br>
+	<font face="verdana,arial,helvetica" size="1">注册于: {{ post.author.joined_at|joinedfmt }}<br>
 	位置: <br>
 	帖子数: {{ post.author.post_count }}</font></td>
 
@@ -138,7 +138,7 @@
 	{% endfor %}
 	{% endif %}
 	{% if settings.get('allowsignatures', '1') != '0' and (not nav_user or nav_user.showsignatures) %}<p><font face="verdana,arial,helvetica" size="1">{% if post.author.signature %}{{ post.author.signature }}{% endif %}</font></p>{% endif %}
-	<p><font face="verdana,arial,helvetica" size="1">{% if post.updated_at %}（本帖最后由 {{ post.author.username }} 于 {{ post.updated_at|dt('%m-%d-%Y %I:%M %p') }} 修改过）{% endif %}</font></p>
+	<p><font face="verdana,arial,helvetica" size="1">{% if post.updated_at %}（本帖最后由 {{ post.author.username }} 于 {{ post.updated_at|datetimefmt }} 修改过）{% endif %}</font></p>
 	<p align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}<a href="{{ url_for('forums.report_form', post_id=post.id) }}">向版主举报本帖</a>{% else %}<a href="{{ url_for('auth.login_form') }}">向版主举报本帖</a>{% endif %} | IP: {% if nav_user %}已登录{% else %}未登录{% endif %}</font></p>
 	{% if nav_user and nav_user.is_admin %}
 	<form id="delpost{{ post.id }}" method="post" action="{{ url_for('forums.delete_post', post_id=post.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"></form>
@@ -147,7 +147,7 @@
 </tr>
 <tr>
 	<td bgcolor="{{ bg }}" width="175" height="16" nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/posticon.gif') }}" border="0" alt="">
-	{{ post.created_at|dt('%m-%d-%Y') }} <font color="#666686">{{ post.created_at|dt('%I:%M %p') }}</font></font></td>
+	{{ post.created_at|datefmt }} <font color="#666686">{{ post.created_at|timefmt }}</font></font></td>
 
 	<td bgcolor="{{ bg }}" width="100%" valign="middle" height="16">
 		<table width="100%" border="0" cellpadding="0" cellspacing="0">

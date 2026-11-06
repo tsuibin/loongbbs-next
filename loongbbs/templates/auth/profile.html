@@ -17,7 +17,7 @@
 </tr>
 <tr>
 	<td bgcolor="#DFDFDF" width="22%"><font face="verdana, arial, helvetica" size="2"><b>注册日期:</b></font></td>
-	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.joined_at|dt('%m-%d-%Y') }}</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.joined_at|datefmt }}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>状态:</b></font></td>
@@ -29,7 +29,7 @@
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>最后发表:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{% set lp = posts|first %}{% if lp %}{{ lp.created_at|dt('%m-%d-%Y') }} {{ lp.created_at|dt('%I:%M %p') }}<br><a href="{{ url_for('forums.thread', thread_id=lp.thread_id) }}#post{{ lp.id }}">{{ lp.thread.title }}</a>{% else %}从未{% endif %}</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{% set lp = posts|first %}{% if lp %}{{ lp.created_at|datefmt }} {{ lp.created_at|timefmt }}<br><a href="{{ url_for('forums.thread', thread_id=lp.thread_id) }}#post{{ lp.id }}">{{ lp.thread.title }}</a>{% else %}从未{% endif %}</font></td>
 </tr>
 <tr>
 	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>联系 {{ profile_user.username }}:</b></font></td>
