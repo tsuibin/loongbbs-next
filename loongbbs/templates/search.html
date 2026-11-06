@@ -22,7 +22,41 @@
 </tr>
 <tr>
 	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>范围:</b></font></td>
-	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">{% if selected_forum %}版块：<b>{{ selected_forum.name }}</b>（只在这个版块内搜索）{% else %}主题标题与帖子正文{% endif %}</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">{% if selected_forum %}版块：<b>{{ selected_forum.name }}</b>（只在这个版块内搜索）{% else %}全部版块{% endif %}</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>搜索位置:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
+	<select name="searchin">
+		<option value="both"{% if searchin == 'both' %} selected{% endif %}>标题和正文</option>
+		<option value="title"{% if searchin == 'title' %} selected{% endif %}>仅标题</option>
+		<option value="body"{% if searchin == 'body' %} selected{% endif %}>仅正文</option>
+	</select></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>作者:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1"><input type="text" class="bginput" name="author" size="20" value="{{ author }}"> <font size="1">（留空 = 不限作者；填用户名 = 只看此人的主题/帖子）</font>{% if author_missing %}<br><b>没有找到会员「{{ author }}」。</b>{% endif %}</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>日期起止:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
+	从 <input type="text" class="bginput" name="startdate" size="12" value="{{ startdate }}" placeholder="YYYY-MM-DD">
+	到 <input type="text" class="bginput" name="enddate" size="12" value="{{ enddate }}" placeholder="YYYY-MM-DD">
+	（可只填一端）</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>排序:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
+	<select name="sortby">
+		<option value="lastpost"{% if sortby == 'lastpost' %} selected{% endif %}>最后发表时间</option>
+		<option value="dateline"{% if sortby == 'dateline' %} selected{% endif %}>主题发表时间</option>
+		<option value="replycount"{% if sortby == 'replycount' %} selected{% endif %}>回复数</option>
+		<option value="views"{% if sortby == 'views' %} selected{% endif %}>查看数</option>
+	</select>
+	<select name="sortorder">
+		<option value="desc"{% if sortorder == 'desc' %} selected{% endif %}>降序</option>
+		<option value="asc"{% if sortorder == 'asc' %} selected{% endif %}>升序</option>
+	</select></font></td>
 </tr>
 </table>
 </td></tr></table>
@@ -56,6 +90,6 @@
 </td></tr></table>
 <br>
 <font face="verdana,arial,helvetica" size="1">共 {{ total }} 条结果，第 {{ page }} 页 / 共 {{ pages }} 页。
-{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', q=query, page=p, forum=selected_forum.id if selected_forum else None) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font>
+{% if pages > 1 %}( {% for p in range(1, pages + 1) %}<a href="{{ url_for('search.search', q=query, page=p, forum=selected_forum.id if selected_forum else None, author=author or None, startdate=startdate or None, enddate=enddate or None, sortby=sortby, sortorder=sortorder, searchin=searchin) }}">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %} ){% endif %}</font>
 {% endif %}
 {% endblock %}
