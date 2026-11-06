@@ -12,6 +12,23 @@ from flask_login import current_user
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _ensure_icons() -> None:
+    """Post Icons 表为空时写入参考站 icon 表的 14 条原值。"""
+    from sqlalchemy import func, select
+
+    from .extensions import db
+    from .models import Icon
+
+    if db.session.scalar(select(func.count(Icon.id))):
+        return
+    titles = ["Post", "Arrow", "Lightbulb", "Exclamation", "Question", "Cool", "Smile",
+              "Angry", "Unhappy", "Talking", "Red face", "Wink", "Thumbs down", "Thumbs up"]
+    db.session.add_all([
+        Icon(title=t, iconpath=f"images/icons/icon{i}.gif") for i, t in enumerate(titles, 1)
+    ])
+    db.session.commit()
+
+
 def _ensure_usergroup_extras() -> None:
     """把参考站 usergroup 表里的组级权限原值写进 usergroup_permissions（只做一次）。"""
     from sqlalchemy import select, text
@@ -516,5 +533,6 @@ def create_app(test_config: dict | None = None) -> Flask:
         _ensure_usertitles()
         _ensure_profilefields()
         _ensure_usergroup_extras()
+        _ensure_icons()
 
     return app

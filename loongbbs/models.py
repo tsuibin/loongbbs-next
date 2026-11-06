@@ -317,6 +317,19 @@ class Avatar(db.Model):
         return f"<Avatar {self.id} {self.title}>"
 
 
+class Icon(db.Model):
+    """vB 2.3.11 的 ``icon`` 表：帖子图标（后台 Post Icons 维护）。"""
+
+    __tablename__ = "icons"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False, default="", server_default="")
+    iconpath = db.Column(db.String(255), nullable=False, default="", server_default="")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Icon {self.id} {self.title}>"
+
+
 class UserGroup(db.Model):
     """vB 2.3.11 的 ``usergroup`` 表（只保留显示身份要用到的两列）。"""
 

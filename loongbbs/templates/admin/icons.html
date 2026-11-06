@@ -1,0 +1,189 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}Post Icons{% else %}帖子图标{% endif %}{% endblock %}
+{% block content %}
+
+{% if mode == 'list' %}
+<form method="get" action="{{ url_for('admin.icons') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="5"><font size="1"><b><span class="tblhead">Current Message Icons</span></b></font></td></tr>
+{% for rowgroup in rows|batch(5) %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+{% for r in rowgroup %}
+	<td valign="bottom" nowrap align="center">{{ r.title }}<br><br>
+		<img src="{{ icon_src(r.iconpath) }}"><br><br>
+		<a href="{{ url_for('admin.icons_edit', iconid=r.id, perpage=perpage, startpage=startpage) }}" class="lc">[edit]</a> <a href="{{ url_for('admin.icons_remove', iconid=r.id, perpage=perpage, startpage=startpage) }}" class="lc">[remove]</a>
+	</td>
+{% endfor %}
+{% for _ in range(5 - rowgroup|length) %}<td>&nbsp;</td>{% endfor %}
+</tr>
+{% endfor %}
+<tr class="{{ 'firstalt' if (rows|batch(5)|list|length) % 2 == 0 else 'secondalt' }}">
+	<td align="center" colspan="5"><table border="0"><tr><td width="100%" valign="top" align="center">
+	<font size="1"><b>Showing message icons {{ sicon }} to {{ eicon }} of {{ total }}</b></font></td><td nowrap>
+	<font size="1"><b>Perpage:</b></font> <input type="text" name="perpage" value="{{ perpage }}" size="5"> <input type="submit" value="GO">
+	</td></tr></table><font size="1">
+	{% if numpages > 1 %}
+	{% if startpage != 1 %}<a href="{{ url_for('admin.icons', startpage=startpage-1, perpage=perpage) }}">&lt;</a> {% endif %}
+	{% for x in range(1, numpages + 1) %}{% if x == startpage %}<b> <font size="+1">{{ x }}</font> </b>{% else %} <a href="{{ url_for('admin.icons', startpage=x, perpage=perpage) }}">{{ x }}</a> {% endif %}{% endfor %}
+	{% if startpage != numpages %}<a href="{{ url_for('admin.icons', startpage=startpage+1, perpage=perpage) }}">&gt;</a>{% endif %}
+	{% endif %}
+	</font></td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'add' %}
+<form method="post" action="{{ url_for('admin.icons_add') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add a single icon</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Alt text</p></td>
+	<td><p><input type="text" size="35" name="title" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Path to image</p></td>
+	<td><p><input type="text" size="35" name="iconpath" value="images/icons"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Add Icon   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<form method="get" action="{{ url_for('admin.icons_multiple') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add multiple icons</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Path to images (relative to your forums directory)</p></td>
+	<td><p><input type="text" size="35" name="iconpath" value="images/icons"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Number of icons to display per page?</p></td>
+	<td><p><input type="text" size="35" name="iconsperpage" value="7"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="submit" value="   Add Icons   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'multiple' %}
+<form method="post" action="{{ url_for('admin.icons_multiple') }}" name="form">
+<input type="hidden" value="{{ iconpath }}" name="iconpath">
+<input type="hidden" value="{{ iconsperpage }}" name="iconsperpage">
+<table align="center" border="0" cellspacing="1" cellpadding="5" class="tblborder">
+<tr class="secondalt"><td align="center" colspan="3">Adding Multiple Message Icons from<br><b>/static/{{ iconpath }}</b></td></tr>
+<tr class="tblhead"><td align="center"><b><span class="tblhead">Image</span></b></td><td align="center"><b><span class="tblhead">Title</span></b></td>
+	<td align="center"><input name="allbox" type="checkbox" value="Check All" onclick="CheckAll();"></td></tr>
+{% for name in names %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+	<td align="center" valign="bottom"><img src="{{ icon_src(iconpath) }}/{{ name }}" border="0" align="center"></td>
+	<td align="center"><input type="text" name="icontitle[{{ name }}]" size="25"></td>
+	<td align="center"><input type="checkbox" name="iconuse" value="{{ name }}"></td>
+</tr>
+{% endfor %}
+<tr class="tblhead"><td align="center" colspan="4">
+Showing icons {{ (startpage-1)*iconsperpage + 1 }} to {{ [startpage*iconsperpage, total]|min }} of {{ total }}<br><br>
+{% if numpages > 1 %}
+{% if startpage != 1 %}<a href="{{ url_for('admin.icons_multiple', startpage=startpage-1, iconsperpage=iconsperpage, iconpath=iconpath) }}">&lt;</a> {% endif %}
+{% for x in range(1, numpages + 1) %}{% if x == startpage %}<b> {{ x }} </b>{% else %} <a href="{{ url_for('admin.icons_multiple', startpage=x, iconsperpage=iconsperpage, iconpath=iconpath) }}">{{ x }}</a> {% endif %}{% endfor %}
+{% if startpage != numpages %}<a href="{{ url_for('admin.icons_multiple', startpage=startpage+1, iconsperpage=iconsperpage, iconpath=iconpath) }}">&gt;</a>{% endif %}
+{% endif %}
+</td></tr>
+</table>
+<input type="submit" value="   Save   ">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+</form>
+<script language="JavaScript">
+function CheckAll()
+{
+	for (var i=0;i<document.form.elements.length;i++)
+	{
+		var e = document.form.elements[i];
+		if ((e.name != 'allbox') && (e.type=='checkbox'))
+		e.checked = document.form.allbox.checked;
+	}
+}
+function CheckCheckAll()
+{
+	var TotalBoxes = 0;
+	var TotalOn = 0;
+	for (var i=0;i<document.form.elements.length;i++)
+	{
+		var e = document.form.elements[i];
+		if ((e.name != 'allbox') && (e.type=='checkbox'))
+		{
+			TotalBoxes++;
+			if (e.checked) { TotalOn++; }
+		}
+	}
+	if (TotalBoxes==TotalOn) { document.form.allbox.checked=true; }
+	else { document.form.allbox.checked=false; }
+}
+</script>
+
+{% elif mode == 'multiple_empty' %}
+<p>No Icons Selected<p>
+
+{% elif mode == 'edit' %}
+<form method="post" action="{{ url_for('admin.icons_edit') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit Icon:</b> <i>{{ row.title }}</i></span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Alt text</p></td>
+	<td><p><input type="text" size="35" name="title" value="{{ row.title }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Path to image</p></td>
+	<td><p><input type="text" size="35" name="iconpath" value="{{ row.iconpath }}"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="iconid" value="{{ row.id }}">
+	<input type="hidden" name="startpage" value="{{ startpage }}">
+	<input type="hidden" name="perpage" value="{{ perpage }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'remove' %}
+<form method="post" action="{{ url_for('admin.icons_remove') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2" align="center">Are you sure you want to delete this icon?</td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="iconid" value="{{ row.id }}">
+	<input type="hidden" name="perpage" value="{{ perpage }}">
+	<input type="hidden" name="startpage" value="{{ startpage }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="history.back()">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<p><b>Using this feature required your web server and PHP to have permission to write files to disk. If they do not have the neccessary permissions, it will fail.</b></p>
+<form method="post" action="{{ url_for('admin.icons_upload') }}" enctype="multipart/form-data">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Upload new icon from your computer</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Icon file</p></td>
+	<td><p><input type="file" name="iconfile" size="35"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>Alt text</p></td>
+	<td><p><input type="text" size="35" name="title" value=""></p></td></tr>
+<tr class="firstalt" valign="top"><td><p>Path to save image to <BR>(no filename; no trailing slash; relative from main vB directory)</p></td>
+	<td><p><input type="text" size="35" name="iconpath" value="images/icons"></p></td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Upload Now   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

@@ -28,6 +28,7 @@ from .models import (
     Category,
     Forum,
     ForumPermission,
+    Icon,
     PERMISSION_FIELDS,
     generate_password_hash,
     PERMISSION_LABELS,
@@ -110,9 +111,9 @@ NAV_GROUPS = [
         {"label": "Upload", "endpoint": "admin.avatars_upload"},
     ]},
     {"title": "Post Icons", "links": [
-        {"label": "Add", "module": "Add Post Icon"},
-        {"label": "Modify", "module": "Modify Post Icons"},
-        {"label": "Upload", "module": "Upload Post Icons"},
+        {"label": "Add", "endpoint": "admin.icons_add"},
+        {"label": "Modify", "endpoint": "admin.icons"},
+        {"label": "Upload", "endpoint": "admin.icons_upload"},
     ]},
     {"title": "Smilies", "links": [
         {"label": "Add", "module": "Add Smilie"},
@@ -1224,6 +1225,170 @@ def _group_perms(group_id: int) -> dict:
 def _group_form_groups() -> list:
     return [(title, [(name, GROUP_FORM_LABELS[name]) for name in names])
             for title, names in GROUP_FORM_GROUPS]
+
+
+ICONS_STATIC = None
+
+
+def _icons_dir() -> Path:
+    return Path(current_app.static_folder) / "images" / "icons"
+
+
+def _icon_src(iconpath: str) -> str:
+    """原版是 ../{iconpath}（相对后台目录）；本地静态目录对应 /static/{iconpath}。"""
+    p = iconpath.replace("{imagesfolder}", "images")
+    if p.startswith("http://") or p.startswith("/"):
+        return p
+    return "/static/" + p.lstrip("./")
+
+
+def _icons_page(startpage: int, perpage: int):
+    total = db.session.scalar(select(func.count(Icon.id))) or 0
+    if startpage < 1:
+        startpage = 1
+    if perpage < 1:
+        perpage = 20
+    numpages = max(1, (total + perpage - 1) // perpage)
+    if startpage > numpages:
+        startpage = numpages
+    rows = db.session.execute(
+        select(Icon).order_by(Icon.title).offset((startpage - 1) * perpage).limit(perpage)
+    ).scalars().all()
+    sicon = (startpage - 1) * perpage + 1
+    eicon = min(total, startpage * perpage)
+    return rows, total, startpage, perpage, numpages, sicon, eicon
+
+
+@bp.route("/icons")
+def icons():
+    """Post Icons → Modify：照原版 icon.php 的 modify。"""
+    startpage = request.args.get("startpage", type=int) or 1
+    perpage = request.args.get("perpage", type=int) or 20
+    rows, total, startpage, perpage, numpages, sicon, eicon = _icons_page(startpage, perpage)
+    return render_template("admin/icons.html", mode="list", rows=rows, total=total,
+                           startpage=startpage, perpage=perpage, numpages=numpages,
+                           sicon=sicon, eicon=eicon, icon_src=_icon_src)
+
+
+@bp.route("/icons/add", methods=["GET", "POST"])
+def icons_add():
+    """Post Icons → Add：原版 add（单条）/ insert（保存单条）。"""
+    if request.method == "GET":
+        return render_template("admin/icons.html", mode="add")
+    form = request.form
+    db.session.add(Icon(title=(form.get("title") or "").strip(),
+                        iconpath=(form.get("iconpath") or "").strip()))
+    db.session.commit()
+    flash("Record added", "success")
+    return redirect(url_for("admin.icons"))
+
+
+@bp.route("/icons/multiple", methods=["GET", "POST"])
+def icons_multiple():
+    """Add multiple icons：原版 insertmultiple（扫目录挑图）/ domultiple（批量入库）。"""
+    if request.method == "POST":
+        iconpath = (request.form.get("iconpath") or "images/icons").strip().rstrip("/")
+        uses = request.form.getlist("iconuse")
+        titles = request.form
+        count = 0
+        for name in uses:
+            db.session.add(Icon(title=(titles.get("icontitle[%s]" % name) or "").strip(),
+                                iconpath=f"{iconpath}/{name}"))
+            count += 1
+        db.session.commit()
+        if count == 0:
+            return render_template("admin/icons.html", mode="multiple_empty")
+        flash(f"Record added", "success")
+        return redirect(url_for("admin.icons"))
+
+    iconpath = (request.args.get("iconpath") or "images/icons").strip().rstrip("/")
+    startpage = request.args.get("startpage", type=int) or 1
+    iconsperpage = request.args.get("iconsperpage", type=int) or 10
+    if startpage < 1:
+        startpage = 1
+    if iconsperpage < 1:
+        iconsperpage = 10
+    folder = _icons_dir()
+    existing = {r.iconpath for r in db.session.execute(select(Icon)).scalars().all()}
+    names = []
+    if folder.is_dir():
+        for f in sorted(folder.iterdir()):
+            if not f.is_file():
+                continue
+            if f.suffix.lower() not in (".gif", ".bmp", ".jpg", ".jpeg", ".png"):
+                continue
+            rel = f"{iconpath}/{f.name}"
+            if rel in existing:
+                continue
+            names.append(f.name)
+    numpages = max(1, (len(names) + iconsperpage - 1) // iconsperpage)
+    if startpage > numpages:
+        startpage = numpages
+    chunk = names[(startpage - 1) * iconsperpage:startpage * iconsperpage]
+    return render_template("admin/icons.html", mode="multiple", names=chunk, iconpath=iconpath,
+                           startpage=startpage, iconsperpage=iconsperpage, numpages=numpages,
+                           total=len(names), folder_missing=not folder.is_dir(),
+                           icon_src=_icon_src)
+
+
+@bp.route("/icons/edit", methods=["GET", "POST"])
+def icons_edit():
+    """Post Icons 编辑：原版 edit / doupdate。"""
+    iid = request.values.get("iconid", type=int) or 0
+    row = db.session.get(Icon, iid) if iid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.icons"))
+    if request.method == "GET":
+        return render_template("admin/icons.html", mode="edit", row=row,
+                               perpage=request.args.get("perpage", type=int) or 20,
+                               startpage=request.args.get("startpage", type=int) or 1)
+    row.title = (request.form.get("title") or "").strip()
+    row.iconpath = (request.form.get("iconpath") or "").strip()
+    db.session.commit()
+    flash("Record updated!", "success")
+    return redirect(url_for("admin.icons", startpage=request.form.get("startpage", type=int) or 1,
+                            perpage=request.form.get("perpage", type=int) or 20))
+
+
+@bp.route("/icons/remove", methods=["GET", "POST"])
+def icons_remove():
+    """Post Icons 删除：原版 remove / kill。"""
+    iid = request.values.get("iconid", type=int) or 0
+    row = db.session.get(Icon, iid) if iid else None
+    if row is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.icons"))
+    if request.method == "GET":
+        return render_template("admin/icons.html", mode="remove", row=row,
+                               perpage=request.args.get("perpage", type=int) or 20,
+                               startpage=request.args.get("startpage", type=int) or 1)
+    db.session.execute(delete(Icon).where(Icon.id == row.id))
+    db.session.commit()
+    flash("Deleted! & thread/posts with that icon have been updated.", "success")
+    return redirect(url_for("admin.icons", startpage=request.form.get("startpage", type=int) or 1,
+                            perpage=request.form.get("perpage", type=int) or 20))
+
+
+@bp.route("/icons/upload", methods=["GET", "POST"])
+def icons_upload():
+    """Post Icons → Upload：原版 upload / doupload（存盘后按单条插入）。"""
+    if request.method == "GET":
+        return render_template("admin/icons.html", mode="upload")
+    iconfile = request.files.get("iconfile")
+    title = (request.form.get("title") or "").strip()
+    iconpath = (request.form.get("iconpath") or "images/icons").strip().rstrip("/")
+    if not iconfile or not iconfile.filename:
+        flash("No file uploaded", "error")
+        return redirect(url_for("admin.icons_upload"))
+    dest_dir = _icons_dir()
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    name = Path(iconfile.filename).name
+    iconfile.save(dest_dir / name)
+    db.session.add(Icon(title=title, iconpath=f"{iconpath}/{name}"))
+    db.session.commit()
+    flash("Icon successfuly uploaded", "success")
+    return redirect(url_for("admin.icons"))
 
 
 @bp.route("/usergroups")
