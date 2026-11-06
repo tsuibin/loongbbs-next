@@ -2,151 +2,136 @@
 {% block title %}{{ settings.site_name }} - 论坛首页{% endblock %}
 
 {% block content %}
-<table width="100%" cellpadding="2" cellspacing="0">
+<!-- text -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr valign="top">
-  <td>
-    <img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="{{ settings.site_name }}">
-    <span class="normalfont bold">{{ settings.site_name }}</span>
-    <span class="smallfont">&nbsp;&nbsp;{{ settings.site_tagline }}</span>
-  </td>
-  <td align="right" nowrap>
-    <span class="smallfont">
-      {% if nav_user %}欢迎回来，<b><a href="{{ url_for('auth.profile', username=nav_user.username) }}">{{ nav_user.username }}</a></b>{% else %}你尚未登录{% endif %}<br>
-      <a href="{{ url_for('search.search') }}">查看今日新帖</a>
-    </span>
-  </td>
+	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b>{{ settings.site_name }}</b></font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user %}欢迎回来，<b>{{ nav_user.username }}</b>{% else %}你尚未登录{% endif %}<br><b><a href="{{ url_for('search.search', q='') }}">查看今日新帖</a></b></font></td>
 </tr>
 </table>
 
-<table width="100%" cellpadding="2" cellspacing="0">
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+{% if not nav_user %}
 <tr>
-  <td colspan="2">
-    <span class="normalfont bold">欢迎来到 {{ settings.site_name }}。</span><br>
-    <span class="smallfont">
-      如果你是第一次访问，请先看看
-      <a href="{{ url_for('auth.register_form') if settings.allow_registration == '1' else url_for('auth.login_form') }}"><b>注册</b></a> 说明；
-      发帖前需要 <a href="{{ url_for('auth.login_form') }}"><b>登录</b></a>。
-      选择下面的版块开始浏览。
-    </span>
-    <hr>
-  </td>
+	<td colspan="2"><font face="verdana, arial, helvetica" size="2"><b>欢迎来到 {{ settings.site_name }}。</b></font><br>
+	<font face="verdana,arial,helvetica" size="1">如果你是第一次访问，请先看看 <a href="{{ url_for('forums.index') }}"><b>FAQ</b></a>；
+	发帖前需要先 <a href="{{ url_for('auth.register_form') }}"><b>注册</b></a>，
+	点击上面的注册链接即可继续。
+	要开始浏览帖子，请从下面的版块列表中选择一个进入。</font><hr></td>
 </tr>
+{% endif %}
 <tr valign="bottom">
-  <td class="statsblock">
-    会员: {{ stats.users }}，主题: {{ stats.threads }}，帖子: {{ stats.posts }}<br>
-    {% if stats.newest_user %}
-      欢迎最新会员 <a href="{{ url_for('auth.profile', username=stats.newest_user.username) }}">{{ stats.newest_user.username }}</a>
-    {% endif %}
-  </td>
-  <td align="right" class="statsblock">
-    现在时间 {{ server_time }}<br>
-    {% if nav_user %}你上次登录：{{ nav_user.last_seen|dt('%m-%d-%Y %I:%M %p') }}{% else %}所有时间均为北京时间（GMT+8）{% endif %}
-  </td>
+	<td><font face="verdana,arial,helvetica" size="1">
+	会员: {{ stats.users }}, 主题: {{ stats.threads }}, 帖子: {{ stats.posts }}<br>
+	{% if stats.newest_user %}欢迎最新会员, <a href="{{ url_for('auth.profile', username=stats.newest_user.username) }}">{{ stats.newest_user.username }}</a>{% endif %}
+	</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">
+	现在时间是 {{ server_time }}.<br>
+	{% if nav_user %}你上次访问: {{ nav_user.last_seen|dt('%m-%d-%Y %I:%M %p') }}.{% else %}所有时间均为北京时间（GMT+8）.{% endif %}
+	</font></td>
 </tr>
 </table>
+<!-- /text -->
 
 <br>
 
-<!-- 版块总表 -->
-<table class="tborder" cellpadding="4" cellspacing="1">
+<!-- main -->
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr align="center">
-  <td class="thead" width="2%">&nbsp;</td>
-  <td class="thead left" width="48%">版块</td>
-  <td class="thead">主题</td>
-  <td class="thead">帖子</td>
-  <td class="thead nowrap">最后发表</td>
-  <td class="thead" width="18%">版主</td>
+  <td bgcolor="#8080A6"><font face="verdana,arial,helvetica" size="1">&nbsp;</font></td>
+  <td bgcolor="#8080A6" width="80%" align="left"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>版块</b></font></td>
+  <td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>帖子</b></font></td>
+  <td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>主题</b></font></td>
+  <td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>最后发表</b></font></td>
+  <td bgcolor="#8080A6" width="20%"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>版主</b></font></td>
 </tr>
 
 {% for category in categories %}
-<tr>
-  <td class="tcat" colspan="6" align="left">
-    <a href="{{ url_for('forums.index') }}#cat{{ category.id }}"><span class="normalfont bold lightyellow">{{ category.name }}</span></a>
-    {% if category.description %}<br><span class="smallfont lightyellow">{{ category.description }}</span>{% endif %}
-  </td>
+<tr id="cat">
+  <td bgcolor="#606096" colspan="6"><a href="{{ url_for('forums.index') }}#cat{{ category.id }}"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>{{ category.name }}</b></font></a>
+   {% if category.description %} <font face="verdana,arial,helvetica" size="1" color="#FFF788">{{ category.description }}</font>{% endif %}</td>
 </tr>
 
-{% set outer = loop %}
 {% for forum in category.forums %}
-  {% set last = forum.last_post %}
-  <tr align="center">
-    <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" valign="top">
-      <img class="status-icon" src="{{ url_for('static', filename='images/off.gif' if forum.is_closed else 'images/on.gif') }}" alt="">
-    </td>
-    <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" align="left">
-      <a class="forum-title" href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a>
-      <span class="smallfont">{{ forum.description }}</span>
-      {% if forum.is_closed %}<span class="smallfont muted">（版块已关闭）</span>{% endif %}
-    </td>
-    <td class="{{ 'alt2' if loop.index0 % 2 == 0 else 'alt1' }}"><span class="normalfont">{{ forum.thread_count }}</span></td>
-    <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}"><span class="normalfont">{{ forum.post_count }}</span></td>
-    <td class="{{ 'alt2' if loop.index0 % 2 == 0 else 'alt1' }}" align="left">
-      {% if last %}
-        <span class="smallfont">
-          <a href="{{ url_for('forums.thread', thread_id=last.thread_id) }}#p{{ last.id }}">{{ last.thread.title|truncate(28, True) }}</a><br>
-          {{ last.created_at|ago }} · <a href="{{ url_for('auth.profile', username=last.author.username) }}">{{ last.author.username }}</a>
-        </span>
-      {% else %}
-        <span class="smallfont muted">从来没有</span>
-      {% endif %}
-    </td>
-    <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" align="left">
-      <span class="smallfont modCol">&nbsp;</span>
-    </td>
-  </tr>
+<tr align="center">
+	{% set nl = nav_user.last_seen|dt('%Y%m%d%H%M') if nav_user and nav_user.last_seen else '99999999999999' %}
+	{% set lp = forum.last_post.created_at|dt('%Y%m%d%H%M') if forum.last_post else '0' %}
+	<td bgcolor="#DFDFDF" valign="top"><img src="{{ url_for('static', filename='images/' ~ ('offlock.gif' if forum.is_closed else ('on.gif' if lp > nl else 'off.gif'))) }}" border="0" alt=""></td>
+	<td bgcolor="#F1F1F1" align="left"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font face="verdana, arial, helvetica" size="2"><b>{{ forum.name }}</b></font></a>
+	{% if forum.description %}<br><font face="verdana,arial,helvetica" size="1">{{ forum.description }}</font>{% endif %}{% if forum.is_closed %}<br><font face="verdana,arial,helvetica" size="1">（版块已关闭）</font>{% endif %}</td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ forum.post_count }}</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ forum.thread_count }}</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">{% set last = forum.last_post %}{% if last %}<table cellpadding="0" cellspacing="0" border="0" width="100%" id="ltlink"><tr align="right">
+		<td nowrap>{{ last.created_at|dt('%m-%d-%Y') }} <font color="#666686">{{ last.created_at|dt('%I:%M %p') }}</font><br>
+		by <a href="{{ url_for('auth.profile', username=last.author.username) }}"><b>{{ last.author.username }}</b></a></td>
+		<td nowrap>&nbsp;<a href="{{ url_for('forums.thread', thread_id=last.thread_id) }}#post{{ last.id }}"><img src="{{ url_for('static', filename='images/lastpost.gif') }}" border="0" alt="前往最后一帖"></a></td>
+	</tr></table>{% else %}从未{% endif %}</font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">&nbsp;</font></td>
+</tr>
 {% endfor %}
-{% else %}
-<tr><td class="alt1" colspan="6" align="center" class="smallfont">还没有版块，先登录后台添加。</td></tr>
 {% endfor %}
-</table>
 
-<!-- 当前在线 -->
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr><td class="tcat" align="left">当前在线用户: {{ stats.online }}</td></tr>
+<tr id="cat">
+	<td bgcolor="#606096" colspan="6"><a href="{{ url_for('forums.index') }}"><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>当前在线用户</b></font></a><font face="verdana, arial, helvetica" size="2" color="#FFF788"><b>: {{ stats.online }}</b></font></td>
+</tr>
 <tr>
-  <td class="alt1" align="left">
-    <span class="smallfont">
-      最近 15 分钟内有 {{ stats.online }} 位会员活跃{% if nav_user %}，其中包含你自己{% endif %}。
-    </span>
-  </td>
+	<td bgcolor="#F1F1F1" colspan="6"><font face="verdana,arial,helvetica" size="1">
+	<nobr>最近 15 分钟内有 {{ stats.online }} 位会员在版面上活动。</nobr><br>
+	{% if nav_user %}其中包含你自己。{% else %}登录后可以在这里看到自己的名字。{% endif %}</font></td>
 </tr>
 </table>
+</td></tr></table>
+<!-- /main -->
 
 <br>
 
-<!-- 图标图例 -->
-<table width="100%" cellpadding="2" cellspacing="0">
-<tr>
-  <td align="center" class="smallfont">
-    <img src="{{ url_for('static', filename='images/on.gif') }}" alt=""> 有新帖
-    &nbsp;&nbsp;
-    <img src="{{ url_for('static', filename='images/off.gif') }}" alt=""> 无新帖
-    &nbsp;&nbsp;
-    <img src="{{ url_for('static', filename='images/offlock.gif') }}" alt=""> 已关闭版块
-  </td>
-</tr>
-</table>
-
-<br>
-
-<!-- 论坛跳转 -->
-<table width="100%" cellpadding="2" cellspacing="0">
-<tr valign="bottom">
-  <td>
-    <span class="smallfont"><b>论坛跳转:</b></span><br>
-    <select onchange="if(this.value) window.location=this.value">
-      <option value="">请选择:</option>
-      {% for category in categories %}
-        <option value="{{ url_for('forums.index') }}#cat{{ category.id }}">{{ category.name }}</option>
-        {% for forum in category.forums %}
-          <option value="{{ url_for('forums.forum', forum_id=forum.id) }}">&nbsp;&nbsp;-- {{ forum.name }}</option>
-        {% endfor %}
-      {% endfor %}
-    </select>
-  </td>
+<!-- timezone/login-->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr valign="top">
+  <td><font face="verdana,arial,helvetica" size="1">所有时间均为北京时间（GMT+8）</font></td>
   <td align="right">
-    <span class="smallfont"><b>站点统计:</b> {{ stats.threads }} 主题 / {{ stats.posts }} 帖子 / {{ stats.users }} 会员</span>
+  {% if nav_user %}
+  <font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('auth.logout') }}" onclick="document.getElementById('logoutform').submit();return false;">退出登录</a> | <a href="{{ url_for('search.search') }}">查看新帖</a> | <a href="{{ url_for('forums.index') }}">论坛首页</a></font>
+  <form id="logoutform" method="post" action="{{ url_for('auth.logout') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"></form>
+  {% else %}
+  <font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.index') }}">标记全部版块为已读</a> | <a href="{{ url_for('forums.index') }}">论坛版主</a></font>
+
+  <table border="0" cellpadding="0" cellspacing="0">
+  <form action="{{ url_for('auth.login') }}" method="post">
+  <tr>
+  	<td nowrap><font face="verdana,arial,helvetica" size="1"><b>不想用 Cookie？</b><br>用用户名和密码登录:</font></td>
+  </tr><tr>
+  	<td nowrap><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  	<input type="text" class="bginput" name="username" size="7">
+  	<input type="password" class="bginput" name="password" size="7">
+  	<input type="submit" class="bginput" value="登录!"></td>
+  </tr>
+  </form>
+  </table>
+  {% endif %}
   </td>
 </tr>
 </table>
+<!-- /timezone/login -->
+
+<br>
+
+<!-- icons -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td align="center">
+	<img src="{{ url_for('static', filename='images/on.gif') }}" border="0" alt="On" align="absmiddle">
+	<b><font face="verdana,arial,helvetica" size="1">有新帖</font></b>
+	&nbsp;&nbsp;
+	<img src="{{ url_for('static', filename='images/off.gif') }}" border="0" alt="Off" align="absmiddle">
+	<b><font face="verdana,arial,helvetica" size="1">无新帖</font></b>
+	&nbsp;&nbsp;
+	<img src="{{ url_for('static', filename='images/offlock.gif') }}" border="0" alt="Closed Forum" align="absmiddle">
+	<b><font face="verdana,arial,helvetica" size="1">已关闭的版块</font></b>
+	</td>
+</tr>
+</table>
+<!-- /icons -->
 {% endblock %}

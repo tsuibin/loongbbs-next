@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 编辑选项：{{ nav_user.username }}{% endblock %}
+
+{% block content %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	<a href="{{ url_for('auth.usercp') }}">用户控制面板：{{ nav_user.username }}</a> &gt;
+	编辑选项</b></font></td>
+	<td align="right">
+	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>
+	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
+		<option value="">请选择一项：</option>
+		<option value="{{ url_for('pm.inbox') }}">--------------------</option>
+		<option value="{{ url_for('auth.usercp') }}">用户控制面板</option>
+		<option value="{{ url_for('search.search') }}">搜索版块</option>
+		<option value="{{ url_for('forums.index') }}">论坛首页</option>
+		<option value="">--------------------</option>
+		{% for f in forums %}<option value="{{ url_for('forums.forum', forum_id=f.id) }}">-- {{ f.name }}</option>{% endfor %}
+	</select>
+	<input type="button" value="GO" onclick="var s=document.getElementById('forumjump'); if(s.value) location.href=s.value;">
+	</td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<br>
+
+{% with cpnav_current = 'options' %}{% include "auth/_cpnav.html" %}{% endwith %}
+<br>
+
+<form action="{{ url_for('auth.edit_options_post') }}" method="post">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+
+<tr>
+	<td bgcolor="#606096" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#FFF788"><b>编辑选项 - {{ nav_user.username }}</b></font></td>
+</tr>
+
+<!-- 登录、Cookie 与隐私 -->
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>登录、Cookie 与隐私</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>隐身模式？</b><br>
+	<font size="1">选择 yes 后你浏览论坛时不会出现在「当前在线用户」列表里。</font></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="invisible" value="yes"{% if nav_user.invisible %} checked{% endif %}> yes
+		<input type="radio" name="invisible" value="no"{% if not nav_user.invisible %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2"><b>下次访问自动登录？（使用 Cookie）</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="cookieuser" value="yes"{% if nav_user.cookieuser %} checked{% endif %}> yes
+		<input type="radio" name="cookieuser" value="no"{% if not nav_user.cookieuser %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>使用 Cookie 浏览论坛？</b><br>
+	<font size="1">选择 yes 会用 Cookie 保存本会话的身份；选择 no 则把身份信息放在链接里。（选 no 后，与你在同一代理后面的人共享链接时可能出问题）</font></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="nosessionhash" value="yes"{% if not nav_user.nosessionhash %} checked{% endif %}> yes
+		<input type="radio" name="nosessionhash" value="no"{% if nav_user.nosessionhash %} checked{% endif %}> no
+	</font></td>
+</tr>
+
+<!-- 私信与通知 -->
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>私信与通知</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>允许论坛管理员和版主向你发送邮件通知？</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="allowmail" value="yes"{% if nav_user.allowmail %} checked{% endif %}> yes
+		<input type="radio" name="allowmail" value="no"{% if not nav_user.allowmail %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2"><b>隐藏邮箱地址？</b><br>
+	<font size="1">选择 yes 会在你的公开资料里隐藏邮箱地址，其他用户无法查看。</font></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="showemail" value="no"{% if not nav_user.showemail %} checked{% endif %}> yes
+		<input type="radio" name="showemail" value="yes"{% if nav_user.showemail %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>默认使用“邮件通知”？</b><br>
+	<font size="1">开启后，只要你参与过的主题有人回复，就会给你发邮件。</font></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="emailnotification" value="yes"{% if nav_user.emailnotification %} checked{% endif %}> yes
+		<input type="radio" name="emailnotification" value="no"{% if not nav_user.emailnotification %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2"><b>启用私信？</b><br>
+	<font size="1">允许他人向你发送私信</font></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="receivepm" value="yes"{% if nav_user.receivepm %} checked{% endif %}> yes
+		<input type="radio" name="receivepm" value="no"{% if not nav_user.receivepm %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>收到私信时邮件通知？</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="emailonpm" value="yes"{% if nav_user.emailonpm %} checked{% endif %}> yes
+		<input type="radio" name="emailonpm" value="no"{% if not nav_user.emailonpm %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2"><b>收到私信时弹窗提示？</b><br>
+	<font size="1">收到私信时弹出一个小提示框，询问你是否要查看这条私信。</font></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="pmpopup" value="yes"{% if nav_user.pmpopup %} checked{% endif %}> yes
+		<input type="radio" name="pmpopup" value="no"{% if not nav_user.pmpopup %} checked{% endif %}> no
+	</font></td>
+</tr>
+
+<!-- 主题浏览选项 -->
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>主题浏览选项</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>在帖子中显示用户签名？</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="showsignatures" value="yes"{% if nav_user.showsignatures %} checked{% endif %}> yes
+		<input type="radio" name="showsignatures" value="no"{% if not nav_user.showsignatures %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2"><b>在帖子中显示用户头像？</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="showavatars" value="yes"{% if nav_user.showavatars %} checked{% endif %}> yes
+		<input type="radio" name="showavatars" value="no"{% if not nav_user.showavatars %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>在帖子中显示图片附件和 [img] 代码？</b><br>
+	<font size="1">选择 no 时将改为显示一个超链接。</font></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="showimages" value="yes"{% if nav_user.showimages %} checked{% endif %}> yes
+		<input type="radio" name="showimages" value="no"{% if not nav_user.showimages %} checked{% endif %}> no
+	</font></td>
+</tr>
+{% set day_options = [("-1","使用版块默认"),("1","显示最近 1 天的主题"),("2","显示最近 2 天的主题"),("5","显示最近 5 天的主题"),("10","显示最近 10 天的主题"),("20","显示最近 20 天的主题"),("30","显示最近 30 天的主题"),("45","显示最近 45 天的主题"),("60","显示最近 60 天的主题"),("75","显示最近 75 天的主题"),("100","显示最近 100 天的主题"),("365","显示最近一年的主题"),("1000","显示全部主题")] %}
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2"><b>默认主题浏览范围：</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
+	<select name="prunedays">
+		{% for value, label in day_options %}<option value="{{ value }}"{% if nav_user.prunedays|string == value %} selected{% endif %}>{{ label }}</option>
+		{% endfor %}
+	</select></font></td>
+</tr>
+{% set post_options = ["5","10","20","30","40"] %}
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>每页帖子数：</b><br>
+	<font size="1">一个主题每页显示的帖子数。</font></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
+	<select name="umaxposts">
+		<option value="-1"{% if nav_user.umaxposts == -1 %} selected{% endif %}>使用版块默认</option>
+		{% for n in post_options %}<option value="{{ n }}"{% if nav_user.umaxposts|string == n %} selected{% endif %}>Show {{ n }} posts per page</option>
+		{% endfor %}
+	</select></font></td>
+</tr>
+
+<!-- 日期与时间 -->
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>日期与时间选项</b></font></td>
+</tr>
+{% set weekday_names = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"] %}
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>每周起始日</b><br>
+	<font size="1">请选择你所在文化中一周开始的那一天。这样日历显示才符合你的习惯。</font></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">
+	<select name="startofweek">
+		{% for name in weekday_names %}<option value="{{ loop.index }}"{% if nav_user.startofweek == loop.index %} selected{% endif %}>{{ name }}</option>
+		{% endfor %}
+	</select></font></td>
+</tr>
+{% set tz_options = [
+	("-12", "(GMT -12:00) 埃尼威托克、夸贾林", -720),
+	("-11", "(GMT -11:00) 中途岛、萨摩亚", -660),
+	("-10", "(GMT -10:00) 夏威夷", -600),
+	("-9", "(GMT -9:00) 阿拉斯加", -540),
+	("-8", "(GMT -8:00) 太平洋时间（美国/加拿大）", -480),
+	("-7", "(GMT -7:00) 山地时间（美国/加拿大）", -420),
+	("-6", "(GMT -6:00) 中部时间（美国/加拿大），墨西哥城", -360),
+	("-5", "(GMT -5:00) 东部时间（美国/加拿大），波哥大、利马、基多", -300),
+	("-4", "(GMT -4:00) 大西洋时间（加拿大），加拉加斯、拉巴斯", -240),
+	("-3.5", "(GMT -3:30) 纽芬兰", -210),
+	("-3", "(GMT -3:00) 巴西、布宜诺斯艾利斯、乔治敦", -180),
+	("-2", "(GMT -2:00) 中大西洋", -120),
+	("-1", "(GMT -1:00) 亚速尔群岛、佛得角群岛", -60),
+	("0", "(GMT) 西欧时间，伦敦、里斯本、卡萨布兰卡、蒙罗维亚", 0),
+	("+1", "(GMT +1:00) 中欧时间，布鲁塞尔、哥本哈根、马德里、巴黎", 60),
+	("+2", "(GMT +2:00) 东欧时间，加里宁格勒、南非", 120),
+	("+3", "(GMT +3:00) 巴格达、科威特、利雅得、莫斯科、圣彼得堡、伏尔加格勒、内罗毕", 180),
+	("+3.5", "(GMT +3:30) 德黑兰", 210),
+	("+4", "(GMT +4:00) 阿布扎比、马斯喀特、巴库、第比利斯", 240),
+	("+4.5", "(GMT +4:30) 喀布尔", 270),
+	("+5", "(GMT +5:00) 叶卡捷琳堡、伊斯兰堡、卡拉奇、塔什干", 300),
+	("+5.5", "(GMT +5:30) 孟买、加尔各答、马德拉斯、新德里", 330),
+	("+6", "(GMT +6:00) 阿拉木图、达卡、科伦坡", 360),
+	("+7", "(GMT +7:00) 曼谷、河内、雅加达", 420),
+	("+8", "(GMT +8:00) 北京、珀斯、新加坡、香港、重庆、乌鲁木齐、台北", 480),
+	("+9", "(GMT +9:00) 东京、首尔、大阪、札幌、雅库茨克", 540),
+	("+9.5", "(GMT +9:30) 阿德莱德、达尔文", 570),
+	("+10", "(GMT +10:00) 东澳标准时间、关岛、巴布亚新几内亚、符拉迪沃斯托克", 600),
+	("+11", "(GMT +11:00) 马加丹、所罗门群岛、新喀里多尼亚", 660),
+	("+12", "(GMT +12:00) 奥克兰、惠灵顿、斐济、堪察加、马绍尔群岛", 720)
+] %}
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2"><font face="verdana,arial,helvetica" size="2"><b>时区偏移：</b><br>
+	<font size="1">All times are GMT. The time now is {{ now_gmt }}. Please select your time zone from the list:<br>
+	<select name="timezoneoffset">
+		{% for value, label, minutes in tz_options %}<option value="{{ value }}"{% if nav_user.timezoneoffset == minutes %} selected{% endif %}>{{ label }}</option>
+		{% endfor %}
+	</select></font></font></td>
+</tr>
+
+<!-- 其他选项 -->
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>其他选项</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>在发帖界面显示 vBCode 快捷链接？</b><br>
+	<font size="1">开启后你可以快速调整帖子的颜色、字体和字号，也可以点击表情把它们插入帖子。如果这个功能给你带来麻烦，可以关掉它。</font></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2">
+		<input type="radio" name="vbcode" value="yes"{% if nav_user.vbcode %} checked{% endif %}> yes
+		<input type="radio" name="vbcode" value="no"{% if not nav_user.vbcode %} checked{% endif %}> no
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="2"><b>风格：</b><br>
+	<font size="1">你可以选择浏览论坛时使用的风格，它可能会覆盖默认设置。</font></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
+	<select name="newstyleset">
+		<option value="0"{% if nav_user.newstyleset == 0 %} selected{% endif %}> 使用论坛默认 </option>
+		{% for set_id, set_name in style_sets %}<option value="{{ set_id }}"{% if nav_user.newstyleset|string == set_id|string %} selected{% endif %}> {{ set_name }}</option>
+		{% endfor %}
+	</select></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><b>头像</b><br>
+	<font size="1"><a href="{{ url_for('auth.edit_avatar') }}">更多信息...</a></font></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="2"><img src="{{ avatar_src(nav_user) }}" border="0" alt="你当前的头像" align="middle"> <input type="button" class="bginput" value="更换头像" onclick="location.href='{{ url_for('auth.edit_avatar') }}';"></font></td>
+</tr>
+</table>
+</td></tr></table>
+
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td align="center"><font face="verdana,arial,helvetica" size="2">
+	<input type="submit" class="bginput" name="Submit" value="提交修改" accesskey="s">
+	<input type="reset" class="bginput" name="Reset" value="重置">
+	</font></td>
+</tr>
+</table>
+
+</form>
+{% endblock %}

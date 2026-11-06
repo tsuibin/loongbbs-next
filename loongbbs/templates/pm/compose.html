@@ -1,38 +1,43 @@
 {% extends "base.html" %}
 {% block title %}{{ settings.site_name }} - 写悄悄话{% endblock %}
 {% block content %}
-<table class="navbar" cellpadding="0" cellspacing="0">
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话 &gt; 写新悄悄话</td>
-  <td class="navlinks">
-    <a href="{{ url_for('pm.inbox') }}">收件箱</a><span class="sep">|</span>
-    <a href="{{ url_for('pm.sent') }}">已发送</a>
-  </td>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话 &gt; 写新悄悄话</b></font></td>
+	<td valign="bottom" align="right" nowrap><font face="verdana,arial,helvetica" size="1">
+	<a href="{{ url_for('pm.inbox') }}">收件箱</a> · <a href="{{ url_for('pm.sent') }}">已发送</a></font></td>
 </tr>
 </table>
 
+<br>
+
 <form method="post" action="{{ url_for('pm.compose') }}">
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr><td class="tcat" align="left" colspan="2">发送悄悄话</td></tr>
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-  <td class="alt1" width="140" align="right"><span class="field-label">收件人:</span></td>
-  <td class="alt1"><input type="text" name="to" size="30" value="{{ to }}" required></td>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>发送悄悄话</b></font></td>
+</tr>
+<tr bgcolor="#DFDFDF">
+	<td bgcolor="#DFDFDF" width="30%"><font face="verdana, arial, helvetica" size="2"><b>收件人:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="to" value="{{ to }}" size="40"></font></td>
 </tr>
 <tr>
-  <td class="alt2" align="right"><span class="field-label">主题:</span></td>
-  <td class="alt2"><input type="text" name="subject" size="50" maxlength="200" value="{{ subject }}" required></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>主题:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="subject" value="{{ subject }}" size="50" maxlength="200"></font></td>
 </tr>
 <tr>
-  <td class="alt1" align="right" valign="top"><span class="field-label">消息:</span></td>
-  <td class="alt1"><textarea name="body" rows="12" cols="70" wrap="virtual" required>{{ body }}</textarea></td>
+	<td bgcolor="#DFDFDF" valign="top"><font face="verdana, arial, helvetica" size="2"><b>消息:</b></font></td>
+	<td bgcolor="#DFDFDF"><textarea name="body" rows="14" cols="70" wrap="virtual">{{ body }}</textarea></td>
 </tr>
 <tr>
-  <td class="alt2" colspan="2" align="center">
-    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <input type="submit" value="  发送  ">
-    <input type="reset" value="  重置  ">
-  </td>
+	<td bgcolor="#F1F1F1" colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" class="bginput" value="发送">
+	<input type="reset" class="bginput" value="重置">
+	</td>
 </tr>
 </table>
+</td></tr></table>
 </form>
 {% endblock %}

@@ -1,0 +1,73 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}主题管理{% endblock %}
+{% block content %}
+<p><b>Threads &amp; Posts &rsaquo; Mass Move / Mass Prune</b></p>
+<p><font size="1">勾选主题后可批量移动到另一个版块，或连同其全部回复一起删除。</font></p>
+
+<form method="post" action="{{ url_for('admin.threads_page') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="6"><font size="1"><b><span class="tblhead">主题列表（共 {{ total }} 个，第 {{ page }} / {{ pages }} 页）</span></b></font></td></tr>
+<tr class="tblhead">
+	<td width="4%"><font size="1"><span class="tblhead">&nbsp;</span></font></td>
+	<td><font size="1"><span class="tblhead">主题</span></font></td>
+	<td width="18%"><font size="1"><span class="tblhead">版块</span></font></td>
+	<td width="12%"><font size="1"><span class="tblhead">作者</span></font></td>
+	<td width="8%"><font size="1"><span class="tblhead">回复</span></font></td>
+	<td width="14%"><font size="1"><span class="tblhead">最后发表</span></font></td>
+</tr>
+{% for thread in threads %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td align="center"><input type="checkbox" name="threadids" value="{{ thread.id }}"></td>
+	<td><a href="{{ url_for('forums.thread', thread_id=thread.id) }}" target="_blank">{{ thread.title }}</a>
+		{% if thread.is_sticky %}<font size="1">[置顶]</font>{% endif %}{% if thread.is_closed %}<font size="1">[已关闭]</font>{% endif %}</td>
+	<td>{{ thread.forum.name }}</td>
+	<td>{{ thread.author.username }}</td>
+	<td>{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</td>
+	<td><font size="1">{{ thread.last_post_at|dt('%Y-%m-%d %H:%M') }}</font></td>
+</tr>
+{% else %}
+<tr class="firstalt"><td colspan="6"><font size="1">这个范围内没有主题。</font></td></tr>
+{% endfor %}
+<tr class="tblhead"><td colspan="6">
+	<p id="submitrow">
+	对选中的主题：
+	<select name="forumid">
+		<option value="">（选择目标版块）</option>
+		{% for forum in forums %}<option value="{{ forum.id }}">{{ forum.category.name }} &rsaquo; {{ forum.name }}</option>{% endfor %}
+	</select>
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="move">
+	<input type="submit" value="   Move   ">
+	<input type="submit" value="   Prune   " onclick="this.form.querySelector('input[name=action]').value='delete';">
+	</p>
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% if pages > 1 %}
+<br>
+<p align="center"><font size="1">
+第
+{% for p in range(1, pages + 1) %}<a href="{{ url_for('admin.threads_page', page=p, forumid=forum_id) }}">{{ p }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}
+页
+</font></p>
+{% endif %}
+
+<br>
+<form action="{{ url_for('admin.threads_page') }}" method="get">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">按版块筛选</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="160">版块</td><td>
+	<select name="forumid">
+		<option value="">全部版块</option>
+		{% for forum in forums %}<option value="{{ forum.id }}" {% if forum_id == forum.id %}selected{% endif %}>{{ forum.category.name }} &rsaquo; {{ forum.name }}</option>{% endfor %}
+	</select>
+	<span id="submitrow"><input type="submit" value="Show"></span>
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endblock %}

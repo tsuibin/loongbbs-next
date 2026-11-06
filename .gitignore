@@ -16,3 +16,9 @@ instance/
 .idea/
 .vscode/
 .DS_Store
+
+# Local runtime
+logs/
+.env.local
+.server.pid
+loongbbs/static/images/custom-avatars/

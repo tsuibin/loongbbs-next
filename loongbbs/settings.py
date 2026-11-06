@@ -16,6 +16,10 @@ DEFAULTS = {
     "thumb_mode": "1",
     "thumb_width": "480",
     "thumb_height": "360",
+    "avatarenabled": "1",
+    "avatarmaxdimension": "65",
+    "avatarmaxsize": "60",
+    "avatarcustomposts": "0",
 }
 
 

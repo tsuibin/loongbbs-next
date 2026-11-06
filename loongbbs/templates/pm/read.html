@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 {% block title %}{{ settings.site_name }} - {{ message.subject }}{% endblock %}
 {% block content %}
-<table class="navbar" cellpadding="0" cellspacing="0">
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话 &gt; {{ message.subject }}</td>
-  <td class="navlinks">
-    <a href="{{ url_for('pm.compose_form', reply=message.id) if message.recipient_id == nav_user.id else url_for('pm.compose_form', to=message.recipient.username) }}">回复</a>
-    <span class="sep">|</span><a href="{{ url_for('pm.inbox') }}">收件箱</a>
-  </td>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话 &gt; {{ message.subject }}</b></font></td>
+	<td valign="bottom" align="right" nowrap><font face="verdana,arial,helvetica" size="1">
+	<a href="{{ url_for('pm.compose_form', reply=message.id) if message.recipient_id == nav_user.id else url_for('pm.compose_form', to=message.recipient.username) }}">回复</a> · <a href="{{ url_for('pm.inbox') }}">收件箱</a></font></td>
 </tr>
 </table>
 
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr><td class="tcat" align="left">悄悄话: {{ message.subject }}</td></tr>
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-  <td class="alt2" align="left">
-    <span class="smallfont">
-      发件人: <a href="{{ url_for('auth.profile', username=message.sender.username) }}">{{ message.sender.username }}</a> ·
-      收件人: <a href="{{ url_for('auth.profile', username=message.recipient.username) }}">{{ message.recipient.username }}</a> ·
-      时间: {{ message.created_at|dt }}
-    </span>
-  </td>
+	<td bgcolor="#8080A6"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>悄悄话: {{ message.subject }}</b></font></td>
 </tr>
 <tr>
-  <td class="alt1">
-    <div class="postbody">{{ body|safe }}</div>
-  </td>
+	<td bgcolor="#DFDFDF" align="left"><font face="verdana,arial,helvetica" size="1">
+	发件人: <a href="{{ url_for('auth.profile', username=message.sender.username) }}">{{ message.sender.username }}</a> ·
+	收件人: <a href="{{ url_for('auth.profile', username=message.recipient.username) }}">{{ message.recipient.username }}</a> ·
+	时间: {{ message.created_at|dt }}</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ body|safe }}</font></td>
 </tr>
 </table>
+</td></tr></table>
 {% endblock %}

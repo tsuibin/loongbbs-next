@@ -1,0 +1,43 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Add Avatars{% endblock %}
+{% block content %}
+<p><b>Avatars &rsaquo; Add</b></p>
+<p><font size="1">「Path to image」填相对论坛根目录的路径（例如 <code>images/avatars/01.gif</code>），也可以直接贴完整网址。</font></p>
+
+<form method="post" action="{{ url_for('admin.avatars_add') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add a single avatar</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="220">Name</td><td><input type="text" name="title" size="30"></td></tr>
+<tr class="secondalt" valign="top"><td>Minimum posts to use this avatar</td><td><input type="text" name="minimumposts" size="8" value="0"></td></tr>
+<tr class="firstalt" valign="top"><td>Path to image</td><td><input type="text" name="avatarpath" size="45" value="images/avatars/"></td></tr>
+<tr id="submitrow"><td colspan="2" align="center">
+	<p id="submitrow">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="insert">
+	<input type="submit" value="   Add Avatar   ">
+	</p>
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+<br>
+
+<form method="post" action="{{ url_for('admin.avatars_add') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add multiple avatars</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="220">Path to images (relative to your forums directory)</td><td><input type="text" name="avatarpath" size="45" value="images/avatars"></td></tr>
+<tr class="secondalt" valign="top"><td>Number of avatars to display per page?</td><td><input type="text" name="iconsperpage" size="8" value="10"></td></tr>
+<tr id="submitrow"><td colspan="2" align="center">
+	<p id="submitrow">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="insertmultiple">
+	<input type="submit" value="   Add Avatars   ">
+	</p>
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endblock %}

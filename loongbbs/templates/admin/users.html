@@ -1,66 +1,64 @@
 {% extends "admin/admin_base.html" %}
-{% set active = 'users' %}
 {% block title %}用户管理{% endblock %}
 {% block content %}
+<p><b>Users &rsaquo; Find</b></p>
+<p><font size="1">共 {{ total }} 位会员{% if q %}，关键词「{{ q }}」{% endif %}，第 {{ page }} / {{ pages }} 页。</font></p>
 
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px">
-<tr><td style="color:#3F3849"><b>用户管理</b></td>
-<td align="right"><span class="hint">共 {{ total }} 位会员，第 {{ page }} / {{ pages }} 页</span></td></tr>
+<form action="{{ url_for('admin.users_page') }}" method="get">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">查找会员</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="160">用户名</td>
+	<td><input type="text" name="q" size="30" value="{{ q }}"> <span id="submitrow"><input type="submit" value="Find Now"></span></td></tr>
 </table>
+</td></tr></table>
+</form>
 
-<table class="tbl" cellpadding="0" cellspacing="1">
-<tr>
-  <td class="headcell" width="6%">ID</td>
-  <td class="headcell">用户名</td>
-  <td class="headcell">邮箱</td>
-  <td class="headcell" width="12%">注册时间</td>
-  <td class="headcell" width="6%">帖子</td>
-  <td class="headcell" width="12%">角色</td>
-  <td class="headcell" width="24%">操作</td>
+<br>
+
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="7"><font size="1"><b><span class="tblhead">会员列表</span></b></font></td></tr>
+<tr class="tblhead">
+	<td width="6%"><font size="1"><span class="tblhead">ID</span></font></td>
+	<td><font size="1"><span class="tblhead">用户名</span></font></td>
+	<td><font size="1"><span class="tblhead">邮箱</span></font></td>
+	<td width="12%"><font size="1"><span class="tblhead">注册时间</span></font></td>
+	<td width="6%"><font size="1"><span class="tblhead">帖子</span></font></td>
+	<td width="14%"><font size="1"><span class="tblhead">角色</span></font></td>
+	<td width="24%"><font size="1"><span class="tblhead">操作</span></font></td>
 </tr>
 {% for user in users %}
-<tr>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ user.id }}</td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a></td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ user.email }}</span></td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ user.joined_at|dt('%Y-%m-%d') }}</span></td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ user.post_count }}</td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">
-    {{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %}<span style="color:#990000"> · 已封禁</span>{% endif %}
-  </td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">
-    <form method="post" action="{{ url_for('admin.ban_user', user_id=user.id) }}" style="display:inline">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <input type="submit" value="{{ '解封' if user.is_banned else '封禁' }}">
-    </form>
-    <form method="post" action="{{ url_for('admin.promote_user', user_id=user.id) }}" style="display:inline">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <input type="submit" value="{{ '撤销管理员' if user.is_admin else '设为管理员' }}">
-    </form>
-  </td>
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td>{{ user.id }}</td>
+	<td><a href="{{ url_for('auth.profile', username=user.username) }}" target="_blank">{{ user.username }}</a></td>
+	<td><font size="1">{{ user.email }}</font></td>
+	<td><font size="1">{{ user.joined_at|dt('%Y-%m-%d') }}</font></td>
+	<td>{{ user.post_count }}</td>
+	<td>{{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %} <span class="cc">· 已封禁</span>{% endif %}</td>
+	<td>
+		<form method="post" action="{{ url_for('admin.ban_user', user_id=user.id) }}" style="display:inline">
+			<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+			<input type="submit" value="{{ '解封' if user.is_banned else '封禁' }}">
+		</form>
+		<form method="post" action="{{ url_for('admin.promote_user', user_id=user.id) }}" style="display:inline">
+			<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+			<input type="submit" value="{{ '撤销管理员' if user.is_admin else '设为管理员' }}">
+		</form>
+	</td>
 </tr>
 {% else %}
-<tr><td colspan="7"><span class="hint">没有用户。</span></td></tr>
+<tr class="firstalt"><td colspan="7"><font size="1">没有匹配的会员。</font></td></tr>
 {% endfor %}
 </table>
+</td></tr></table>
 
 {% if pages > 1 %}
 <br>
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td align="right"><span class="hint">
-  第
-  {% for p in range(1, pages + 1) %}<a href="{{ url_for('admin.users_page', page=p) }}">{{ p }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
-  页
-</span></td></tr>
-</table>
+<p align="center"><font size="1">
+第
+{% for p in range(1, pages + 1) %}<a href="{{ url_for('admin.users_page', page=p, q=q) }}">{{ p }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}
+页
+</font></p>
 {% endif %}
-
-<br>
-<form method="get" action="{{ url_for('admin.users_page') }}">
-<table class="tbl" cellpadding="0" cellspacing="1">
-<tr><td class="headcell" colspan="2">按页浏览</td></tr>
-<tr><td width="120"><b>页码</b></td>
-<td><input type="text" name="page" size="6" value="{{ page }}"> <input type="submit" value="  跳转  "></td></tr>
-</table>
-</form>
 {% endblock %}

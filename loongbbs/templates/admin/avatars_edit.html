@@ -1,0 +1,24 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Edit Avatar{% endblock %}
+{% block content %}
+<form method="post" action="{{ url_for('admin.avatars_edit', avatar_id=avatar.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit Avatar: {{ avatar.title or '（无名称）' }}</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="220">预览</td>
+	<td>{% if avatar.avatarpath.startswith('http') %}<img src="{{ avatar.avatarpath }}" border="0" alt="{{ avatar.title }}">
+	{% else %}<img src="{{ url_for('static', filename=avatar.avatarpath) }}" border="0" alt="{{ avatar.title }}">{% endif %}</td></tr>
+<tr class="secondalt" valign="top"><td>Name</td><td><input type="text" name="title" size="30" value="{{ avatar.title }}"></td></tr>
+<tr class="firstalt" valign="top"><td>Minimum posts to use this avatar</td><td><input type="text" name="minimumposts" size="8" value="{{ avatar.minimumposts }}"></td></tr>
+<tr class="secondalt" valign="top"><td>Path to image</td><td><input type="text" name="avatarpath" size="45" value="{{ avatar.avatarpath }}"></td></tr>
+<tr id="submitrow"><td colspan="2" align="center">
+	<p id="submitrow">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save Changes   ">
+	<input type="button" value="   Back   " onclick="window.location='{{ url_for('admin.avatars_page') }}'">
+	</p>
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endblock %}

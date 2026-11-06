@@ -1,0 +1,25 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Upload Avatars{% endblock %}
+{% block content %}
+<p><b>Using this feature required your web server and PHP to have permission to write files to disk. If they do not have the neccessary permissions, it will fail.</b></p>
+
+<form method="post" action="{{ url_for('admin.avatars_upload') }}" enctype="multipart/form-data">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Upload New Avatar</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="220">Avatar file</td>
+	<td><input type="file" name="avatarfile" size="45"> <font size="1">支持 gif / jpg / png / bmp / webp</font></td></tr>
+<tr class="secondalt" valign="top"><td>Name (optional)</td><td><input type="text" name="title" size="30"></td></tr>
+<tr class="firstalt" valign="top"><td>Minimum posts to use this avatar</td><td><input type="text" name="minimumposts" size="8" value="0"></td></tr>
+<tr class="secondalt" valign="top"><td>Path to save image to <br>(no filename; no trailing slash; relative from main vB directory)</td>
+	<td><font size="1">文件固定存到 <code>{{ url_for('static', filename='images/avatars/') }}</code>，体积上限按 Options 里的「自定义头像最大体积」。</font></td></tr>
+<tr id="submitrow"><td colspan="2" align="center">
+	<p id="submitrow">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Upload Now   ">
+	</p>
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endblock %}

@@ -1,36 +1,38 @@
 {% extends "base.html" %}
 {% block title %}{{ settings.site_name }} - 已发送悄悄话{% endblock %}
 {% block content %}
-<table class="navbar" cellpadding="0" cellspacing="0">
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话 &gt; 已发送</td>
-  <td class="navlinks">
-    <a href="{{ url_for('pm.inbox') }}">收件箱</a><span class="sep">|</span>
-    <a href="{{ url_for('pm.compose_form') }}">写新悄悄话</a><span class="sep">|</span>
-    <a href="{{ url_for('forums.index') }}">论坛首页</a>
-  </td>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 悄悄话 &gt; 已发送</b></font></td>
+	<td valign="bottom" align="right" nowrap><font face="verdana,arial,helvetica" size="1">
+	<a href="{{ url_for('pm.inbox') }}">收件箱</a> · <a href="{{ url_for('pm.compose_form') }}">写新悄悄话</a></font></td>
 </tr>
 </table>
 
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr><td class="tcat" align="left" colspan="4">已发送的悄悄话</td></tr>
+<br>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-  <td class="thead" width="2%">&nbsp;</td>
-  <td class="thead left" width="70%">主题</td>
-  <td class="thead">收件人</td>
-  <td class="thead nowrap">时间</td>
+	<td bgcolor="#8080A6" colspan="4"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>已发送的悄悄话</b></font></td>
+</tr>
+<tr bgcolor="#8080A6">
+	<td bgcolor="#8080A6" width="2%" nowrap>&nbsp;</td>
+	<td bgcolor="#8080A6" width="70%" align="left"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>主题</b></font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>收件人</b></font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>时间</b></font></td>
 </tr>
 {% for row in rows %}
 <tr>
-  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}"><img src="{{ url_for('static', filename='images/sendpm.gif') }}" alt=""></td>
-  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}" align="left">
-    <a class="thread-title" href="{{ url_for('pm.read', message_id=row.id) }}">{{ row.subject }}</a>
-  </td>
-  <td class="alt{{ 2 if loop.index0 % 2 == 0 else 1 }}" align="center">{{ row.recipient.username }}</td>
-  <td class="alt{{ 1 if loop.index0 % 2 == 0 else 2 }}" nowrap><span class="smallfont">{{ row.created_at|ago }}</span></td>
+	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/sendpm.gif') }}" border="0" alt=""></td>
+	<td bgcolor="#F1F1F1" align="left"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('pm.read', message_id=row.id) }}">{{ row.subject }}</a></font></td>
+	<td bgcolor="#DFDFDF" align="center"><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=row.recipient.username) }}">{{ row.recipient.username }}</a></font></td>
+	<td bgcolor="#F1F1F1" nowrap align="center"><font face="verdana,arial,helvetica" size="1">{{ row.created_at|ago }}</font></td>
 </tr>
 {% else %}
-<tr><td class="alt1" colspan="4" align="center"><span class="smallfont">还没有发过悄悄话。</span></td></tr>
+<tr><td bgcolor="#F1F1F1" colspan="4" align="center"><font face="verdana,arial,helvetica" size="1">还没有发过悄悄话。</font></td></tr>
 {% endfor %}
 </table>
+</td></tr></table>
 {% endblock %}

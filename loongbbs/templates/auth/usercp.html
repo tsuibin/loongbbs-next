@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - 用户控制面板：{{ nav_user.username }}{% endblock %}
+
+{% block content %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	用户控制面板：{{ nav_user.username }}</b></font></td>
+	<td align="right">
+	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>
+	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
+		<option value="">请选择一项：</option>
+		<option value="{{ url_for('pm.inbox') }}">--------------------</option>
+		<option value="{{ url_for('auth.usercp') }}">用户控制面板</option>
+		<option value="{{ url_for('search.search') }}">搜索版块</option>
+		<option value="{{ url_for('forums.index') }}">论坛首页</option>
+		<option value="">--------------------</option>
+		{% for f in forums %}<option value="{{ url_for('forums.forum', forum_id=f.id) }}">-- {{ f.name }}</option>{% endfor %}
+	</select>
+	<input type="button" value="GO" onclick="var s=document.getElementById('forumjump'); if(s.value) location.href=s.value;">
+	</td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<br>
+
+{% with cpnav_current = 'home' %}{% include "auth/_cpnav.html" %}{% endwith %}
+<br>
+
+<table cellpadding="0" border="0" cellspacing="1" width="100%" align="center">
+<tr>
+	<td nowrap valign="top" width="100">
+
+	<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100" align="center"><tr><td>
+	<table cellpadding="4" cellspacing="1" border="0" width="100%">
+	<tr id="cat">
+		<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>好友列表</b></font></td>
+	</tr>
+	<tr>
+		<td bgcolor="#F1F1F1" align="center" width="100%">
+		<table width="100%" border="0" cellpadding="2" cellspacing="0"><tr>
+			<td width="50%"><hr></td>
+			<td nowrap>&nbsp;<font size="1" face="verdana,arial,helvetica"><b>在线</b></font>&nbsp;</td>
+			<td width="50%"><hr></td>
+		</tr></table>
+		&nbsp;
+		<table width="100%" border="0" cellpadding="2" cellspacing="0"><tr>
+			<td width="50%"><hr></td>
+			<td nowrap>&nbsp;<font size="1" face="verdana,arial,helvetica"><b>离线</b></font>&nbsp;</td>
+			<td width="50%"><hr></td>
+		</tr></table>
+		&nbsp;
+		</td>
+	</tr>
+	<tr>
+		<td bgcolor="#8080A6" align="center" nowrap><font face="verdana,arial,helvetica" size="1"><b><a href="{{ url_for('pm.compose_form') }}"><font color="#EEEEFF">向好友发送私信</font></a></b></font></td>
+	</tr>
+	</table>
+	</td></tr></table>
+
+	</td>
+	<td width="5"><img src="{{ url_for('static', filename='images/clear.gif') }}" width="5" height="1" border="0" alt=""></td>
+	<td width="100%" valign="top">
+
+	<!-- new PM -->
+	<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+	<table cellpadding="4" cellspacing="1" border="0" width="100%">
+	<tr id="cat">
+		<td bgcolor="#8080A6">
+			<table width="100%" border="0" cellpadding="0" cellspacing="0"><tr>
+				<td align="left"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>新私信</b></font></td>
+				<td align="right"><a href="{{ url_for('pm.inbox') }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">查看所有私信</font></a></td>
+			</tr></table>
+		</td>
+	</tr>
+	<tr>
+		<td bgcolor="#FFFFFF"><font face="verdana, arial, helvetica" size="2">
+		{% if unread %}<b>你有 {{ unread }} 条未读私信。</b>{% if latest_pm %}<br><a href="{{ url_for('pm.read', message_id=latest_pm.id) }}">{{ latest_pm.subject }}</a>{% endif %}{% else %}自上次访问以来没有新私信。{% endif %}
+		</font></td>
+	</tr>
+	</table>
+	</td></tr></table>
+
+	<br>
+
+	<!-- subscribed forums -->
+	<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+	<table cellpadding="4" cellspacing="1" border="0" width="100%">
+	<tr id="cat">
+		<td bgcolor="#8080A6"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>订阅的版块</b></font></td>
+	</tr>
+	<tr>
+		<td bgcolor="#FFFFFF"><font face="verdana, arial, helvetica" size="2">你目前没有订阅任何版块。</font></td>
+	</tr>
+	</table>
+	</td></tr></table>
+
+	<br>
+
+	<!-- subscribed threads -->
+	<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+	<table cellpadding="4" cellspacing="1" border="0" width="100%">
+	<tr id="cat">
+		<td bgcolor="#8080A6">
+			<table width="100%" border="0" cellpadding="0" cellspacing="0"><tr>
+				<td align="left"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>订阅的主题</b></font></td>
+				<td align="right"><a href="{{ url_for('search.search') }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">查看所有订阅主题</font></a></td>
+			</tr></table>
+		</td>
+	</tr>
+	<tr>
+		<td bgcolor="#FFFFFF"><font face="verdana, arial, helvetica" size="2">最近 1 天里你订阅的主题没有新帖子。</font></td>
+	</tr>
+	<tr>
+		<td bgcolor="#8080A6">
+			<table width="100%" border="0" cellpadding="0" cellspacing="0"><tr>
+				<td align="right"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF"><b>显示主题范围</b></font></td>
+				<td nowrap><select>
+					<option>最近 1 天</option><option>最近 2 天</option><option>最近 5 天</option>
+					<option>最近 10 天</option><option>最近 20 天</option><option>最近 30 天</option>
+					<option>最近 45 天</option><option>最近 60 天</option><option>最近 75 天</option>
+					<option>最近 100 天</option><option>最近一年</option><option>全部时间</option>
+				</select> <input type="button" value="GO"></td>
+			</tr></table>
+		</td>
+	</tr>
+	</table>
+	</td></tr></table>
+
+	</td>
+</tr>
+</table>
+{% endblock %}

@@ -1,0 +1,13 @@
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr align="center" valign="bottom">
+	<td bgcolor="{{ '#8080A6' if cpnav_current == 'home' else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="1"{% if cpnav_current == 'home' %} color="#EEEEFF"{% endif %}><b>{% if cpnav_current == 'home' %}我的首页{% else %}<a href="{{ url_for('auth.usercp') }}"><nobr>我的首页</nobr></a>{% endif %}</b></font></td>
+	<td bgcolor="{{ '#8080A6' if cpnav_current == 'profile' else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="1"{% if cpnav_current == 'profile' %} color="#EEEEFF"{% endif %}><b>{% if cpnav_current == 'profile' %}编辑个人资料{% else %}<a href="{{ url_for('auth.profile', username=nav_user.username) }}">编辑个人资料</a>{% endif %}</b></font></td>
+	<td bgcolor="{{ '#8080A6' if cpnav_current == 'options' else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="1"{% if cpnav_current == 'options' %} color="#EEEEFF"{% endif %}><b>{% if cpnav_current == 'options' %}编辑选项{% else %}<a href="{{ url_for('auth.edit_options') }}">编辑选项</a>{% endif %}</b></font></td>
+	<td bgcolor="{{ '#8080A6' if cpnav_current == 'password' else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="1"{% if cpnav_current == 'password' %} color="#EEEEFF"{% endif %}><b>{% if cpnav_current == 'password' %}修改密码{% else %}<a href="{{ url_for('auth.edit_password') }}">修改密码</a>{% endif %}</b></font></td>
+	<td bgcolor="{{ '#8080A6' if cpnav_current == 'buddy' else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="1"{% if cpnav_current == 'buddy' %} color="#EEEEFF"{% endif %}><b>{% if cpnav_current == 'buddy' %}编辑好友列表{% else %}<a href="{{ url_for('auth.buddy_list') }}"><nobr>编辑好友列表</nobr></a>{% endif %}</b></font></td>
+	<td bgcolor="{{ '#8080A6' if cpnav_current == 'ignore' else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="1"{% if cpnav_current == 'ignore' %} color="#EEEEFF"{% endif %}><b>{% if cpnav_current == 'ignore' %}编辑忽略列表{% else %}<a href="{{ url_for('auth.ignore_list') }}"><nobr>编辑忽略列表</nobr></a>{% endif %}</b></font></td>
+	<td bgcolor="{{ '#8080A6' if cpnav_current == 'pm' else '#DFDFDF' }}"><font face="verdana,arial,helvetica" size="1"{% if cpnav_current == 'pm' %} color="#EEEEFF"{% endif %}><b>{% if cpnav_current == 'pm' %}私信{% else %}<a href="{{ url_for('pm.inbox') }}">私信</a>{% endif %}</b></font></td>
+</tr>
+</table>
+</td></tr></table>

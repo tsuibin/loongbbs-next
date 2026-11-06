@@ -1,43 +1,47 @@
 {% extends "base.html" %}
 {% block title %}{{ settings.site_name }} - 注册{% endblock %}
 {% block content %}
-<table class="navbar" cellpadding="0" cellspacing="0">
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 注册</td>
-  <td class="navlinks"><a href="{{ url_for('auth.login_form') }}">已有账号？去登录</a></td>
+	<td width="100%"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 注册</b></font></td>
 </tr>
 </table>
 
+<br>
+
 <form method="post" action="{{ url_for('auth.register') }}">
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr><td class="tcat" align="left" colspan="2">注册新账号</td></tr>
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-  <td class="alt1" width="160" align="right"><span class="field-label">用户名:</span></td>
-  <td class="alt1">
-    <input type="text" name="username" size="30" value="{{ username or '' }}" required>
-    <br><span class="smallfont muted">3–20 位，允许中文、字母、数字和下划线</span>
-  </td>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>注册新账号</b></font></td>
+</tr>
+<tr bgcolor="#DFDFDF">
+	<td bgcolor="#DFDFDF" width="35%"><font face="verdana, arial, helvetica" size="2"><b>用户名:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="username" value="{{ username or '' }}" size="40"></font><br>
+	<font face="verdana,arial,helvetica" size="1">3–20 位，允许中文、字母、数字和下划线</font></td>
 </tr>
 <tr>
-  <td class="alt2" align="right"><span class="field-label">邮箱地址:</span></td>
-  <td class="alt2"><input type="email" name="email" size="30" value="{{ email or '' }}" required></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>邮箱地址:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="email" value="{{ email or '' }}" size="40"></font></td>
+</tr>
+<tr bgcolor="#DFDFDF">
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>密码:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="password" class="bginput" name="password" size="40"></font><br>
+	<font face="verdana,arial,helvetica" size="1">至少 8 位</font></td>
 </tr>
 <tr>
-  <td class="alt1" align="right"><span class="field-label">密码:</span></td>
-  <td class="alt1"><input type="password" name="password" size="30" required minlength="8">
-    <br><span class="smallfont muted">至少 8 位</span></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>确认密码:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><input type="password" class="bginput" name="password2" size="40"></font></td>
 </tr>
 <tr>
-  <td class="alt2" align="right"><span class="field-label">确认密码:</span></td>
-  <td class="alt2"><input type="password" name="password2" size="30" required minlength="8"></td>
-</tr>
-<tr>
-  <td class="alt1" colspan="2" align="center">
-    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <input type="submit" value="  提交注册  ">
-    <input type="reset" value="  重置  ">
-  </td>
+	<td bgcolor="#F1F1F1" colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" class="bginput" value="提交注册">
+	<input type="reset" class="bginput" value="重置">
+	</td>
 </tr>
 </table>
+</td></tr></table>
 </form>
 {% endblock %}

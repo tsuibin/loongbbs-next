@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.site_name }} - {{ list_type }}列表：{{ nav_user.username }}{% endblock %}
+
+{% block content %}
+<!-- breadcrumb -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" align="middle" alt="vBulletin">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	<a href="{{ url_for('auth.usercp') }}">用户控制面板：{{ nav_user.username }}</a> &gt;
+	编辑{{ list_type }}列表</b></font></td>
+	<td align="right">
+	<font face="verdana,arial,helvetica" size="1"><b>版块跳转：</b></font><br>
+	<select id="forumjump" onchange="if(this.value) location.href=this.value;">
+		<option value="">请选择一项：</option>
+		<option value="{{ url_for('pm.inbox') }}">--------------------</option>
+		<option value="{{ url_for('auth.usercp') }}">用户控制面板</option>
+		<option value="{{ url_for('search.search') }}">搜索版块</option>
+		<option value="{{ url_for('forums.index') }}">论坛首页</option>
+		<option value="">--------------------</option>
+		{% for f in forums %}<option value="{{ url_for('forums.forum', forum_id=f.id) }}">-- {{ f.name }}</option>{% endfor %}
+	</select>
+	<input type="button" value="GO" onclick="var s=document.getElementById('forumjump'); if(s.value) location.href=s.value;">
+	</td>
+</tr>
+</table>
+<!-- /breadcrumb -->
+
+<br>
+
+{% with cpnav_current = list_kind %}{% include "auth/_cpnav.html" %}{% endwith %}
+<br>
+
+<form action="{{ url_for('auth.buddy_list_post' if list_kind == 'buddy' else 'auth.ignore_list_post') }}" method="post">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="200" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#8080A6" colspan="2" nowrap><font face="verdana,arial,helvetica" size="2" color="#EEEEFF"><b>编辑{{ list_type }}列表</b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" nowrap><font face="verdana,arial,helvetica" size="2">
+	{% for name in names %}<input type="text" class="bginput" name="listbits[]" size="30" value="{{ name }}"><br>{% endfor %}
+	{% for _ in range(slots) %}<input type="text" class="bginput" name="listbits[]" size="30"><br>{% endfor %}
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana,arial,helvetica" size="1">要从列表中删除某个用户，把他的名字删掉即可。要添加用户，就在其中一个空框里填入用户名。<br>
+	<br>要查看完整的会员列表，请点击<a href="{{ url_for('auth.profile', username=nav_user.username) }}">这里</a></font></td>
+</tr>
+</table>
+</td></tr></table>
+
+<br>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr>
+	<td align="center"><font face="verdana,arial,helvetica" size="2"><input type="submit" class="bginput" name="submit" value="更新列表" accesskey="s"></font></td>
+</tr></table>
+
+</form>
+{% endblock %}

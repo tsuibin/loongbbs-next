@@ -53,6 +53,29 @@ def format_dt(value: datetime | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
     return value.astimezone(LOCAL_TZ).strftime(fmt)
 
 
+def avatar_src(user) -> str:
+    """Return the image URL for a user's avatar, or "" when they have none.
+
+    ``small_avatar`` 对应 vB 的 ``avatarpath``（相对 static 的路径或外链）。
+    """
+    from flask import url_for
+
+    if user is None:
+        return ""
+    custom = getattr(user, "custom_avatar", "") or ""
+    if custom:
+        if custom.startswith(("http://", "https://")):
+            return custom
+        return url_for("static", filename=custom.lstrip("/"))
+    avatar = getattr(user, "avatar", None)
+    if avatar is not None and avatar.avatarpath:
+        path = avatar.avatarpath
+        if path.startswith(("http://", "https://")):
+            return path
+        return url_for("static", filename=path.lstrip("/"))
+    return ""
+
+
 def human_size(num: int) -> str:
     step = 1024.0
     for unit in ("B", "KB", "MB", "GB"):

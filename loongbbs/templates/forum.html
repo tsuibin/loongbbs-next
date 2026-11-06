@@ -2,132 +2,195 @@
 {% block title %}{{ settings.site_name }} - {{ forum.name }}{% endblock %}
 
 {% block content %}
-<table class="navbar" cellpadding="0" cellspacing="0">
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-  <td class="crumbs">
-    <a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
-    <a href="{{ url_for('forums.index') }}">{{ forum.category.name }}</a> &gt;
-    {{ forum.name }}
-  </td>
-  <td class="navlinks">
-    {% if nav_user %}
-      <a href="{{ url_for('pm.inbox') }}">用户控制面板</a><span class="sep">|</span>
-    {% endif %}
-    <a href="{{ url_for('search.search') }}">搜索</a><span class="sep">|</span>
-    <a href="{{ url_for('forums.index') }}">论坛首页</a>
-  </td>
-</tr>
-</table>
-
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr>
-  <td class="tcat" align="left">
-    <span class="normalfont bold lightyellow">{{ forum.name }}</span>
-    {% if forum.is_closed %}<span class="smallfont lightyellow">（版块已关闭）</span>{% endif %}
-  </td>
-  <td class="tcat" align="right" nowrap>
-    {% if nav_user and not forum.is_closed %}
-      <a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" alt="发表新主题"></a>
-    {% endif %}
-  </td>
-</tr>
-<tr>
-  <td class="alt1" colspan="2" align="left">
-    <span class="smallfont">{{ forum.description }}</span>
-    <br><span class="smallfont muted">显示所有主题，共 {{ total }} 个主题{{ '，第 %d 页' % page if pages > 1 }}</span>
-  </td>
+	<td valign="top"><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="{{ settings.site_name }}">
+	<font face="verdana, arial, helvetica" size="2"><b><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt;
+	<a href="{{ url_for('forums.index') }}">{{ forum.category.name }}</a> &gt;
+	{{ forum.name }}</b></font>
+	<font face="verdana,arial,helvetica" size="1"><br><br>{% if nav_user %}(正在浏览此版块的会员: <a href="{{ url_for('auth.profile', username=nav_user.username) }}">{{ nav_user.username }}</a>){% endif %}{% if forum.is_closed %}（版块已关闭，不能发新主题）{% endif %}</font></td>
+	<td valign="bottom" align="right"><font face="verdana,arial,helvetica" size="1">
+	{% if nav_user and not forum.is_closed %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a><br>
+	<nobr><a href="{{ url_for('forums.forum', forum_id=forum.id) }}">订阅这个版块</a><br>
+	<a href="{{ url_for('forums.forum', forum_id=forum.id) }}">标记这个版块为已读</a></nobr>{% endif %}&nbsp;</font></td>
 </tr>
 </table>
 
 <br>
 
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr align="center">
-  <td class="thead" width="2%">&nbsp;</td>
-  <td class="thead left" width="44%">主题</td>
-  <td class="thead">主题发起人</td>
-  <td class="thead">回复</td>
-  <td class="thead">查看</td>
-  <td class="thead nowrap">最后发表</td>
+<!-- topic table -->
+<form action="{{ url_for('forums.forum', forum_id=forum.id) }}" method="get">
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr bgcolor="#8080A6" id="cat" align="center">
+	<td bgcolor="#8080A6" align="center" nowrap colspan="3"><font face="verdana,arial,helvetica" size="1">
+	<a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>主题</b></font></a> </font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>主题发起人</b></font></a> </font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>回复</b></font></a> </font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>查看</b></font></a> </font></td>
+	<td bgcolor="#8080A6" align="center" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>评分</b></font></a> </font></td>
+	<td bgcolor="#8080A6" nowrap><font face="verdana,arial,helvetica" size="1"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><font color="#EEEEFF"><b>最后发表</b></font></a> <a href="{{ url_for('forums.forum', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/sortasc.gif') }}" border="0" alt="反向排序" align="absmiddle"></a></font></td>
 </tr>
 
 {% for thread in threads %}
 <tr align="center">
-  <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}">
-    {% if thread.is_sticky %}
-      <img src="{{ url_for('static', filename='images/announcement.gif') }}" alt="置顶">
-    {% elif thread.is_closed %}
-      <img src="{{ url_for('static', filename='images/lockfolder.gif') }}" alt="已关闭">
-    {% else %}
-      <img src="{{ url_for('static', filename='images/folder.gif') }}" alt="主题">
-    {% endif %}
-  </td>
-  <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" align="left">
-    {% if thread.is_sticky %}<span class="smallfont bold" style="color:#CC0000">[置顶]</span> {% endif %}
-    <a class="thread-title" href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a>
-    {% if thread.reply_count > 1 %}
-      <span class="pagenav">
-        ( 页:
-        {% for p in range(1, (thread.reply_count + settings.posts_per_page|int - 1) // (settings.posts_per_page|int) + 1) %}
-          <a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% if not loop.last %},{% endif %}
-        {% endfor %}
-        )
-      </span>
-    {% endif %}
-  </td>
-  <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}" nowrap>
-    <a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a>
-  </td>
-  <td class="{{ 'alt2' if loop.index0 % 2 == 0 else 'alt1' }}">{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</td>
-  <td class="{{ 'alt1' if loop.index0 % 2 == 0 else 'alt2' }}">{{ thread.views }}</td>
-  <td class="{{ 'alt2' if loop.index0 % 2 == 0 else 'alt1' }}" align="left" nowrap>
-    <span class="smallfont">
-      {{ thread.last_post_at|ago }}<br>
-      <a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a>
-    </span>
-  </td>
+	<td bgcolor="#F1F1F1"><img src="{{ url_for('static', filename='images/' ~ ('lockfolder.gif' if thread.is_closed else 'folder.gif')) }}" border="0" alt=""></td>
+	<td bgcolor="#DFDFDF">&nbsp;</td>
+	<td bgcolor="#F1F1F1" align="left" width="70%"><font face="verdana, arial, helvetica" size="2">{% if thread.is_sticky %}置顶: {% endif %}<a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a></font> <font face="verdana,arial,helvetica" size="1">
+	{% if thread.reply_count > 1 %}
+	  ( 页:
+	  {% for p in range(1, (thread.reply_count + settings.posts_per_page|int - 1) // (settings.posts_per_page|int) + 1) %}
+	    <a href="{{ url_for('forums.thread', thread_id=thread.id, page=p) }}">{{ p }}</a>{% if not loop.last %},{% endif %}
+	  {% endfor %}
+	  )
+	{% endif %}</font></td>
+	<td bgcolor="#DFDFDF" width="30%" nowrap><font face="verdana, arial, helvetica" size="2"><a href="{{ url_for('auth.profile', username=thread.author.username) }}">{{ thread.author.username }}</a></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ thread.reply_count - 1 if thread.reply_count > 0 else 0 }}</font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ thread.views }}</font></td>
+	<td bgcolor="#F1F1F1" align="center"><img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" alt="0 票 - 平均 0.0000"></td>
+	<td bgcolor="#DFDFDF">
+		<table cellpadding="0" cellspacing="0" border="0" width="100%" id="ltlink"><tr align="right">
+			<td nowrap><font face="verdana,arial,helvetica" size="1">{{ thread.last_post_at|dt('%m-%d-%Y') }} <font color="#666686">{{ thread.last_post_at|dt('%I:%M %p') }}</font><br>
+			by <a href="{{ url_for('auth.profile', username=thread.author.username) }}"><b>{{ thread.author.username }}</b></a></font></td>
+			<td nowrap>&nbsp;<a href="{{ url_for('forums.thread', thread_id=thread.id, goto='lastpost') }}"><img src="{{ url_for('static', filename='images/lastpost.gif') }}" border="0" alt="前往最后一帖"></a></td>
+		</tr></table>
+	</td>
 </tr>
 {% else %}
 <tr>
-  <td class="alt1" colspan="6" align="center">
-    <span class="smallfont">这个版块还没有主题{% if nav_user %}，<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发表第一个主题</a>{% endif %}。</span>
-  </td>
+	<td bgcolor="#F1F1F1" colspan="8" align="center"><font face="verdana,arial,helvetica" size="1">这个版块还没有主题{% if nav_user and not forum.is_closed %}，<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}">发表第一个主题</a>{% endif %}。</font></td>
 </tr>
 {% endfor %}
-</table>
 
-{% if pages > 1 %}
-<table width="100%" cellpadding="2" cellspacing="0">
-<tr>
-  <td align="right" class="smallfont">
-    第 {{ page }} 页，共 {{ pages }} 页
-    {% if page > 1 %}<a href="{{ url_for('forums.forum', forum_id=forum.id, page=1) }}"><img src="{{ url_for('static', filename='images/firstnew.gif') }}" alt="第一页"></a>
-      <a href="{{ url_for('forums.forum', forum_id=forum.id, page=page-1) }}"><img src="{{ url_for('static', filename='images/prev.gif') }}" alt="上一页"></a>{% endif %}
-    {% if page < pages %}<a href="{{ url_for('forums.forum', forum_id=forum.id, page=page+1) }}"><img src="{{ url_for('static', filename='images/next.gif') }}" alt="下一页"></a>{% endif %}
-  </td>
+<tr id="cat">
+	<td bgcolor="#8080A6" width="100%" colspan="8" align="center"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF">
+	<nobr>
+	<b>显示第 {{ (page - 1) * (settings.threads_per_page|int) + 1 }} 至 {{ [page * (settings.threads_per_page|int), total]|min }} 条，共 {{ total }} 个主题，排序方式为 </b>
+	<select name="sortfield">
+		<option value="title">主题标题</option>
+		<option value="lastpost" selected>最后发表时间</option>
+		<option value="replycount">回复数</option>
+		<option value="views">查看数</option>
+		<option value="postusername">主题发起人</option>
+	</select>
+	</nobr><nobr>
+	<b>，顺序为</b>
+	<select name="sortorder">
+		<option value="asc">升序</option>
+		<option value="desc" selected>降序</option>
+	</select>
+	<b>，时间范围为</b>
+	<select name="daysprune">
+		<option value="1">最近一天</option>
+		<option value="2">最近 2 天</option>
+		<option value="5">最近 5 天</option>
+		<option value="10">最近 10 天</option>
+		<option value="20">最近 20 天</option>
+		<option value="30">最近 30 天</option>
+		<option value="45">最近 45 天</option>
+		<option value="60">最近 60 天</option>
+		<option value="75">最近 75 天</option>
+		<option value="100">最近 100 天</option>
+		<option value="365">最近一年</option>
+		<option value="1000" selected>从最开始</option>
+	</select><!-- go button -->
+	<input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom">
+	</nobr>
+	</font></td>
 </tr>
 </table>
-{% endif %}
+</td></tr></table>
+</form>
+
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr valign="top">
+	<td><font face="verdana,arial,helvetica" size="1">{% if nav_user and not forum.is_closed %}<a href="{{ url_for('forums.new_thread_form', forum_id=forum.id) }}"><img src="{{ url_for('static', filename='images/newthread.gif') }}" border="0" alt="发表新主题"></a>{% endif %}</font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">
+	{% if pages > 1 %}
+	  ( <img src="{{ url_for('static', filename='images/multipage.gif') }}" border="0" alt="">
+	  {% for p in range(1, pages + 1) %}<a href="{{ url_for('forums.forum', forum_id=forum.id, page=p) }}">{{ p }}</a> {% endfor %} )
+	{% endif %}</font></td>
+</tr>
+</table>
 
 <br>
-<table width="100%" cellpadding="2" cellspacing="0">
+
+<!-- forum jump and this-forum search -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr valign="bottom">
-  <td>
-    <span class="smallfont"><b>论坛跳转:</b> </span>
-    <select onchange="if(this.value) window.location=this.value">
-      <option value="">请选择:</option>
-      <option value="{{ url_for('forums.index') }}">论坛首页</option>
-      {% for forum in forums_all %}<option value="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</option>{% endfor %}
-    </select>
-  </td>
-  <td align="right">
-    <form method="get" action="{{ url_for('search.search') }}">
-      <span class="smallfont"><b>搜索本版:</b>
-      <input type="hidden" name="forum" value="{{ forum.id }}">
-      <input type="text" name="q" size="14">
-      <input type="submit" value=" 搜索 "></span>
-    </form>
-  </td>
+	<td>
+	<table cellpadding="0" cellspacing="0" border="0">
+	<form action="{{ url_for('forums.index') }}" method="get"><tr><td>
+		<font face="verdana,arial,helvetica" size="1">
+		<b>论坛跳转:</b><br>
+		<select name="forumid"
+		onchange="window.location=('{{ url_for('forums.index') }}'+(this.options[this.selectedIndex].value=='__home__'?'':'f/'+this.options[this.selectedIndex].value))">
+			<option value="-1" selected>请选择:</option>
+			<option value="-1">--------------------</option>
+			<option value="pm">悄悄话</option>
+			<option value="cp">用户控制面板</option>
+			<option value="search">搜索论坛</option>
+			<option value="__home__">论坛首页</option>
+			<option value="-1">--------------------</option>
+			{% for f in forums_all %}<option value="{{ f.id }}" {{ 'selected' if f.id == forum.id }}>{{ f.name }}</option>{% endfor %}
+		</select><!-- go button -->
+		<input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom">
+		</font>
+	</td></tr></form>
+	</table>
+	</td>
+	<td align="right">
+	<table cellpadding="0" cellspacing="0" border="0"><tr>
+	<form action="{{ url_for('search.search') }}" method="get">
+	<td><font face="verdana,arial,helvetica" size="1"><b>搜索这个版块:</b>
+		<input type="hidden" name="forum" value="{{ forum.id }}">
+		<br><input type="text" class="bginput" name="q"><input type="image" src="{{ url_for('static', filename='images/go.gif') }}" border="0" align="absbottom">
+	</font></td>
+	</form>
+	</tr></table>
+	</td>
 </tr>
 </table>
+
+<br>
+
+<!-- icon key -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr><td colspan="5" align="center"><font face="verdana,arial,helvetica" size="1">所有时间均为北京时间（GMT+8）</font></td></tr>
+<tr><td rowspan="2" width="50%">&nbsp;</td>
+	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/newfolder.gif') }}" border="0" alt="New Posts"> <b>有新帖</b> &nbsp;&nbsp;</font></td>
+	<td nowrap><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/newhotfolder.gif') }}" border="0" alt="Hot Thread"> <b>回复超过 15 或查看超过 150</b> )&nbsp;&nbsp;</font></td>
+	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/lockfolder.gif') }}" border="0" alt="Closed Thread"> <b>已关闭的主题</b></font></td>
+</tr>
+<tr>
+	<td nowrap><font face="verdana,arial,helvetica" size="1"><img src="{{ url_for('static', filename='images/folder.gif') }}" border="0" alt="No New Posts"> <b>无新帖</b> &nbsp;&nbsp;</font></td>
+	<td nowrap colspan="2"><font face="verdana,arial,helvetica" size="1">( <img src="{{ url_for('static', filename='images/hotfolder.gif') }}" border="0" alt="Hot Thread"> <b>回复超过 15 或查看超过 150</b> )&nbsp;&nbsp;</font></td>
+<td rowspan="2" width="50%">&nbsp;</td></tr>
+</table>
+<!-- /icon key -->
+
+<br>
+
+<!-- forum rules and admin options -->
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+<tr valign="bottom">
+	<td><font face="verdana,arial,helvetica" size="1"><b>版块规则:</b><table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576"><tr><td>
+	<table cellpadding="4" cellspacing="1" border="0">
+	<tr>
+		<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
+		{% if nav_user and not forum.is_closed %}你可以发表新主题{% else %}你不能发表新主题{% endif %}<br>
+		你可以回复主题<br>
+		你可以上传附件<br>
+		你可以编辑自己的帖子</font></td>
+		<td bgcolor="#F1F1F1"><font face="verdana,arial,helvetica" size="1">
+		HTML 代码是 <b>OFF</b><br>
+		vB 代码是 <b>ON</b><br>
+		表情符号是 <b>ON</b><br>
+		[IMG] 代码是 <b>ON</b></font></td>
+	</tr>
+	</table></td></tr></table></font></td>
+	<td align="right"><font face="verdana,arial,helvetica" size="1">{% if nav_user and nav_user.is_admin %}<a href="{{ url_for('admin.forums_page') }}">管理员选项</a>{% endif %}</font></td>
+</tr>
+</table>
+<!-- /forum rules and admin options -->
 {% endblock %}

@@ -1,0 +1,19 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>{{ settings.site_name }} Control Panel</title>
+</head>
+<frameset cols="180,*" framespacing="0" border="0" frameborder="no">
+	<frame src="{{ url_for('admin.nav') }}" name="nav" scrolling="AUTO" NORESIZE frameborder="no" border="no" marginwidth="0" marginheight="0">
+	<frameset rows="20,*" framespacing="0" border="0" frameborder="no">
+		<frame src="{{ url_for('admin.head') }}" name="head" scrolling="NO" NORESIZE frameborder="no" border="no" marginwidth="10" marginheight="0">
+		<frame src="{{ url_for('admin.dashboard') }}" name="main" scrolling="AUTO" NORESIZE frameborder="no" border="no" marginwidth="10" marginheight="10">
+	</frameset>
+</frameset>
+<noframes>
+<body bgcolor="#BBBBBB">
+<p><font face="Verdana,Arial,Helvetica" size="2">当前浏览器不支持框架。<a href="{{ url_for('admin.dashboard') }}">进入控制面板</a></font></p>
+</body>
+</noframes>
+</html>

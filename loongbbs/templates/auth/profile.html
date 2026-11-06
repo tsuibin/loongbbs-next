@@ -1,67 +1,97 @@
 {% extends "base.html" %}
-{% block title %}{{ settings.site_name }} - {{ profile_user.username }}{% endblock %}
+{% block title %}{{ settings.site_name }} - 查看会员资料{% endblock %}
 {% block content %}
-<table class="navbar" cellpadding="0" cellspacing="0">
-<tr>
-  <td class="crumbs"><a href="{{ url_for('forums.index') }}">{{ settings.site_name }}</a> &gt; 会员资料 &gt; {{ profile_user.username }}</td>
-  <td class="navlinks">
-    <a href="{{ url_for('pm.compose_form', to=profile_user.username) if nav_user and nav_user.id != profile_user.id else url_for('pm.inbox') }}">发送悄悄话</a>
-    <span class="sep">|</span><a href="{{ url_for('forums.index') }}">论坛首页</a>
-  </td>
-</tr>
-</table>
+<br>
 
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr><td class="tcat" align="left" colspan="2">查看会员资料: {{ profile_user.username }}</td></tr>
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="100%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
 <tr>
-  <td class="alt2" width="175" valign="top" align="left">
-    <span class="normalfont bold">{{ profile_user.username }}</span><br>
-    <span class="smallfont">
-      {% if profile_user.is_admin %}管理员{% elif profile_user.is_banned %}已封禁{% else %}注册会员{% endif %}
-    </span>
-    <div style="margin:6px 0"><img src="{{ url_for('static', filename='images/clear_avatar.gif') }}" width="65" height="65" alt="头像"></div>
-    <span class="smallfont">
-      注册日期: {{ profile_user.joined_at|dt('%Y-%m-%d') }}<br>
-      帖子: {{ profile_user.post_count }}<br>
-      最后活动: {{ profile_user.last_seen|ago }}
-    </span>
-  </td>
-  <td class="alt1" valign="top">
-    <table class="formtable" cellpadding="2" cellspacing="0">
-      <tr><td class="field-label" width="120">会员名称:</td><td>{{ profile_user.username }}</td></tr>
-      <tr><td class="field-label">邮箱:</td><td>{{ profile_user.email if nav_user and nav_user.id == profile_user.id else '（仅本人可见）' }}</td></tr>
-      <tr><td class="field-label">会员状态:</td><td>{{ '管理员' if profile_user.is_admin else '普通会员' }}{% if profile_user.is_banned %} · 已封禁{% endif %}</td></tr>
-      <tr><td class="field-label">签名:</td><td>{{ profile_user.signature or '（未设置）' }}</td></tr>
-    </table>
-  </td>
+	<td bgcolor="#8080A6" colspan="2">
+		<table width="100%" border="0" cellpadding="0" cellspacing="0">
+		<tr id="cat">
+			<td align="left"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b>{{ profile_user.username }} 的资料</b></font></td>
+			<td align="right"><a href="{{ url_for('search.search', q=profile_user.username) }}"><font face="verdana,arial,helvetica" size="1" color="#EEEEFF" class="thtcolor">搜索这个用户发表的全部帖子。</font></a></td>
+		</tr>
+		</table>
+	</td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF" width="22%"><font face="verdana, arial, helvetica" size="2"><b>注册日期:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.joined_at|dt('%m-%d-%Y') }}</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>状态:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{{ '管理员' if profile_user.is_admin else '注册会员' }}{% if profile_user.is_banned %} · 已封禁{% endif %}&nbsp;<img src="{{ url_for('static', filename='images/clear.gif') }}" border="0" align="middle"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>帖子总数:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{{ profile_user.post_count }}</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>最后发表:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">{% set lp = posts|first %}{% if lp %}{{ lp.created_at|dt('%m-%d-%Y') }} {{ lp.created_at|dt('%I:%M %p') }}<br><a href="{{ url_for('forums.thread', thread_id=lp.thread_id) }}#post{{ lp.id }}">{{ lp.thread.title }}</a>{% else %}从未{% endif %}</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>联系 {{ profile_user.username }}:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">
+		{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}">点这里给 {{ profile_user.username }} 发悄悄话</a>{% else %}&nbsp;{% endif %}
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>主页:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>ICQ 号码:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>AOL 即时通讯账号:</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>Yahoo 即时通讯账号:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>生日</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">N/A</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>个人签名</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">{% if profile_user.signature %}{{ profile_user.signature }}{% else %}&nbsp;{% endif %}</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>来自</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+</tr>
+<tr>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>兴趣</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2"><b>职业</b></font></td>
+	<td bgcolor="#F1F1F1"><font face="verdana, arial, helvetica" size="2">&nbsp;</font></td>
+</tr>
+<tr>
+	<td bgcolor="#8080A6" align="center" colspan="2"><font face="verdana,arial,helvetica" size="1">
+	<a href="{{ url_for('search.search', q=profile_user.username) }}"><font color="#EEEEFF">查看 {{ profile_user.username }} 发表的全部帖子</font></a>
+	&nbsp; &nbsp;
+	{% if nav_user and nav_user.id != profile_user.id %}<a href="{{ url_for('pm.compose_form', to=profile_user.username) }}"><font color="#EEEEFF">给 {{ profile_user.username }} 发悄悄话</font></a>{% endif %}
+	</font></td>
 </tr>
 </table>
+</td></tr></table>
 
 <br>
 
-<table class="tborder" cellpadding="4" cellspacing="1">
-<tr><td class="tcat" align="left" colspan="2">最近主题与回复</td></tr>
+{% if nav_user and nav_user.is_admin %}
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-  <td class="alt2" width="50%" valign="top">
-    <span class="field-label">最近发表的主题:</span>
-    <ul style="margin:4px 0 0 16px;padding:0">
-      {% for thread in threads %}
-        <li><span class="smallfont"><a href="{{ url_for('forums.thread', thread_id=thread.id) }}">{{ thread.title }}</a> （{{ thread.forum.name }} · {{ thread.created_at|ago }}）</span></li>
-      {% else %}
-        <li><span class="smallfont muted">没有主题</span></li>
-      {% endfor %}
-    </ul>
-  </td>
-  <td class="alt1" valign="top">
-    <span class="field-label">最近的帖子:</span>
-    <ul style="margin:4px 0 0 16px;padding:0">
-      {% for post in posts %}
-        <li><span class="smallfont"><a href="{{ url_for('forums.thread', thread_id=post.thread_id) }}#p{{ post.id }}">{{ post.thread.title }}</a> （{{ post.created_at|ago }}）</span></li>
-      {% else %}
-        <li><span class="smallfont muted">没有帖子</span></li>
-      {% endfor %}
-    </ul>
-  </td>
+	<td align="center"><font face="verdana,arial,helvetica" size="1"><b>
+	管理选项： <a href="{{ url_for('admin.users_page') }}">会员管理</a>
+	</b></font></td>
 </tr>
 </table>
+{% endif %}
 {% endblock %}

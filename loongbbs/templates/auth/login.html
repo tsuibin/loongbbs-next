@@ -1,43 +1,50 @@
 {% extends "base.html" %}
 {% block title %}{{ settings.site_name }} - 登录{% endblock %}
 {% block content %}
-<br><br>
-<table class="tborder auto" cellpadding="4" cellspacing="1" width="420" align="center">
-<tr><td class="tcat" align="left"><a name="login">请登录:</a></td></tr>
+<table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
 <tr>
-  <td class="alt1" align="center">
-    <span class="smallfont">你还没有登录，或者上次的会话已过期。</span>
-    <form method="post" action="{{ url_for('auth.login') }}">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <table cellpadding="0" cellspacing="1">
-      <tr>
-        <td><input type="text" name="username" size="18" value="{{ username or '' }}" required></td>
-        <td><input type="password" name="password" size="18" required></td>
-        <td><input type="submit" value="  登录  "></td>
-      </tr>
-      <tr>
-        <td><span class="smallfont">用户名</span></td>
-        <td colspan="2"><span class="smallfont">密码</span></td>
-      </tr>
-      <tr>
-        <td colspan="3"><span class="smallfont"><input type="checkbox" name="remember" value="1"> 记住我</span></td>
-      </tr>
-      </table>
-    </form>
-  </td>
-</tr>
-<tr>
-  <td class="alt2" align="center">
-    <span class="smallfont">
-      {% if settings.allow_registration == '1' %}
-        还没有账号？<a href="{{ url_for('auth.register_form') }}">免费注册</a>
-      {% else %}
-        本站暂未开放注册。
-      {% endif %}
-    </span>
-  </td>
+	<td><img src="{{ url_for('static', filename='images/vb_bullet.gif') }}" border="0" align="middle" alt="">
+	<font face="verdana, arial, helvetica" size="2"><b>登录</b></font></td>
 </tr>
 </table>
+
 <br>
-<div align="center"><span class="smallfont">LoongBBS Next —— 界面参照 vBulletin 2.3.11</span></div>
+
+<table cellpadding="0" cellspacing="0" border="0" bgcolor="#555576" width="60%" align="center"><tr><td>
+<table cellpadding="4" cellspacing="1" border="0" width="100%">
+<tr>
+	<td bgcolor="#8080A6" colspan="2"><font face="verdana, arial, helvetica" size="2" color="#EEEEFF"><b><a name="login">请登录</a></b></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2" align="center"><font face="verdana,arial,helvetica" size="1">你还没有登录，或者上次的会话已经过期。</font></td>
+</tr>
+<form method="post" action="{{ url_for('auth.login') }}">
+<tr bgcolor="#DFDFDF">
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>用户名:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="text" class="bginput" name="username" value="{{ username or '' }}" size="25"></font></td>
+</tr>
+<tr bgcolor="#DFDFDF">
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><b>密码:</b></font></td>
+	<td bgcolor="#DFDFDF"><font face="verdana, arial, helvetica" size="2"><input type="password" class="bginput" name="password" size="25"></font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2" align="center"><font face="verdana,arial,helvetica" size="1">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="checkbox" name="remember" value="1"> 记住我
+	</font></td>
+</tr>
+<tr>
+	<td bgcolor="#F1F1F1" colspan="2" align="center">
+	<input type="submit" class="bginput" value="登录!">
+	<input type="reset" class="bginput" value="重置">
+	</td>
+</tr>
+</form>
+<tr>
+	<td bgcolor="#DFDFDF" colspan="2" align="center"><font face="verdana,arial,helvetica" size="1">
+	{% if settings.allow_registration == '1' %}还没有账号？<a href="{{ url_for('auth.register_form') }}">免费注册</a>{% else %}本站暂未开放注册。{% endif %}
+	</font></td>
+</tr>
+</table>
+</td></tr></table>
 {% endblock %}

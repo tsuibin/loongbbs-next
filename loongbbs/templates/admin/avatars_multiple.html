@@ -1,0 +1,64 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Add Multiple Avatars{% endblock %}
+{% block content %}
+<p><b>Avatars &rsaquo; Add Multiple</b></p>
+
+<script language="JavaScript">
+<!--
+function CheckAll()
+{
+	for (var i=0;i<document.form.elements.length;i++)
+	{
+		var e = document.form.elements[i];
+		if ((e.name != 'allbox') && (e.type=='checkbox'))
+		e.checked = document.form.allbox.checked;
+	}
+}
+//-->
+</script>
+
+<form name="form" method="post" action="{{ url_for('admin.avatars_multiple') }}">
+<input type="hidden" name="avatarpath" value="{{ subdir }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<table align="center" border="0" cellspacing="1" cellpadding="5" class="tblborder">
+<tr class="secondalt"><td align="center" colspan="4">Adding Multiple Avatars from<br><b>{{ settings.site_name }}/{{ subdir }}</b></td></tr>
+<tr class="tblhead">
+	<td align="center"><span class="tblhead"><b>Image</b></span></td>
+	<td align="center"><span class="tblhead"><b>Title</b> <font size="1">(optional)</font></span></td>
+	<td align="center"><span class="tblhead"><b>Minimum Posts</b></span></td>
+	<td align="center"><input name="allbox" type="checkbox" value="Check All" onClick="CheckAll();"></td>
+</tr>
+{% for file in files %}
+	{% set idx = loop.index0 %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+	<td align="center" valign="bottom"><img src="{{ url_for('static', filename=file) }}" border="0" align="center" alt="{{ file }}">
+		<br><font size="1">{{ file.split('/')[-1] }}</font></td>
+	<td align="center"><input type="text" name="title_{{ idx }}" size="25"></td>
+	<td align="center"><input type="text" name="posts_{{ idx }}" size="8" value="0"></td>
+	<td align="center"><input type="checkbox" name="use_{{ idx }}" value="yes">
+		<input type="hidden" name="path_{{ idx }}" value="{{ file }}"></td>
+</tr>
+{% else %}
+<tr class="firstalt"><td colspan="4" align="center">
+	<font size="1">{% if directory_exists %}「{{ subdir }}」下面没有可加入的图片。{% else %}找不到目录 <b>{{ subdir }}</b>。{% endif %}</font>
+</td></tr>
+{% endfor %}
+{% if total %}
+<tr class="{{ 'firstalt' if files|length % 2 == 0 else 'secondalt' }}"><td align="center" colspan="4">
+	<font size="1">Showing avatars {{ lower }} to {{ upper }} of {{ total }}</font>
+	{% if pages > 1 %}
+	<br><br><font size="1">
+	{% if page > 1 %}<a href="{{ url_for('admin.avatars_multiple', avatarpath=subdir, iconsperpage=perpage, startpage=page-1) }}">&lt;</a>{% endif %}
+	{% for p in range(1, pages + 1) %}{% if p == page %}<b> {{ p }} </b>{% else %} <a href="{{ url_for('admin.avatars_multiple', avatarpath=subdir, iconsperpage=perpage, startpage=p) }}">{{ p }}</a> {% endif %}{% endfor %}
+	{% if page < pages %}<a href="{{ url_for('admin.avatars_multiple', avatarpath=subdir, iconsperpage=perpage, startpage=page+1) }}">&gt;</a>{% endif %}
+	</font>
+	{% endif %}
+</td></tr>
+{% endif %}
+</table>
+
+<p align="center"><span id="submitrow"><input type="submit" value="   Save   "></span></p>
+</form>
+
+<p align="center"><font size="1"><a href="{{ url_for('admin.avatars_add') }}">返回 Avatars &rsaquo; Add</a></font></p>
+{% endblock %}

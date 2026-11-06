@@ -24,11 +24,43 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     is_banned = db.Column(db.Boolean, nullable=False, default=False)
     signature = db.Column(db.Text, nullable=False, default="")
+    avatar_id = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    custom_avatar = db.Column(db.String(255), nullable=False, default="", server_default="")
     joined_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     last_seen = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
 
+    # ---- 用户选项（对应 vBulletin 2.x user 表的 editoptions 一组字段）----
+    invisible = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    cookieuser = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    nosessionhash = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    allowmail = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    showemail = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    emailnotification = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    receivepm = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    emailonpm = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    pmpopup = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    showsignatures = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    showavatars = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    showimages = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    vbcode = db.Column(db.Boolean, nullable=False, default=True, server_default="1")
+    prunedays = db.Column(db.Integer, nullable=False, default=-1, server_default="-1")
+    umaxposts = db.Column(db.Integer, nullable=False, default=-1, server_default="-1")
+    startofweek = db.Column(db.Integer, nullable=False, default=1, server_default="1")
+    # vB 的时区偏移带半小时（-3.5 / +5.5），这里存分钟数：480 表示 +8:00
+    timezoneoffset = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    newstyleset = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    buddylist = db.Column(db.String(255), nullable=False, default="", server_default="")
+    ignorelist = db.Column(db.String(255), nullable=False, default="", server_default="")
+
     threads = db.relationship("Thread", back_populates="author", lazy="dynamic")
     posts = db.relationship("Post", back_populates="author", lazy="dynamic")
+    # vB 用 avatar_id=0 表示「没有头像」，所以这里不加外键，改成显式 join
+    avatar = db.relationship(
+        "Avatar",
+        primaryjoin="foreign(User.avatar_id) == Avatar.id",
+        viewonly=True,
+        lazy="select",
+    )
 
     def set_password(self, raw: str) -> None:
         self.password_hash = generate_password_hash(raw)
@@ -190,3 +222,17 @@ class Setting(db.Model):
 
     key = db.Column(db.String(64), primary_key=True)
     value = db.Column(db.Text, nullable=False, default="")
+
+
+class Avatar(db.Model):
+    """vB 2.3.11 的 ``avatar`` 表：后台可选头像库。"""
+
+    __tablename__ = "avatars"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False, default="")
+    minimumposts = db.Column(db.Integer, nullable=False, default=0)
+    avatarpath = db.Column(db.String(255), nullable=False)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Avatar {self.id} {self.title}>"

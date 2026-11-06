@@ -1,76 +1,63 @@
 {% extends "admin/admin_base.html" %}
-{% set active = 'home' %}
 {% block title %}控制面板{% endblock %}
 {% block content %}
+<p><b>Welcome to the vBulletin Administrators' Control Panel</b><br>
+<font size="1">界面按 vBulletin 2.3.11 后台复刻 &middot; LoongBBS Next（Flask + SQLAlchemy 重制）</font></p>
 
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px">
-<tr><td class="cp-title" style="color:#3F3849;font-size:13px"><b>控制面板</b></td>
-<td align="right"><span class="hint">系统概况与快捷入口</span></td></tr>
+<p><font size="1">从这里可以管理站点的一切。左侧导航是原版后台的分组与条目：已经移植的功能直接可用，未移植的条目会打开说明页。</font></p>
+
+<form action="{{ url_for('admin.users_page') }}" method="get">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Useful Admin Stuff</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td>会员总数</td><td><b>{{ stats.users }}</b></td></tr>
+<tr class="secondalt" valign="top"><td>主题总数</td><td><b>{{ stats.threads }}</b></td></tr>
+<tr class="firstalt" valign="top"><td>帖子总数</td><td><b>{{ stats.posts }}</b></td></tr>
+<tr class="secondalt" valign="top"><td>附件</td><td><b>{{ stats.attachments }}</b>（{{ human_size(stats.attachment_bytes) }}）</td></tr>
+<tr class="firstalt" valign="top"><td>悄悄话</td><td><b>{{ stats.messages }}</b></td></tr>
+<tr class="secondalt" valign="top"><td>Quick User Finder</td>
+	<td><input type="text" name="q" size="30"> <span id="submitrow"><input type="submit" value="Find Now"></span></td></tr>
 </table>
-
-<div class="statrow">
-  <div class="statbox"><div class="num">{{ stats.users }}</div><div class="lbl">会员总数</div></div>
-  <div class="statbox"><div class="num">{{ stats.threads }}</div><div class="lbl">主题总数</div></div>
-  <div class="statbox"><div class="num">{{ stats.posts }}</div><div class="lbl">帖子总数</div></div>
-  <div class="statbox"><div class="num">{{ stats.attachments }}</div><div class="lbl">附件（{{ human_size(stats.attachment_bytes) }}）</div></div>
-  <div class="statbox"><div class="num">{{ stats.messages }}</div><div class="lbl">悄悄话</div></div>
-</div>
-
-<table class="tbl" cellpadding="0" cellspacing="1">
-<tr><td class="headcell" colspan="2">管理入口</td></tr>
-<tr>
-  <td width="160"><b>站点设置</b></td>
-  <td><a href="{{ url_for('admin.settings_page') }}">编辑站点设置</a> <span class="hint">— 站名、每页显示数量、注册开关、附件缩略图</span></td>
-</tr>
-<tr>
-  <td class="b"><b>版块与分类</b></td>
-  <td class="b"><a href="{{ url_for('admin.forums_page') }}">管理版块与分类</a> <span class="hint">— 新增分类/版块、开关版块、删除空版块</span></td>
-</tr>
-<tr>
-  <td><b>用户管理</b></td>
-  <td><a href="{{ url_for('admin.users_page') }}">管理用户</a> <span class="hint">— 封禁账号、授予或撤销管理员</span></td>
-</tr>
-</table>
+</td></tr></table>
+</form>
 
 <br>
 
-<table class="tbl" cellpadding="0" cellspacing="1">
-<tr><td class="headcell" colspan="4">最近注册的会员</td></tr>
-<tr>
-  <td class="headcell" style="background:#51485F">用户名</td>
-  <td class="headcell" style="background:#51485F">注册时间</td>
-  <td class="headcell" style="background:#51485F">帖子</td>
-  <td class="headcell" style="background:#51485F">角色</td>
-</tr>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="4"><font size="1"><b><span class="tblhead">最近注册的会员</span></b></font></td></tr>
+<tr class="tblhead"><td><font size="1"><span class="tblhead">用户名</span></font></td><td><font size="1"><span class="tblhead">注册时间</span></font></td><td><font size="1"><span class="tblhead">帖子</span></font></td><td><font size="1"><span class="tblhead">角色</span></font></td></tr>
 {% for user in recent_users %}
-<tr>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><a href="{{ url_for('auth.profile', username=user.username) }}">{{ user.username }}</a></td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ user.joined_at|dt('%Y-%m-%d %H:%M') }}</span></td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ user.post_count }}</td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %} · 已封禁{% endif %}</td>
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td><a href="{{ url_for('auth.profile', username=user.username) }}" target="_blank">{{ user.username }}</a></td>
+	<td>{{ user.joined_at|dt('%Y-%m-%d %H:%M') }}</td>
+	<td>{{ user.post_count }}</td>
+	<td>{{ '管理员' if user.is_admin else '会员' }}{% if user.is_banned %} · 已封禁{% endif %}</td>
 </tr>
 {% else %}
-<tr><td colspan="4">暂无用户</td></tr>
+<tr class="firstalt"><td colspan="4">暂无用户</td></tr>
 {% endfor %}
 </table>
+</td></tr></table>
 
 <br>
 
-<table class="tbl" cellpadding="0" cellspacing="1">
-<tr><td class="headcell" colspan="3">最近发布的帖子</td></tr>
-<tr>
-  <td class="headcell" style="background:#51485F">主题</td>
-  <td class="headcell" style="background:#51485F">作者</td>
-  <td class="headcell" style="background:#51485F">时间</td>
-</tr>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="3"><font size="1"><b><span class="tblhead">最近发布的帖子</span></b></font></td></tr>
+<tr class="tblhead"><td><font size="1"><span class="tblhead">主题</span></font></td><td><font size="1"><span class="tblhead">作者</span></font></td><td><font size="1"><span class="tblhead">时间</span></font></td></tr>
 {% for post in recent_posts %}
-<tr>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><a href="{{ url_for('forums.thread', thread_id=post.thread_id) }}#p{{ post.id }}">{{ post.thread.title }}</a></td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ post.author.username }}</td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ post.created_at|dt }}</span></td>
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td><a href="{{ url_for('forums.thread', thread_id=post.thread_id) }}#post{{ post.id }}" target="_blank">{{ post.thread.title }}</a></td>
+	<td>{{ post.author.username }}</td>
+	<td>{{ post.created_at|dt('%Y-%m-%d %H:%M') }}</td>
 </tr>
 {% else %}
-<tr><td colspan="3">暂无帖子</td></tr>
+<tr class="firstalt"><td colspan="3">暂无帖子</td></tr>
 {% endfor %}
 </table>
+</td></tr></table>
+
+<br>
+<p align="center"><font size="1">&copy;2000 - 2026 LoongBBS Next &middot; 界面参照 vBulletin 2.3.11（2.3.11-php8 移植版）</font></p>
 {% endblock %}

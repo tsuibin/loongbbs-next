@@ -1,0 +1,45 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Modify Avatars{% endblock %}
+{% block content %}
+<form method="get" action="{{ url_for('admin.avatars_page') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="5"><font size="1"><b><span class="tblhead">Current Avatars</span></b></font></td></tr>
+
+{% for row in display_rows %}
+	{% if row.header is not none %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}"><td align="center" colspan="5"><font size="1"><b>-- {{ row.header }} Posts --</b></font></td></tr>
+	{% else %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}">
+		{% for avatar in row['items'] %}
+	<td valign="bottom" nowrap align="center"><font size="1">
+		{% if avatar.avatarpath.startswith('http') %}<img src="{{ avatar.avatarpath }}" border="0" alt="{{ avatar.title }}">
+		{% else %}<img src="{{ url_for('static', filename=avatar.avatarpath) }}" border="0" alt="{{ avatar.title }}">{% endif %}
+		<br><b>{{ avatar.title or '（无名称）' }}</b><br>
+		<a href="{{ url_for('admin.avatars_edit', avatar_id=avatar.id) }}">edit</a>
+		<a href="{{ url_for('admin.avatars_remove', avatar_id=avatar.id) }}">remove</a>
+	</font></td>
+		{% endfor %}
+		{% for _ in range(5 - row['items']|length) %}<td>&nbsp;</td>{% endfor %}
+</tr>
+	{% endif %}
+{% else %}
+{% endfor %}
+
+<tr class="secondalt"><td align="center" colspan="5">
+	<font size="1"><b>Showing avatars {{ lower }} to {{ upper }} of {{ total }}</b></font>
+	&nbsp;
+	<font size="1"><b>Perpage:</b></font> <input type="text" name="perpage" value="{{ perpage }}" size="5">
+	<input type="submit" value="GO">
+	{% if pages > 1 %}
+	<br><font size="1"><b>
+	{% if page > 1 %}<a href="{{ url_for('admin.avatars_page', startpage=page-1, perpage=perpage) }}">&lt;</a>{% endif %}
+	{% for p in range(1, pages + 1) %}{% if p == page %} <b>{{ p }}</b> {% else %} <a href="{{ url_for('admin.avatars_page', startpage=p, perpage=perpage) }}">{{ p }}</a> {% endif %}{% endfor %}
+	{% if page < pages %}<a href="{{ url_for('admin.avatars_page', startpage=page+1, perpage=perpage) }}">&gt;</a>{% endif %}
+	</b></font>
+	{% endif %}
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endblock %}

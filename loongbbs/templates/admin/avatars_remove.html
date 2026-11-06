@@ -1,0 +1,23 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Remove Avatar{% endblock %}
+{% block content %}
+<form method="post" action="{{ url_for('admin.avatars_remove', avatar_id=avatar.id) }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="220">要删除的头像</td>
+	<td>{% if avatar.avatarpath.startswith('http') %}<img src="{{ avatar.avatarpath }}" border="0" alt="{{ avatar.title }}">
+	{% else %}<img src="{{ url_for('static', filename=avatar.avatarpath) }}" border="0" alt="{{ avatar.title }}">{% endif %}
+	<br><b>{{ avatar.title or '（无名称）' }}</b>（最少 {{ avatar.minimumposts }} 帖可用）</td></tr>
+<tr class="secondalt" valign="top"><td>操作</td><td>确定要删除这个头像吗？正在使用它的会员会被切回「没有头像」。</td></tr>
+<tr id="submitrow"><td colspan="2" align="center">
+	<p id="submitrow">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="window.location='{{ url_for('admin.avatars_page') }}'">
+	</p>
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endblock %}

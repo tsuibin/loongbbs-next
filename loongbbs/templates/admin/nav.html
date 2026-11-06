@@ -1,0 +1,27 @@
+<html>
+<head>
+<link rel="stylesheet" href="{{ url_for('static', filename='cp.css') }}">
+<style type="text/css">.opt {COLOR: #3F3849; BACKGROUND-COLOR:#FFFFFF; FONT-SIZE:11px}</style>
+<base target="main">
+</head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" id="navbody">
+<form>
+<a href="{{ url_for('admin.dashboard') }}"><img src="{{ url_for('static', filename='images/cp_logo.gif') }}" width="160" height="49" border="0" alt="vBulletin"></a>
+<center><a href="{{ url_for('admin.dashboard') }}"> Control Panel Home </a></center>
+<table width="100%" border="0" cellspacing="0" cellpadding="5" id="navtable">
+<tr><td><hr></td></tr>
+{% for group in nav_groups %}
+<tr><td>
+	<table width="100%" border="0" cellspacing="0" cellpadding="2" id="navtable">
+	<tr class="tblhead"><td><font size="1"><b><span class="tblhead">{{ group.title }}</span></b></font></td></tr>
+	</table>
+	{% for link in group.links %}<a href="{% if link.endpoint %}{{ url_for(link.endpoint) }}{% else %}{{ url_for('admin.not_port', module=link.label) }}{% endif %}"> {{ link.label }} </a>{{ ' |' if not loop.last }}{% endfor %}
+</td></tr>
+{% endfor %}
+</table>
+<hr>
+<center><font size="1">
+<a href="{{ url_for('forums.index') }}" target="_top">论坛首页</a>
+</font></center>
+</form>
+</BODY></HTML>

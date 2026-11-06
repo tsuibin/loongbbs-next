@@ -1,90 +1,89 @@
 {% extends "admin/admin_base.html" %}
-{% set active = 'forums' %}
 {% block title %}版块与分类{% endblock %}
 {% block content %}
+<p><b>Forums &amp; Moderators &rsaquo; Modify</b></p>
+<p><font size="1">版块下仍有主题时不允许删除；关闭的版块前台不能再发新主题。</font></p>
 
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px">
-<tr><td style="color:#3F3849"><b>版块与分类</b></td>
-<td align="right"><span class="hint">版块下仍有主题时不允许删除</span></td></tr>
-</table>
-
-<table class="tbl" cellpadding="0" cellspacing="1">
-<tr>
-  <td class="headcell" width="28%">版块 / 分类</td>
-  <td class="headcell">说明</td>
-  <td class="headcell" width="8%">主题</td>
-  <td class="headcell" width="10%">帖子</td>
-  <td class="headcell" width="10%">状态</td>
-  <td class="headcell" width="18%">操作</td>
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="6"><font size="1"><b><span class="tblhead">版块与分类</span></b></font></td></tr>
+<tr class="tblhead">
+	<td width="28%"><font size="1"><span class="tblhead">版块 / 分类</span></font></td>
+	<td><font size="1"><span class="tblhead">说明</span></font></td>
+	<td width="8%"><font size="1"><span class="tblhead">主题</span></font></td>
+	<td width="10%"><font size="1"><span class="tblhead">帖子</span></font></td>
+	<td width="10%"><font size="1"><span class="tblhead">状态</span></font></td>
+	<td width="18%"><font size="1"><span class="tblhead">操作</span></font></td>
 </tr>
 
 {% for category in categories %}
-<tr>
-  <td class="headcell" colspan="6" style="background:#51485F">分类：{{ category.name }} <span class="hint">（编号 {{ category.id }}）</span></td>
-</tr>
+<tr class="tblhead"><td colspan="6"><font size="1"><span class="tblhead">分类：{{ category.name }}（编号 {{ category.id }}）</span></font></td></tr>
 {% for forum in category.forums %}
-<tr>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><a href="{{ url_for('forums.forum', forum_id=forum.id) }}">{{ forum.name }}</a></td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}"><span class="hint">{{ forum.description }}</span></td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ forum.thread_count }}</td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ forum.post_count }}</td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">{{ '已关闭' if forum.is_closed else '开放' }}</td>
-  <td class="{{ 'b' if loop.index0 % 2 else '' }}">
-    <form method="post" action="{{ url_for('admin.toggle_forum', forum_id=forum.id) }}" style="display:inline">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <input type="submit" value="{{ '开放' if forum.is_closed else '关闭' }}">
-    </form>
-    <form method="post" action="{{ url_for('admin.delete_forum', forum_id=forum.id) }}" style="display:inline" onsubmit="return confirm('确定删除版块「{{ forum.name }}」？')">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <input type="submit" value="删除">
-    </form>
-  </td>
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top">
+	<td><a href="{{ url_for('forums.forum', forum_id=forum.id) }}" target="_blank">{{ forum.name }}</a></td>
+	<td><font size="1">{{ forum.description }}</font></td>
+	<td>{{ forum.thread_count }}</td>
+	<td>{{ forum.post_count }}</td>
+	<td>{{ '已关闭' if forum.is_closed else '开放' }}</td>
+	<td>
+		<form method="post" action="{{ url_for('admin.toggle_forum', forum_id=forum.id) }}" style="display:inline">
+			<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+			<input type="submit" value="{{ '开放' if forum.is_closed else '关闭' }}">
+		</form>
+		<form method="post" action="{{ url_for('admin.delete_forum', forum_id=forum.id) }}" style="display:inline" onsubmit="return confirm('确定删除版块「{{ forum.name }}」？')">
+			<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+			<input type="submit" value="删除">
+		</form>
+	</td>
 </tr>
 {% else %}
-<tr><td colspan="6"><span class="hint">这个分类下还没有版块。</span></td></tr>
+<tr class="firstalt"><td colspan="6"><font size="1">这个分类下还没有版块。</font></td></tr>
 {% endfor %}
 {% else %}
-<tr><td colspan="6"><span class="hint">还没有分类，先在下面添加一个。</span></td></tr>
+<tr class="firstalt"><td colspan="6"><font size="1">还没有分类，先在下面添加一个。</font></td></tr>
 {% endfor %}
 </table>
+</td></tr></table>
 
 <br>
 
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr valign="top"><td width="50%" style="padding-right:10px">
-
-<form method="post" id="submitrow">
-<table class="tbl" cellpadding="0" cellspacing="1">
-<tr><td class="headcell" colspan="2">添加分类</td></tr>
-<tr><td width="90"><b>分类名称</b></td><td><input type="text" name="name" size="28" required></td></tr>
-<tr><td>&nbsp;</td><td>
-  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-  <input type="hidden" name="action" value="add_category">
-  <input type="submit" value="  添加分类  ">
+<form method="post" action="{{ url_for('admin.forums_page') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">添加分类</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="160">分类名称</td><td><input type="text" name="name" size="30"></td></tr>
+<tr id="submitrow"><td colspan="2" align="center">
+	<p id="submitrow">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="add_category">
+	<input type="submit" value="   Add Category   ">
+	</p>
 </td></tr>
 </table>
+</td></tr></table>
 </form>
 
-</td><td width="50%">
+<br>
 
-<form method="post" id="submitrow">
-<table class="tbl" cellpadding="0" cellspacing="1">
-<tr><td class="headcell" colspan="2">添加版块</td></tr>
-<tr><td width="90"><b>所属分类</b></td><td>
-  <select name="category_id">
-    {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
-  </select>
+<form method="post" action="{{ url_for('admin.forums_page') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">添加版块</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td width="160">所属分类</td><td>
+	<select name="category_id">
+	{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+	</select>
 </td></tr>
-<tr><td><b>版块名称</b></td><td><input type="text" name="name" size="28" required></td></tr>
-<tr><td><b>说明</b></td><td><input type="text" name="description" size="28"></td></tr>
-<tr><td>&nbsp;</td><td>
-  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-  <input type="hidden" name="action" value="add_forum">
-  <input type="submit" value="  添加版块  ">
+<tr class="secondalt" valign="top"><td>版块名称</td><td><input type="text" name="name" size="30"></td></tr>
+<tr class="firstalt" valign="top"><td>说明</td><td><input type="text" name="description" size="30"></td></tr>
+<tr id="submitrow"><td colspan="2" align="center">
+	<p id="submitrow">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="action" value="add_forum">
+	<input type="submit" value="   Add Forum   ">
+	</p>
 </td></tr>
 </table>
+</td></tr></table>
 </form>
-
-</td></tr>
-</table>
 {% endblock %}

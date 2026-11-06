@@ -57,11 +57,12 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.before_request(csrf_protect)
 
     from .attachments import attachment_css, thumb_limits
-    from .utils import format_dt, human_size, render_body, time_ago
+    from .utils import avatar_src, format_dt, human_size, render_body, time_ago
 
     app.jinja_env.filters.update(
         dt=format_dt, ago=time_ago, size=human_size, body=render_body
     )
+    app.jinja_env.globals["avatar_src"] = avatar_src
 
     @app.before_request
     def _mark_request_start():

@@ -1,0 +1,18 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{{ module }}{% endblock %}
+{% block content %}
+<p><b>{{ module }}</b></p>
+
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="1"><font size="1"><b><span class="tblhead">模块尚未移植</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td>
+<p>「{{ module }}」是 vBulletin 2.3.11 后台的一个模块，LoongBBS Next 还没有对应的实现。</p>
+<p><font size="1">左侧导航照原版保留了完整的分组与条目，已经移植的条目会直接打开对应页面；没有移植的条目会打开本页说明，不会假装成功。</font></p>
+<p><font size="1">已移植的后台功能：站点选项（Options）、版块与分类（Forums &amp; Moderators → Modify）、主题批量移动与删除（Threads &amp; Posts → Mass Move / Mass Prune）、会员查找与封禁（Users → Find）、统计（Statistics &amp; Logs → Statistics）。</font></p>
+</td></tr>
+</table>
+</td></tr></table>
+
+<p align="center"><font size="1"><a href="{{ url_for('admin.dashboard') }}" target="main">返回控制面板</a></font></p>
+{% endblock %}
