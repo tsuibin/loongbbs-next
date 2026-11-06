@@ -12,6 +12,45 @@ from flask_login import current_user
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _ensure_usergroup_extras() -> None:
+    """把参考站 usergroup 表里的组级权限原值写进 usergroup_permissions（只做一次）。"""
+    from sqlalchemy import select, text
+
+    from .extensions import db
+    from .models import Setting, UserGroupPermission
+
+    flag = db.session.get(Setting, "usergroup_extras_seeded")
+    if flag is not None:
+        return
+
+    # 参考站 vbulletin.usergroup 表的原值（1..7 组），顺序：
+    # showgroup canviewmembers canmodifyprofile canthreadrate canusepm cantrackpm
+    # candenypmreceipts canpublicevent canpublicedit canwhosonline canwhosonlineip
+    # ismoderator cancontrolpanel maxbuddypm maxforwardpm
+    rows = {
+        1: (0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        2: (0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 5, 5),
+        3: (0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        4: (0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        5: (1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0),
+        6: (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5),
+        7: (0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 5, 5),
+    }
+    names = ("showgroup", "canviewmembers", "canmodifyprofile", "canthreadrate", "canusepm",
+             "cantrackpm", "candenypmreceipts", "canpublicevent", "canpublicedit",
+             "canwhosonline", "canwhosonlineip", "ismoderator", "cancontrolpanel")
+    for gid, values in rows.items():
+        row = db.session.get(UserGroupPermission, gid)
+        if row is None:
+            continue
+        for name, value in zip(names, values):
+            setattr(row, name, bool(value))
+        row.maxbuddypm = values[13]
+        row.maxforwardpm = values[14]
+    db.session.add(Setting(key="usergroup_extras_seeded", value="1"))
+    db.session.commit()
+
+
 def _ensure_profilefields() -> None:
     """User Profile Fields 表为空时补上参考库的四条默认字段。"""
     from sqlalchemy import func, select
@@ -57,7 +96,26 @@ def _ensure_columns() -> None:
 
     from .extensions import db
 
-    needed = {"users": {"referrerid": "INTEGER NOT NULL DEFAULT 0"}}
+    needed = {
+        "users": {"referrerid": "INTEGER NOT NULL DEFAULT 0"},
+        "usergroup_permissions": {
+            "showgroup": "BOOLEAN NOT NULL DEFAULT 0",
+            "canviewmembers": "BOOLEAN NOT NULL DEFAULT 1",
+            "canmodifyprofile": "BOOLEAN NOT NULL DEFAULT 1",
+            "canthreadrate": "BOOLEAN NOT NULL DEFAULT 1",
+            "canusepm": "BOOLEAN NOT NULL DEFAULT 1",
+            "cantrackpm": "BOOLEAN NOT NULL DEFAULT 0",
+            "candenypmreceipts": "BOOLEAN NOT NULL DEFAULT 0",
+            "canpublicevent": "BOOLEAN NOT NULL DEFAULT 0",
+            "canpublicedit": "BOOLEAN NOT NULL DEFAULT 0",
+            "canwhosonline": "BOOLEAN NOT NULL DEFAULT 1",
+            "canwhosonlineip": "BOOLEAN NOT NULL DEFAULT 0",
+            "ismoderator": "BOOLEAN NOT NULL DEFAULT 0",
+            "cancontrolpanel": "BOOLEAN NOT NULL DEFAULT 0",
+            "maxbuddypm": "INTEGER NOT NULL DEFAULT 0",
+            "maxforwardpm": "INTEGER NOT NULL DEFAULT 0",
+        },
+    }
     for table, cols in needed.items():
         existing = {row[1] for row in db.session.execute(text(f"PRAGMA table_info({table})"))}
         for name, ddl in cols.items():
@@ -457,5 +515,6 @@ def create_app(test_config: dict | None = None) -> Flask:
         ensure_seed()
         _ensure_usertitles()
         _ensure_profilefields()
+        _ensure_usergroup_extras()
 
     return app

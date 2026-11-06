@@ -1,0 +1,114 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}{% if ui_lang == 'en' %}User Groups{% else %}用户组{% endif %}{% endblock %}
+{% block content %}
+
+{% macro yesno(name, value, hide=False) %}
+{% if hide %}
+{% else %}
+<p>Yes<input type="radio" name="{{ name }}" value="1"{% if value %} checked{% endif %}> No <input type="radio" name="{{ name }}" value="0"{% if not value %} checked{% endif %}></p>
+{% endif %}
+{% endmacro %}
+
+{% if mode == 'list' %}
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td align="center" colspan="4"><font size="1"><b><span class="tblhead">Usergroups</span></b></font></td></tr>
+<tr class="firstalt" align="center">
+	<td nowrap align="center" width="100%"><font size="1"><b>Usergroup</b></font></td>
+	<td align="center" nowrap><font size="1"><b># of Users</b></font></td>
+	<td align="center" nowrap><font size="1"><b>Edit</b></font></td>
+	<td nowrap align="center"><font size="1"><b>List Users</b></font></td>
+</tr>
+{% for r in rows %}
+<tr class="{{ 'secondalt' if loop.index0 % 2 == 0 else 'firstalt' }}">
+	<td width="100%">{{ r.title }}</td>
+	<td nowrap>{{ r.count }}</td>
+	<td nowrap><a href="{{ url_for('admin.usergroups_edit', usergroupid=r.id) }}" class="lc">[edit]</a>{% if r.id > 6 %} <a href="{{ url_for('admin.usergroups_remove', usergroupid=r.id) }}" class="lc">[remove]</a>{% endif %}</td>
+	<td nowrap><a href="{{ url_for('admin.users_page', usergroupid=r.id) }}" class="lc">[list all users]</a></td>
+</tr>
+{% endfor %}
+</table>
+</td></tr></table>
+
+{% elif mode == 'add' %}
+<form method="post" action="{{ url_for('admin.usergroups_add') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Add new usergroup</span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Title</p></td>
+	<td><p><input type="text" size="35" name="title" value=""></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>User Status<br>Use this to override the default 'ladder' of user status titles</p></td>
+	<td><p><input type="text" size="35" name="usertitle" value=""></p></td></tr>
+{% for title, fields in form_groups %}
+{% if title %}<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">{{ title }}</span></b></font></td></tr>{% endif %}
+{% for name, label in fields %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top"><td><p>{{ label|safe }}</p></td>
+	<td>{{ yesno(name, perms[name]) }}</td></tr>
+{% if name == 'candenypmreceipts' %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top"><td><p>Maximum Buddies to Send PMs at a time<br><font size="1">Do not set this too high for performance reasons (set to 0 to disable)</font></p></td>
+	<td><p><input type="text" size="35" name="maxbuddypm" value="0"></p></td></tr>
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top"><td><p>Maximum PMs to Forward at a time<br><font size="1">Do not set this too high for performance reasons (set to 0 to disable)</font></p></td>
+	<td><p><input type="text" size="35" name="maxforwardpm" value="0"></p></td></tr>
+{% endif %}
+{% endfor %}
+{% endfor %}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="submit" value="   Save   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% elif mode == 'edit' %}
+<form method="post" action="{{ url_for('admin.usergroups_edit') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Edit usergroup: </b>{{ row.title }}<b></span></b></font></td></tr>
+<tr class="firstalt" valign="top"><td><p>Title</p></td>
+	<td><p><input type="text" size="35" name="title" value="{{ row.title }}"></p></td></tr>
+<tr class="secondalt" valign="top"><td><p>User Status<br>Use this to override the default 'ladder' of user status titles</p></td>
+	<td><p><input type="text" size="35" name="usertitle" value="{{ row.usertitle }}"></p></td></tr>
+{% for title, fields in form_groups %}
+{% if title %}<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">{{ title }}</span></b></font></td></tr>{% endif %}
+{% for name, label in fields %}{% if not (name == 'showgroup' and hide_showgroup) %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top"><td><p>{{ label|safe }}</p></td>
+	<td>{{ yesno(name, perms[name]) }}</td></tr>{% endif %}
+{% if name == 'candenypmreceipts' %}
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top"><td><p>Maximum Buddies to Send PMs at a time<br><font size="1">Do not set this too high for performance reasons (set to 0 to disable)</font></p></td>
+	<td><p><input type="text" size="35" name="maxbuddypm" value="{{ maxbuddypm }}"></p></td></tr>
+<tr class="{{ 'firstalt' if loop.index0 % 2 == 0 else 'secondalt' }}" valign="top"><td><p>Maximum PMs to Forward at a time<br><font size="1">Do not set this too high for performance reasons (set to 0 to disable)</font></p></td>
+	<td><p><input type="text" size="35" name="maxforwardpm" value="{{ maxforwardpm }}"></p></td></tr>
+{% endif %}
+{% endfor %}
+{% endfor %}
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="usergroupid" value="{{ row.id }}">
+	{% if hide_showgroup %}<input type="hidden" name="showgroup" value="0">{% endif %}
+	<input type="submit" value="   Save Changes   ">
+	<input type="reset" value="   Reset   ">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+
+{% else %}
+<form method="post" action="{{ url_for('admin.usergroups_remove') }}">
+<table cellpadding="1" cellspacing="0" border="0" align="center" width="90%" class="tblborder"><tr><td>
+<table cellpadding="4" cellspacing="0" border="0" width="100%">
+<tr class="tblhead"><td colspan="2"><font size="1"><b><span class="tblhead">Confirm deletion</span></b></font></td></tr>
+<tr class="firstalt"><td colspan="2" align="center">Are you sure you want to delete this usergroup? All users will revert to the 'registered' group</td></tr>
+<tr class="tblhead" id="submitrow"><td colspan="2" align="center">
+	<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+	<input type="hidden" name="usergroupid" value="{{ row.id }}">
+	<input type="submit" value="   Yes   ">
+	<input type="button" value="   No   " onclick="history.back()">
+</td></tr>
+</table>
+</td></tr></table>
+</form>
+{% endif %}
+
+{% endblock %}

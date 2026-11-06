@@ -3,8 +3,7 @@
 {% block content %}
 
 {% macro yesno(name, value=True) %}
-<p><input type="radio" name="{{ name }}" value="1" id="{{ name }}1" {% if value %}checked{% endif %}> <label for="{{ name }}1">Yes</label>
-<input type="radio" name="{{ name }}" value="0" id="{{ name }}0" {% if not value %}checked{% endif %}> <label for="{{ name }}0">No</label></p>
+<p>Yes<input type="radio" name="{{ name }}" value="1"{% if value %} checked{% endif %}> No <input type="radio" name="{{ name }}" value="0"{% if not value %} checked{% endif %}></p>
 {% endmacro %}
 
 {% macro fields(v=None) %}

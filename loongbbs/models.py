@@ -379,6 +379,41 @@ def _permission_columns() -> dict:
     }
 
 
+# admin/usergroup.php 里除 forumpermission 的 16 项之外，用户组级还要用到的权限/数值列。
+# 顺序照该文件 add/edit 表单的 makeyesnocode 顺序。
+GROUP_EXTRA_FIELDS = (
+    "showgroup",
+    "canviewmembers",
+    "canmodifyprofile",
+    "canthreadrate",
+    "canusepm",
+    "cantrackpm",
+    "candenypmreceipts",
+    "canpublicevent",
+    "canpublicedit",
+    "canwhosonline",
+    "canwhosonlineip",
+    "ismoderator",
+    "cancontrolpanel",
+)
+
+GROUP_EXTRA_LABELS = {
+    "showgroup": "Viewable on Show Groups?",
+    "canviewmembers": "Can view members info (including other\'s profiles and members list)",
+    "canmodifyprofile": "Can modify profile",
+    "canthreadrate": "Can Rate threads if thread rating is enabled in the forum?",
+    "canusepm": "Can use Private Messaging",
+    "cantrackpm": "Can Use Message Tracking?",
+    "candenypmreceipts": "Can Deny Private Message Read Receipt Request?",
+    "canpublicevent": "Can post Public events on Calendar",
+    "canpublicedit": "Can edit other\'s Public events on Calendar",
+    "canwhosonline": "Can View Who\'s Online",
+    "canwhosonlineip": "Can View IP Addresses on Who\'s Online",
+    "ismoderator": "Is Super Moderator",
+    "cancontrolpanel": "Can access control panel",
+}
+
+
 class UserGroupPermission(db.Model):
     """``usergroup`` 表里那 16 个 ``can*`` 默认权限列（本站在这里单独存）。
 
@@ -407,6 +442,22 @@ class UserGroupPermission(db.Model):
     canviewothers = db.Column(db.Boolean, nullable=False, default=True)
     caneditpost = db.Column(db.Boolean, nullable=False, default=True)
     candeletepost = db.Column(db.Boolean, nullable=False, default=True)
+
+    showgroup = db.Column(db.Boolean, nullable=False, default=False)
+    canviewmembers = db.Column(db.Boolean, nullable=False, default=True)
+    canmodifyprofile = db.Column(db.Boolean, nullable=False, default=True)
+    canthreadrate = db.Column(db.Boolean, nullable=False, default=True)
+    canusepm = db.Column(db.Boolean, nullable=False, default=True)
+    cantrackpm = db.Column(db.Boolean, nullable=False, default=False)
+    candenypmreceipts = db.Column(db.Boolean, nullable=False, default=False)
+    canpublicevent = db.Column(db.Boolean, nullable=False, default=False)
+    canpublicedit = db.Column(db.Boolean, nullable=False, default=False)
+    canwhosonline = db.Column(db.Boolean, nullable=False, default=True)
+    canwhosonlineip = db.Column(db.Boolean, nullable=False, default=False)
+    ismoderator = db.Column(db.Boolean, nullable=False, default=False)
+    cancontrolpanel = db.Column(db.Boolean, nullable=False, default=False)
+    maxbuddypm = db.Column(db.Integer, nullable=False, default=0)
+    maxforwardpm = db.Column(db.Integer, nullable=False, default=0)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<UserGroupPermission {self.usergroup_id}>"

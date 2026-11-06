@@ -43,6 +43,7 @@ from .models import (
     ThreadSubscription,
     User,
     UserGroup,
+    UserGroupPermission,
     UserProfileField,
     UserTitle,
 )
@@ -99,8 +100,8 @@ NAV_GROUPS = [
         {"label": "Modify", "endpoint": "admin.profilefields"},
     ]},
     {"title": "User Groups", "links": [
-        {"label": "Add", "module": "Add User Group"},
-        {"label": "Modify", "module": "Modify User Groups"},
+        {"label": "Add", "endpoint": "admin.usergroups_add"},
+        {"label": "Modify", "endpoint": "admin.usergroups"},
         {"label": "Forum Permissions", "endpoint": "admin.permissions_page"},
     ]},
     {"title": "Avatars", "links": [
@@ -870,6 +871,13 @@ def _pm_counts():
     return counts
 
 
+def _yn(form, name: str, default: bool = False) -> bool:
+    raw = form.get(name)
+    if raw is None:
+        return default
+    return raw == "1"
+
+
 def _ip_users(prefix: str, prev_uid: int, depth: int) -> list[dict]:
     """原版 doipaddress：按 IP 前缀找发过帖的用户，depth>0 时递归展开这些用户的其它 IP。"""
     nodes: list[dict] = []
@@ -1144,6 +1152,183 @@ def users_referrals_detail():
     return render_template("admin/referrals.html", mode="detail", rows=rows,
                            referrer=referrer, referrerid=referrerid,
                            startdate=start_raw, enddate=end_raw)
+
+
+GROUP_FORM_GROUPS = (
+    ("", ("showgroup",)),
+    ("Viewing Permissions", ("canview", "canviewmembers", "canviewothers", "cangetattachment")),
+    ("Miscellaneous Permissions", ("cansearch", "canemail", "canmodifyprofile")),
+    ("Posting Permissions", ("canpostnew", "canreplyown", "canreplyothers",
+                             "canthreadrate", "canpostattachment")),
+    ("Post/Thread Editing Permissions", ("caneditpost", "candeletepost", "canmove",
+                                         "canopenclose", "candeletethread")),
+    ("Poll Permissions", ("canpostpoll", "canvote")),
+    ("Private Messaging Permissions", ("canusepm", "cantrackpm", "candenypmreceipts")),
+    ("Calendar Permissions", ("canpublicevent", "canpublicedit")),
+    ("Who's Online Permissions", ("canwhosonline", "canwhosonlineip")),
+    ("Adminstrative Permissions", ("ismoderator", "cancontrolpanel")),
+)
+
+GROUP_FORM_LABELS = {
+    "showgroup": "Viewable on Show Groups?",
+    "canview": "Can view board",
+    "canviewmembers": "Can view members info (including other&#39;s profiles and members list)",
+    "canviewothers": "Can view others&#39; threads",
+    "cangetattachment": "Can download attachments",
+    "cansearch": "Can search",
+    "canemail": "Can use &#39;email to friend&#39; feature",
+    "canmodifyprofile": "Can modify profile",
+    "canpostnew": "Can post new threads",
+    "canreplyown": "Can reply to own threads",
+    "canreplyothers": "Can reply to other&#39;s threads",
+    "canthreadrate": "Can Rate threads if thread rating is enabled in the forum?",
+    "canpostattachment": "Can post attachments",
+    "caneditpost": "Can edit own posts",
+    "candeletepost": "Can delete own posts",
+    "canmove": "Can move own threads to other forums",
+    "canopenclose": "Can open / close own threads",
+    "candeletethread": "Can delete own threads by deleting the first post",
+    "canpostpoll": "Can post polls",
+    "canvote": "Can vote on polls",
+    "canusepm": "Can use Private Messaging",
+    "cantrackpm": "Can Use Message Tracking?",
+    "candenypmreceipts": "Can Deny Private Message Read Receipt Request?",
+    "canpublicevent": "Can post Public events on Calendar",
+    "canpublicedit": "Can edit other&#39;s Public events on Calendar",
+    "canwhosonline": "Can View Who&#39;s Online",
+    "canwhosonlineip": "Can View IP Addresses on Who&#39;s Online",
+    "ismoderator": "Is Super Moderator",
+    "cancontrolpanel": "Can access control panel",
+}
+
+# 原版 usergroup.php add 表单里 makeyesnocode 的默认值
+GROUP_FORM_DEFAULTS = {
+    "showgroup": True, "canview": True, "canviewmembers": True, "canviewothers": True,
+    "cangetattachment": True, "cansearch": True, "canemail": False, "canmodifyprofile": True,
+    "canpostnew": False, "canreplyown": False, "canreplyothers": False, "canthreadrate": True,
+    "canpostattachment": True, "caneditpost": False, "candeletepost": False, "canmove": False,
+    "canopenclose": False, "candeletethread": False, "canpostpoll": True, "canvote": True,
+    "canusepm": True, "cantrackpm": False, "candenypmreceipts": False, "canpublicevent": False,
+    "canpublicedit": False, "canwhosonline": True, "canwhosonlineip": False,
+    "ismoderator": False, "cancontrolpanel": False,
+}
+
+
+def _group_perms(group_id: int) -> dict:
+    row = db.session.get(UserGroupPermission, group_id)
+    if row is None:
+        return dict(GROUP_FORM_DEFAULTS)
+    return {name: bool(getattr(row, name)) for name in GROUP_FORM_DEFAULTS}
+
+
+def _group_form_groups() -> list:
+    return [(title, [(name, GROUP_FORM_LABELS[name]) for name in names])
+            for title, names in GROUP_FORM_GROUPS]
+
+
+@bp.route("/usergroups")
+def usergroups():
+    """User Groups → Modify：照原版 usergroup.php 的 modify。"""
+    rows = db.session.execute(
+        select(UserGroup).order_by(UserGroup.title)).scalars().all()
+    counts = dict(db.session.execute(
+        select(User.usergroupid, func.count(User.id)).group_by(User.usergroupid)).all())
+    group_rows = [{"id": g.id, "title": g.title, "count": counts.get(g.id, 0)} for g in rows]
+    return render_template("admin/usergroups.html", mode="list", rows=group_rows)
+
+
+@bp.route("/usergroups/add", methods=["GET", "POST"])
+def usergroups_add():
+    """User Groups → Add：原版 add / insert。"""
+    if request.method == "GET":
+        return render_template("admin/usergroups.html", mode="add",
+                               form_groups=_group_form_groups(),
+                               perms=dict(GROUP_FORM_DEFAULTS))
+    form = request.form
+    group = UserGroup(title=(form.get("title") or "").strip(),
+                      usertitle=(form.get("usertitle") or "").strip())
+    db.session.add(group)
+    db.session.flush()
+    values = {name: _yn(form, name, GROUP_FORM_DEFAULTS[name]) for name in GROUP_FORM_DEFAULTS}
+    db.session.add(UserGroupPermission(
+        usergroup_id=group.id, **values,
+        maxbuddypm=form.get("maxbuddypm", type=int) or 0,
+        maxforwardpm=form.get("maxforwardpm", type=int) or 0,
+    ))
+    db.session.commit()
+    flash("Record added", "success")
+    return redirect(url_for("admin.usergroups"))
+
+
+@bp.route("/usergroups/edit", methods=["GET", "POST"])
+def usergroups_edit():
+    """User Groups 编辑：原版 edit / doupdate。"""
+    gid = request.values.get("usergroupid", type=int) or 0
+    group = db.session.get(UserGroup, gid) if gid else None
+    if group is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.usergroups"))
+    if request.method == "GET":
+        perms = _group_perms(group.id)
+        # 原版：1/2/3/4/7 组且 showgroup 不为 1 时，这一项改成 hidden（不允许改）
+        hide_showgroup = group.id in (1, 2, 3, 4, 7) and not perms["showgroup"]
+        row = db.session.get(UserGroupPermission, group.id)
+        return render_template("admin/usergroups.html", mode="edit", row=group,
+                               form_groups=_group_form_groups(), perms=perms,
+                               hide_showgroup=hide_showgroup,
+                               maxbuddypm=row.maxbuddypm if row else 0,
+                               maxforwardpm=row.maxforwardpm if row else 0)
+
+    form = request.form
+    if not _yn(form, "cancontrolpanel") and group.id != 0:
+        others = db.session.scalar(select(func.count(UserGroupPermission.usergroup_id)).where(
+            UserGroupPermission.cancontrolpanel.is_(True),
+            UserGroupPermission.usergroup_id != group.id)) or 0
+        if others == 0:
+            return ("<p>You are about to remove the last group with control panel access. "
+                    "This would lock you out of the control panel - you cannot proceed."
+                    "</body></html>", 200, {"Content-Type": "text/html; charset=utf-8"})
+
+    group.title = (form.get("title") or "").strip()
+    group.usertitle = (form.get("usertitle") or "").strip()
+    row = db.session.get(UserGroupPermission, group.id)
+    if row is None:
+        row = UserGroupPermission(usergroup_id=group.id)
+        db.session.add(row)
+    for name in GROUP_FORM_DEFAULTS:
+        if name == "showgroup" and group.id in (1, 2, 3, 4, 7) and "showgroup" not in form:
+            continue
+        setattr(row, name, _yn(form, name, GROUP_FORM_DEFAULTS[name]))
+    row.maxbuddypm = form.get("maxbuddypm", type=int) or 0
+    row.maxforwardpm = form.get("maxforwardpm", type=int) or 0
+    # 原版：填了 User Status 就把该组里没自定义头衔的用户统一改掉
+    if group.usertitle:
+        db.session.execute(db.update(User).where(
+            User.usergroupid == group.id, User.usertitle == "").values(usertitle=group.usertitle))
+    db.session.commit()
+    flash("Record updated!", "success")
+    return redirect(url_for("admin.usergroups"))
+
+
+@bp.route("/usergroups/remove", methods=["GET", "POST"])
+def usergroups_remove():
+    """User Groups 删除：原版 remove / kill。"""
+    gid = request.values.get("usergroupid", type=int) or 0
+    group = db.session.get(UserGroup, gid) if gid else None
+    if group is None:
+        flash("Record not found", "error")
+        return redirect(url_for("admin.usergroups"))
+    if request.method == "GET":
+        return render_template("admin/usergroups.html", mode="remove", row=group)
+    db.session.execute(db.update(User).where(User.usergroupid == group.id).values(usergroupid=2))
+    db.session.execute(delete(ForumPermission).where(ForumPermission.usergroup_id == group.id))
+    db.session.execute(delete(UserGroupPermission).where(
+        UserGroupPermission.usergroup_id == group.id))
+    db.session.execute(delete(UserGroup).where(UserGroup.id == group.id))
+    db.session.commit()
+    flash("Record deleted sucessfully - all existing members of this group have been "
+          "returned to the 'registered' group", "success")
+    return redirect(url_for("admin.usergroups"))
 
 
 @bp.route("/profilefields")
@@ -1931,12 +2116,16 @@ def threads_page():
 def users_page():
     page = max(1, request.args.get("page", type=int) or 1)
     q = (request.args.get("q") or "").strip()
+    gid = request.args.get("usergroupid", type=int) or 0
     per_page = 20
     stmt = select(User).order_by(User.id)
     count_stmt = select(func.count(User.id))
     if q:
         stmt = stmt.where(User.username.ilike(f"%{q}%"))
         count_stmt = count_stmt.where(User.username.ilike(f"%{q}%"))
+    if gid:
+        stmt = stmt.where(User.usergroupid == gid)
+        count_stmt = count_stmt.where(User.usergroupid == gid)
     total = db.session.scalar(count_stmt) or 0
     users = (
         db.session.execute(stmt.offset((page - 1) * per_page).limit(per_page)).scalars().all()
