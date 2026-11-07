@@ -182,6 +182,22 @@ def _translate_attr(match: re.Match) -> str:
     return f"{attr}{prefix}{new}{quote}"
 
 
+# 只有按钮类标签的 `value` 才允许翻译：后台模板里按钮文字是中文/英文原文，
+# 翻它只改显示（按钮值不参与业务判断）；而 `<input type="text">` 的 value 是
+# 设置项当前值、`<option value>` 是提交值，翻了会把数据写脏。
+_VALUE_ATTR_OK_RE = re.compile(
+    r"^<(?:input\b[^>]*\btype\s*=\s*\"(?:submit|reset|button)\"|button\b)", re.I
+)
+_TEXT_ATTR_RE = re.compile(r'\b(alt|title|placeholder)(\s*=\s*")([^"]*)(")', re.I)
+
+
+def _attr_pass(tag: str, fn) -> str:
+    """按标签类型决定是否翻 `value`：按钮翻，输入框/option 只翻 alt/title/placeholder。"""
+    if _VALUE_ATTR_OK_RE.match(tag):
+        return LABEL_ATTR_RE.sub(fn, tag)
+    return _TEXT_ATTR_RE.sub(fn, tag)
+
+
 def translate_html(html: str, translate_attrs: bool = True) -> str:
     """在 HTML 输出上做文本节点 / 按钮属性替换（保护 script、style、textarea、注释）。"""
     if not isinstance(html, str) or "<" not in html:
@@ -210,7 +226,7 @@ def translate_html(html: str, translate_attrs: bool = True) -> str:
         if index < len(tags):
             tag = tags[index]
             if translate_attrs:
-                tag = LABEL_ATTR_RE.sub(_translate_attr, tag)
+                tag = _attr_pass(tag, _translate_attr)
             rebuilt.append(tag)
 
     out = "".join(rebuilt)
@@ -219,23 +235,61 @@ def translate_html(html: str, translate_attrs: bool = True) -> str:
     return out
 
 
-@lru_cache(maxsize=1)
-def _admin_reverse_regex() -> re.Pattern:
-    """英文骨架的整词匹配正则（长键优先，一次扫描）。"""
+@lru_cache(maxsize=4096)
+def _reverse_lookup(text: str) -> str | None:
+    """按参考站的匹配口径查中文：文本节点整条命中才替换。
+
+    参考站 `admin/lang.php` 的 `vblang_template()` 是拿 trim 后的整段文本
+    （连续空白压成一个空格）去查语言包，查不到就原样输出；本地若做子串替换，
+    会把 `Prune Admin Log` 拆成「Prune 管理日志」、把 `No, create a new style`
+    拆成「否, create a new style」—— 这些原版中文态都不会出现。
+    所以这里只认整条，外加「` - ` / ` | ` / 面包屑 `&rsaquo;` 之后的分段」这一种
+    常见拼接，避免把含动态内容的行整条丢掉。
+    """
     from .i18n_admin_zh_reverse import MAP
 
-    keys = sorted(MAP, key=len, reverse=True)
-    return re.compile(r"(?<![\w&])(?:" + "|".join(re.escape(key) for key in keys) + r")(?![\w&])")
+    key = re.sub(r"\s+", " ", text.strip())
+    if not key:
+        return None
+    if key in MAP:
+        return MAP[key]
+    for sep in (" - ", " | ", " &rsaquo; "):
+        if sep in key:
+            head, tail = key.rsplit(sep, 1)
+            if tail in MAP:
+                return head + sep + MAP[tail]
+    # 键后面直接跟动态值（`Posts:` 后面是帖子数）：参考站是在模板里按 `$var`
+    # 切开后逐片匹配，渲染后已经拼成一整段，这里用「键 + 纯动态尾巴」补回来。
+    for prefix in _reverse_prefix_keys():
+        if key.startswith(prefix):
+            rest = key[len(prefix):]
+            if _DYNAMIC_REST_RE.match(rest):
+                return MAP[prefix] + rest
+    return None
+
+
+_DYNAMIC_REST_RE = re.compile(r"^(?:\s*\d|\s*[:：]\s*\d|,\s*\d|\.\d)")
+
+
+@lru_cache(maxsize=1)
+def _reverse_prefix_keys() -> tuple[str, ...]:
+    """可以做前缀匹配的键：至少 3 个字符，长的优先。"""
+    from .i18n_admin_zh_reverse import MAP
+
+    keys = [k for k in MAP if len(k) >= 3 and k not in ("Reported Posts", "Database Settings")]
+    return tuple(sorted(keys, key=len, reverse=True))
 
 
 def _reverse_attr(match: re.Match) -> str:
     from .i18n_admin_zh_reverse import MAP
 
     attr, prefix, value, quote = match.groups()
-    new = _admin_reverse_regex().sub(lambda m: MAP[m.group(0)], value)
-    if new == value:
+    key = re.sub(r"\s+", " ", value.strip())
+    if key not in MAP:
         return match.group(0)
-    return f"{attr}{prefix}{new}{quote}"
+    lead = value[: len(value) - len(value.lstrip())]
+    trail = value[len(value.rstrip()) :]
+    return f"{attr}{prefix}{lead}{MAP[key]}{trail}{quote}"
 
 
 def translate_html_reverse(html: str, translate_attrs: bool = True) -> str:
@@ -247,9 +301,6 @@ def translate_html_reverse(html: str, translate_attrs: bool = True) -> str:
     if not isinstance(html, str) or "<" not in html:
         return html
 
-    from .i18n_admin_zh_reverse import MAP
-
-    regex = _admin_reverse_regex()
     stash: dict[str, str] = {}
 
     def _stash(match: re.Match) -> str:
@@ -263,12 +314,16 @@ def translate_html_reverse(html: str, translate_attrs: bool = True) -> str:
 
     rebuilt: list[str] = []
     for index, chunk in enumerate(parts):
-        chunk = regex.sub(lambda m: MAP[m.group(0)], chunk)
+        mapped = _reverse_lookup(chunk)
+        if mapped is not None:
+            lead = chunk[: len(chunk) - len(chunk.lstrip())]
+            trail = chunk[len(chunk.rstrip()) :]
+            chunk = lead + mapped + trail
         rebuilt.append(chunk)
         if index < len(tags):
             tag = tags[index]
             if translate_attrs:
-                tag = LABEL_ATTR_RE.sub(_reverse_attr, tag)
+                tag = _attr_pass(tag, _reverse_attr)
             rebuilt.append(tag)
 
     out = "".join(rebuilt)

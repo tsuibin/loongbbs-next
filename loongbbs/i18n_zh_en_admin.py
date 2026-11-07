@@ -14,6 +14,13 @@
 MAP = {
     # —— 变量名前缀（后面跟动态变量名，靠前缀匹配）——
     "变量名：": "Variable Name: ",
+    "默认值：": "Default Value: ",
+
+    # —— 设置页自建块（原版 vB 后台没有这一块，措辞按 vB 后台习惯）——
+    "本站设置": "Site Settings",
+    "站点名称": "Site Name",
+    "站点副标题": "Site Tagline",
+    "启用": "Enabled",
 
     # —— 导航与页面骨架 ——
     "进入控制面板": "Enter Control Panel",

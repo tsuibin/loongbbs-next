@@ -546,6 +546,10 @@ def create_app(test_config: dict | None = None) -> Flask:
         if (response.mimetype or "") != "text/html":
             return response
         lang = current_language()
+        # 属性翻译只作用于按钮类标签的 `value` 与 alt/title/placeholder：
+        # 后台模板的按钮文字是原文（中文态里 `value="   Save   "` 要变「保存」，
+        # 英文态里 `value="删除"` 要变 Delete），而设置项当前值、`<option value>`
+        # 是提交内容，翻了会把数据写脏（参考站在 admin 页面直接关掉属性翻译）。
         if lang == "en":
             html = response.get_data(as_text=True)
             if not html:

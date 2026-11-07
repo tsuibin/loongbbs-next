@@ -76,10 +76,11 @@ MAP = {
     'Quote': '引用',
     'Title': '标题',
     'Users': '用户',
-    # 语言包里没有对应中文的整条短语：保持英文原样，同时挡住被拆成
-    # 「Reported 帖子」这种半截翻（原版中文态同样是整条英文）。
+    # 语言包里没有对应中文的整条短语（`Reported Posts`、`Database Settings`）：
+    # 参考站中文态保持整条英文，这里显式记下来，避免后来再往短键上补整句。
     'Reported Posts': 'Reported Posts',
     'Database Settings': 'Database Settings',
+    'Add No-cache headers': 'Add No-cache headers',
     # 后台按钮/链接上常见的短词（原文即英文，中文态需要换回中文）
     'Add': '添加',
     'Edit': '编辑',
@@ -88,6 +89,7 @@ MAP = {
     'Yes': '是',
     'No': '否',
     'Go': '跳转',
+    'Save': '保存',
     'Reset': '重置',
     'Submit': '提交',
     'Cancel': '取消',
