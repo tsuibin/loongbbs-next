@@ -7,7 +7,7 @@
 <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" id="navbody">
 <form>
 <a href="{{ url_for('admin.dashboard') }}"><img src="{{ url_for('static', filename='images/cp_logo.gif') }}" width="160" height="49" border="0" alt="vBulletin"></a>
-<center><a href="{{ url_for('admin.dashboard') }}"> Control Panel Home </a></center>
+<center><a href="{{ url_for('admin.dashboard') }}"> {% if ui_lang == 'en' %}Control Panel Home{% else %}控制面板首页{% endif %} </a></center>
 <table width="100%" border="0" cellspacing="0" cellpadding="5" id="navtable">
 <tr><td><hr></td></tr>
 {% for group in nav_groups %}

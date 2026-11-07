@@ -532,19 +532,31 @@ def create_app(test_config: dict | None = None) -> Flask:
         """语言层：en 时把输出里的中文文本节点换成英文（原版 vblang_template）。
 
         注册在 _http_header_options 之后，所以先翻译再压缩、再套模板名注释。
+        后台页面模板保留的是原版英文骨架，中文态反过来把英文换成中文
+        （等价于原版用 admin/lang_zh.php 做的那步）。
         """
-        from .i18n import current_language, translate_html
+        from .i18n import (
+            current_language,
+            translate_html,
+            translate_html_reverse,
+        )
 
-        if current_language() != "en":
-            return response
         if request.path.startswith("/static"):
             return response
         if (response.mimetype or "") != "text/html":
             return response
-        html = response.get_data(as_text=True)
-        if not html:
+        lang = current_language()
+        if lang == "en":
+            html = response.get_data(as_text=True)
+            if not html:
+                return response
+            response.set_data(translate_html(html))
             return response
-        response.set_data(translate_html(html))
+        if request.path.startswith("/admin"):
+            html = response.get_data(as_text=True)
+            if not html:
+                return response
+            response.set_data(translate_html_reverse(html))
         return response
 
     @app.context_processor

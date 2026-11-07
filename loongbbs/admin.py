@@ -60,6 +60,7 @@ from .models import (
 from .permissions import ensure_seed, permissions_for_group
 from .settings import DEFAULTS, get_settings, set_setting
 from .admin_settings import SETTING_DEFAULTS, SETTING_GROUPS
+from .admin_settings_en import GROUP_TITLES as GROUP_TITLES_EN, SETTINGS_EN
 from .utils import format_dt, human_size
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -164,6 +165,79 @@ NAV_GROUPS = [
     ]},
 ]
 
+# 后台左侧导航的中文名：取自参考站 admin/lang_zh.php（语言包里没有的两条
+# 「Reported Posts」「Database Settings」在原版中文态同样显示英文，这里保持一致）。
+NAV_ZH = {
+    "Options": "选项",
+    "vBulletin Options": "vBulletin 选项",
+    "Announcements": "公告",
+    "Add": "添加",
+    "Modify": "修改",
+    "Forums & Moderators": "版块与版主",
+    "Permissions": "权限",
+    "Threads & Posts": "主题与帖子",
+    "Mass Prune": "批量清理",
+    "Mass Move": "批量移动",
+    "Unsubscribe Thread": "取消订阅主题",
+    "Strip Poll": "移除投票",
+    "Who Voted?": "投票人",
+    "Moderation": "审核",
+    "New Posts": "新帖",
+    "New Attachments": "新附件",
+    "Users": "用户",
+    "Find": "查找",
+    "Move/Prune": "移动/清理",
+    "PM Statistics": "私信统计",
+    "IP Addresses": "IP 地址",
+    "Referrals": "推荐",
+    "Email Users": "邮件群发",
+    "Build Mailing List": "生成邮件列表",
+    "User Titles": "用户头衔",
+    "User Profile Fields": "用户资料字段",
+    "User Groups": "用户组",
+    "Forum Permissions": "版块权限",
+    "Avatars": "头像",
+    "Upload": "上传",
+    "Post Icons": "帖子图标",
+    "Smilies": "表情",
+    "Custom vB Codes": "自定义 vB 代码",
+    "Import & Maintenance": "导入与维护",
+    "Back-up Database": "备份数据库",
+    "BB Import Systems": "论坛导入系统",
+    "Update Counters": "更新计数",
+    "Statistics & Logs": "统计与日志",
+    "Statistics": "统计",
+    "Admin Log": "管理日志",
+    "Styles": "风格",
+    "Add Style": "添加风格",
+    "Download/Upload": "下载/上传",
+    "Replacements": "替换",
+    "Add Set": "添加替换集",
+    "Templates": "模板",
+    "Search": "搜索",
+    "Add Template Set": "添加模板集",
+    "Control Panel Home": "控制面板首页",
+}
+
+
+def _nav_for_language() -> list[dict]:
+    """中文态用参考站语言包的中文名，英文态用原版英文（NAV_GROUPS 原样）。"""
+    from .i18n import current_language
+
+    if current_language() != "zh":
+        return NAV_GROUPS
+    return [
+        {
+            "title": NAV_ZH.get(group["title"], group["title"]),
+            "links": [
+                dict(link, label=NAV_ZH.get(link["label"], link["label"]))
+                for link in group["links"]
+            ],
+        }
+        for group in NAV_GROUPS
+    ]
+
+
 EDITABLE_SETTINGS = {
     "site_name": ("站点名称", "text"),
     "site_tagline": ("站点副标题", "text"),
@@ -185,7 +259,7 @@ def frameset():
 
 @bp.get("/nav")
 def nav():
-    return render_template("admin/nav.html", nav_groups=NAV_GROUPS)
+    return render_template("admin/nav.html", nav_groups=_nav_for_language())
 
 
 @bp.get("/head")
@@ -266,19 +340,37 @@ def settings_page():
     values = dict(SETTING_DEFAULTS)
     values.update(get_settings())
 
+    # 英文界面直接用原版 DB 里的英文原文（分组名 / 设置项名 / 描述），
+    # 中文界面保持本地 lang_zh 的中文，不再依赖中英词典逐句翻译。
+    from .i18n import current_language
+
+    english = current_language() == "en"
+
     shown_groups = []
+    nav_groups = []
     for group in SETTING_GROUPS:
+        title = GROUP_TITLES_EN.get(group["id"], group["title"]) if english else group["title"]
+        nav_groups.append({"id": group["id"], "title": title})
         if current_group_id and group["id"] != current_group_id:
             continue
-        rows = [dict(setting, value=values.get(setting["varname"], setting["default"])) for setting in group["settings"]]
-        shown_groups.append({"id": group["id"], "title": group["title"], "settings": rows})
+        rows = []
+        for setting in group["settings"]:
+            row = dict(setting, value=values.get(setting["varname"], setting["default"]))
+            if english:
+                en = SETTINGS_EN.get(setting["varname"])
+                if en:
+                    row["title"] = en.get("title") or row["title"]
+                    if row.get("description"):
+                        row["description"] = en.get("description") or row["description"]
+            rows.append(row)
+        shown_groups.append({"id": group["id"], "title": title, "settings": rows})
 
     return render_template(
         "admin/settings.html",
         values=values,
         editable=EDITABLE_SETTINGS,
         defaults=DEFAULTS,
-        groups=SETTING_GROUPS,
+        groups=nav_groups,
         shown_groups=shown_groups,
         current_group_id=current_group_id,
     )

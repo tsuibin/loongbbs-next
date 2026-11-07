@@ -217,3 +217,61 @@ def translate_html(html: str, translate_attrs: bool = True) -> str:
     for token, original in stash.items():
         out = out.replace(token, original)
     return out
+
+
+@lru_cache(maxsize=1)
+def _admin_reverse_regex() -> re.Pattern:
+    """英文骨架的整词匹配正则（长键优先，一次扫描）。"""
+    from .i18n_admin_zh_reverse import MAP
+
+    keys = sorted(MAP, key=len, reverse=True)
+    return re.compile(r"(?<![\w&])(?:" + "|".join(re.escape(key) for key in keys) + r")(?![\w&])")
+
+
+def _reverse_attr(match: re.Match) -> str:
+    from .i18n_admin_zh_reverse import MAP
+
+    attr, prefix, value, quote = match.groups()
+    new = _admin_reverse_regex().sub(lambda m: MAP[m.group(0)], value)
+    if new == value:
+        return match.group(0)
+    return f"{attr}{prefix}{new}{quote}"
+
+
+def translate_html_reverse(html: str, translate_attrs: bool = True) -> str:
+    """后台中文态：把模板里保留的英文骨架（表头/按钮）按参考站语言包换成中文。
+
+    只处理文本节点和按钮类属性，保护 script、style、textarea、注释，
+    因此不会碰标签结构、URL、字段名。
+    """
+    if not isinstance(html, str) or "<" not in html:
+        return html
+
+    from .i18n_admin_zh_reverse import MAP
+
+    regex = _admin_reverse_regex()
+    stash: dict[str, str] = {}
+
+    def _stash(match: re.Match) -> str:
+        token = f"\x00{len(stash)}\x00"
+        stash[token] = match.group(0)
+        return token
+
+    protected = PROTECT_RE.sub(_stash, html)
+    parts = TAG_RE.split(protected)
+    tags = TAG_RE.findall(protected)
+
+    rebuilt: list[str] = []
+    for index, chunk in enumerate(parts):
+        chunk = regex.sub(lambda m: MAP[m.group(0)], chunk)
+        rebuilt.append(chunk)
+        if index < len(tags):
+            tag = tags[index]
+            if translate_attrs:
+                tag = LABEL_ATTR_RE.sub(_reverse_attr, tag)
+            rebuilt.append(tag)
+
+    out = "".join(rebuilt)
+    for token, original in stash.items():
+        out = out.replace(token, original)
+    return out

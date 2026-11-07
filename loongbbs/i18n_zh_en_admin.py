@@ -242,7 +242,7 @@ MAP = {
     "论坛开关": "Forum Open/Closed",
     "论坛是否开放": "Forum Open/Closed",
     "版块显示选项": "Forum Display Options",
-    "这些值保存在 settings 表，保存后前台即时生效。分组与字段照原版 vB 后台的 Options 页面。": (
+    "这些值保存在 settings 表，保存后前台即时生效。分组与字段照原版 vB 后台的选项页面。": (
         "These values are stored in the settings table and take effect on the front end as soon as "
         "they are saved. Groups and fields follow the Options pages of the original vB control panel."
     ),
